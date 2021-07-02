@@ -1,0 +1,5 @@
+main: "net.justugh.japi.JustAPI"
+name: "JustAPI"
+version: "2021.7"
+author: "Justugh"
+api-version: 1.16
