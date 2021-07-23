@@ -171,19 +171,19 @@ public class Menu implements InventoryHolder {
 
                 previousPageItem.setAction((event) -> event.getWhoClicked().openInventory(currentInventory));
 
-                nextPageItem.setSlots(new ArrayList<>(Collections.singleton((Integer) getData().getMetaData().get("Next-Page-Slot"))));
-                currentInventory.setItem((Integer) getData().getMetaData().get("Next-Page-Slot"), nextPageItem.getItem().clone());
+                nextPageItem.setSlots((List<Integer>) getData().getMetaData().get("Next-Page-Slots"));
+                nextPageItem.getSlots().forEach(slot -> currentInventory.setItem(slot, nextPageItem.getItem().clone()));
 
                 inventories.add(currentInventory);
 
                 Inventory newInventory = Bukkit.createInventory(this, size, title.replace("%page%", inventories.size() + "").replace("%pages%", pages + ""));
                 inventory.set(newInventory);
                 previousPageItem.setSourceInventory(newInventory);
-                previousPageItem.setSlots(new ArrayList<>(Collections.singleton((Integer) getData().getMetaData().get("Previous-Page-Slot"))));
+                previousPageItem.setSlots((List<Integer>) getData().getMetaData().get("Previous-Page-Slots"));
 
                 nextPageItem.setAction((event) -> event.getWhoClicked().openInventory(newInventory));
 
-                newInventory.setItem((Integer) getData().getMetaData().get("Previous-Page-Slot"), previousPageItem.getItem().clone());
+                previousPageItem.getSlots().forEach(slot -> newInventory.setItem(slot, previousPageItem.getItem().clone()));
                 availableSlots.set(new ArrayList<>(validSlots));
 
                 itemCache.add(nextPageItem);
