@@ -37,7 +37,7 @@ public class MessageProvider {
     }
 
     public String getMessage(String key, Placeholder... externalPlaceholders) {
-        return getMessage(key, false, externalPlaceholders);
+        return getMessage(key, true, externalPlaceholders);
     }
 
     public String getMessage(String key, boolean applyPlaceholders, Placeholder... externalPlaceholders) {
@@ -55,7 +55,7 @@ public class MessageProvider {
     }
 
     public List<String> getMessageList(String key, Placeholder... externalPlaceholders) {
-        return getMessageList(key, false, externalPlaceholders);
+        return getMessageList(key, true, externalPlaceholders);
     }
 
     public List<String> getMessageList(String key, boolean applyPlaceholders, Placeholder... externalPlaceholders) {
