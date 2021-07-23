@@ -1,4 +1,4 @@
-package net.justugh.japi.util;
+package net.justugh.japi.util.location;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -34,6 +34,18 @@ public class LocationUtil {
         } else {
             return new Location(Bukkit.getWorld(splitArgs[0]), Double.parseDouble(splitArgs[1]), Double.parseDouble(splitArgs[2]), Double.parseDouble(splitArgs[3]), Float.parseFloat(splitArgs[4]), Float.parseFloat(splitArgs[5]));
         }
+    }
+
+    public static boolean matches(Location location, Location other) {
+        if (location.getWorld() == null || other.getWorld() == null) {
+            return false;
+        }
+
+        if (!location.getWorld().getName().equalsIgnoreCase(other.getWorld().getName())) {
+            return false;
+        }
+
+        return location.getX() == other.getX() && location.getY() == other.getY() && location.getZ() == other.getZ();
     }
 
 }
