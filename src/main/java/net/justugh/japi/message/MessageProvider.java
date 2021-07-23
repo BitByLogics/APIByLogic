@@ -6,6 +6,8 @@ import lombok.Getter;
 import net.justugh.japi.util.Format;
 import net.justugh.japi.util.Placeholder;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.MemorySection;
+import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.HashMap;
 import java.util.List;
@@ -20,7 +22,14 @@ public class MessageProvider {
         messages = Maps.newHashMap();
         placeholders = Lists.newArrayList();
 
-        section.getKeys(true).forEach(key -> messages.put(key, section.get(key)));
+        section.getKeys(true).stream().filter(key -> !(section.get(key) instanceof MemorySection)).forEach(key -> messages.put(key, section.get(key)));
+    }
+
+    public MessageProvider(FileConfiguration config) {
+        messages = Maps.newHashMap();
+        placeholders = Lists.newArrayList();
+
+        config.getKeys(true).stream().filter(key -> !(config.get(key) instanceof MemorySection)).forEach(key -> messages.put(key, config.get(key)));
     }
 
     public void registerPlaceholder(Placeholder placeholder) {
