@@ -1,4 +1,4 @@
-package net.justugh.japi;
+package net.justugh.japi.database.hikari;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.configuration.ConfigurationSection;
@@ -20,6 +20,17 @@ public class HikariAPI {
         String username = section.getString("Username");
         String password = section.getString("Password");
 
+        hikari = new HikariDataSource();
+        hikari.setMaximumPoolSize(10);
+        hikari.setDataSourceClassName("com.mysql.cj.jdbc.MysqlDataSource");
+        hikari.addDataSourceProperty("serverName", address);
+        hikari.addDataSourceProperty("port", port);
+        hikari.addDataSourceProperty("databaseName", database);
+        hikari.addDataSourceProperty("user", username);
+        hikari.addDataSourceProperty("password", password);
+    }
+
+    public HikariAPI(String address, String database, String port, String username, String password) {
         hikari = new HikariDataSource();
         hikari.setMaximumPoolSize(10);
         hikari.setDataSourceClassName("com.mysql.cj.jdbc.MysqlDataSource");
