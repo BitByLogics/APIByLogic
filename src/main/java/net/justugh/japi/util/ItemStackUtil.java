@@ -19,7 +19,7 @@ public class ItemStackUtil {
 
     public static ItemStack getItemStackFromConfig(ConfigurationSection config, Placeholder... placeholders) {
         int amount = config.getInt("Amount") == 0 ? 1 : config.getInt("Amount");
-        ItemStack stack = new ItemStack(Material.valueOf(Format.format(config.getString("Material"), placeholders)), amount);
+        ItemStack stack = new ItemStack(Material.valueOf(Format.format(config.getString("Material", "BARRIER"), placeholders)), amount);
         ItemMeta meta = stack.getItemMeta();
 
         if (config.getString("Name") != null) {
