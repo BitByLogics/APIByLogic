@@ -1,6 +1,6 @@
 # JustAPI
 
-JustAPI is a set of APIs developed by me that I find useful.
+JustAPI is a set of APIs developed by myself that I find useful.
 
 ## Noteworthy Features
 
