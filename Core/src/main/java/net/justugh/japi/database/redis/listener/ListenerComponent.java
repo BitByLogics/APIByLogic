@@ -1,6 +1,7 @@
 package net.justugh.japi.database.redis.listener;
 
 import com.google.common.collect.Maps;
+import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.Setter;
 import net.justugh.japi.database.redis.client.RedisClient;
@@ -29,7 +30,7 @@ public class ListenerComponent {
     }
 
     public ListenerComponent addData(String key, Object object) {
-        data.put(key, source.getRedisManager().getGson().toJson(object));
+        data.put(key, new Gson().toJson(object));
         return this;
     }
 
@@ -38,7 +39,7 @@ public class ListenerComponent {
             return null;
         }
 
-        return source.getRedisManager().getGson().fromJson(data.get(key), type);
+        return new Gson().fromJson(data.get(key), type);
     }
 
 }

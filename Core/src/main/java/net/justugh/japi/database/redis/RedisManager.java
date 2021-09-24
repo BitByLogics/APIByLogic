@@ -2,6 +2,7 @@ package net.justugh.japi.database.redis;
 
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -36,9 +37,9 @@ public class RedisManager {
         config.setMaxIdle(10);
         config.setMinIdle(5);
 
-        this.jedisPool = new JedisPool(config, host, port, 10_000, password);
+        this.jedisPool = password.isEmpty() ? new JedisPool(config, host, port, 10_000) : new JedisPool(config, host, port, 10_000, password);
         this.SOURCE_ID = sourceId;
-        this.gson = new Gson();
+        this.gson = new GsonBuilder().create();
 
         this.clients = Lists.newArrayList();
 

@@ -12,9 +12,9 @@ import java.util.List;
 @Getter
 public class RedisClient {
 
-    private final RedisManager redisManager;
+    private final transient RedisManager redisManager;
     private final String ID;
-    private final List<RedisMessageListener> listeners;
+    private final transient List<RedisMessageListener> listeners;
 
     public RedisClient(RedisManager redisManager, String ID) {
         this.redisManager = redisManager;

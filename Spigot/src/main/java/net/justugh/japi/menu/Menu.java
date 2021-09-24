@@ -180,6 +180,9 @@ public class Menu implements InventoryHolder {
 
                 previousPageItem.getSlots().forEach(slot -> currentInventory.setItem(slot, previousPageItem.getItem().clone()));
 
+                nextPageItem.getSlots().forEach(slot -> availableSlots.get().remove(slot));
+                previousPageItem.getSlots().forEach(slot -> availableSlots.get().remove(slot));
+
                 itemCache.add(nextPageItem);
                 itemCache.add(previousPageItem);
             }
@@ -207,6 +210,9 @@ public class Menu implements InventoryHolder {
 
                 previousPageItem.getSlots().forEach(slot -> newInventory.setItem(slot, previousPageItem.getItem().clone()));
                 availableSlots.set(new ArrayList<>(validSlots));
+
+                nextPageItem.getSlots().forEach(slot -> availableSlots.get().remove(slot));
+                previousPageItem.getSlots().forEach(slot -> availableSlots.get().remove(slot));
 
                 itemCache.add(nextPageItem);
                 itemCache.add(previousPageItem);

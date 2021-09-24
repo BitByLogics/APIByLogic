@@ -7,7 +7,7 @@
     <parent>
         <artifactId>JustAPI</artifactId>
         <groupId>net.justugh</groupId>
-        <version>2021.8</version>
+        <version>2021.9</version>
     </parent>
 
     <artifactId>JustAPI-Core</artifactId>

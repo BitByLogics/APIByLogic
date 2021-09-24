@@ -6,6 +6,29 @@ import java.util.stream.Stream;
 public class StringUtil {
 
     /**
+     * Joins a String array starting from the specified
+     * index using the specified delimiter.
+     *
+     * @param index     The index to start from.
+     * @param array     The array to join.
+     * @param delimiter The delimiter that separates each element.
+     * @return The joined array as a single String.
+     */
+    public static String join(int index, String[] array, String delimiter) {
+        if (index >= array.length) {
+            throw new IndexOutOfBoundsException("Specified index is greater than array length");
+        }
+
+        String[] newArray = new String[array.length - index];
+
+        for (int i = index; i < array.length; i++) {
+            newArray[i - index] = array[i];
+        }
+
+        return String.join(delimiter, newArray);
+    }
+
+    /**
      * Capitalize each word in a string.
      * "mINecraft iS fun" -> "Minecraft Is Fun"
      *

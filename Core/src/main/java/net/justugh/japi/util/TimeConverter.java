@@ -16,8 +16,8 @@ public class TimeConverter {
      * @return Whether the specified string is valid.
      */
     public static boolean isTimeString(String string) {
-        for(String split : string.split(" ")) {
-            if(!split.matches("((\\d+)[A-Za-z])")) {
+        for (String split : string.split(" ")) {
+            if (!split.matches("((\\d+)[A-Za-z])")) {
                 return false;
             }
         }
@@ -32,6 +32,17 @@ public class TimeConverter {
      * @return A readable time string.
      */
     public static String convertToReadableTime(long time) {
+        return convertToReadableTime(time, false);
+    }
+
+    /**
+     * Convert a long to a human-readable time.
+     *
+     * @param time         The time being converted.
+     * @param longPrefixes Whether to use long time prefixes.
+     * @return A readable time string.
+     */
+    public static String convertToReadableTime(long time, boolean longPrefixes) {
         long seconds = TimeUnit.MILLISECONDS.toSeconds(time);
         seconds = seconds - ((seconds / 60) * 60);
         long minutes = TimeUnit.MILLISECONDS.toMinutes(time);
@@ -46,13 +57,33 @@ public class TimeConverter {
 
         StringBuilder message = new StringBuilder();
 
-        if(time == -1){message.append("Permanent");}
-        if(years > 0){message.append(years).append("y ");}
-        if(months > 0){message.append(months).append("m ");}
-        if(days > 0) {message.append(days).append("d ");}
-        if(hours > 0) {message.append(hours).append("h ");}
-        if(minutes > 0) {message.append(minutes).append("m ");}
-        if(seconds > 0) {message.append(seconds).append("s");}
+        if (time == -1) {
+            message.append(TimeAbbreviation.INFINITE.getPrefix(longPrefixes));
+        }
+
+        if (years > 0) {
+            message.append(years).append(TimeAbbreviation.YEAR.getPrefix(longPrefixes)).append(" ");
+        }
+
+        if (months > 0) {
+            message.append(months).append(TimeAbbreviation.MONTH.getPrefix(longPrefixes)).append(" ");
+        }
+
+        if (days > 0) {
+            message.append(days).append(TimeAbbreviation.DAY.getPrefix(longPrefixes)).append(" ");
+        }
+
+        if (hours > 0) {
+            message.append(hours).append(TimeAbbreviation.HOUR.getPrefix(longPrefixes)).append(" ");
+        }
+
+        if (minutes > 0) {
+            message.append(minutes).append(TimeAbbreviation.MINUTE.getPrefix(longPrefixes)).append(" ");
+        }
+
+        if (seconds > 0) {
+            message.append(seconds).append(TimeAbbreviation.SECOND.getPrefix(longPrefixes));
+        }
 
         return message.toString().trim();
     }
@@ -68,14 +99,14 @@ public class TimeConverter {
         long time = 0;
 
         for (String arg : args) {
-            if(arg.matches("((\\d+)[A-Za-z])")) {
+            if (arg.matches("((\\d+)[A-Za-z])")) {
                 Matcher numberMatcher = NUMBER_PATTERN.matcher(arg);
                 numberMatcher.find();
                 Matcher letterMatcher = LETTER_PATTERN.matcher(arg);
                 letterMatcher.find();
                 long tempTime = Long.valueOf(numberMatcher.group(0));
                 TimeAbbreviation abbreviation = getAbbreviation(letterMatcher.group(0));
-                time+= abbreviation.getTime(tempTime);
+                time += abbreviation.getTime(tempTime);
             }
         }
 
@@ -91,7 +122,7 @@ public class TimeConverter {
     private static TimeAbbreviation getAbbreviation(String data) {
         for (TimeAbbreviation abbreviation : TimeAbbreviation.values()) {
             for (String prefix : abbreviation.getPrefix()) {
-                if(data.equalsIgnoreCase(prefix)) {
+                if (data.equalsIgnoreCase(prefix)) {
                     return abbreviation;
                 }
             }
@@ -102,14 +133,14 @@ public class TimeConverter {
 
     public enum TimeAbbreviation {
 
-        SECOND(1, "s", "second"),
-        MINUTE(60, "m", "minute"),
-        HOUR(3600, "h", "hour"),
-        DAY(86400, "d", "day"),
-        WEEK(604800, "w", "week"),
-        MONTH(2592000, "mh", "month"),
-        YEAR(31556952, "y", "year"),
-        PERM(-1, "p");
+        SECOND(1, "s", " Second(s)"),
+        MINUTE(60, "m", " Minute(s)"),
+        HOUR(3600, "h", " Hour(s)"),
+        DAY(86400, "d", " Day(s)"),
+        WEEK(604800, "w", " Week(s)"),
+        MONTH(2592000, "mh", " Month(s)"),
+        YEAR(31556952, "y", " Year(s)"),
+        INFINITE(-1, "f", "Forever");
 
         String[] prefix;
         long multiplier;
@@ -124,11 +155,15 @@ public class TimeConverter {
         }
 
         public long getTime(long time) {
-            if(multiplier == -1) {
+            if (multiplier == -1) {
                 return -1;
             }
 
             return (time * multiplier) * 1000;
+        }
+
+        public String getPrefix(boolean longPrefix) {
+            return longPrefix ? prefix[1] : prefix[0];
         }
 
     }

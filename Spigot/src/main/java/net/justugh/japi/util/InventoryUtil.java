@@ -2,11 +2,9 @@ package net.justugh.japi.util;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.block.CreatureSpawner;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
@@ -17,13 +15,30 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class InventoryUtil {
 
+    /**
+     * Check whether an inventory has space for
+     * an ItemStack.
+     *
+     * @param inventory The inventory to check.
+     * @param itemStack The ItemStack to try to add.
+     * @return Whether the inventory has space.
+     */
     public static boolean hasSpace(Inventory inventory, ItemStack itemStack) {
+        if (itemStack == null) {
+            return false;
+        }
+
         ItemStack item = new ItemStack(itemStack.clone());
         Inventory testInv = Bukkit.createInventory(null, inventory instanceof PlayerInventory ? 36 : inventory.getSize());
 
         Arrays.stream(inventory.getContents().clone()).filter(Objects::nonNull).forEach(invItem -> {
             ItemStack clonedItem = invItem.clone();
             ItemMeta meta = clonedItem.getItemMeta();
+
+            if (meta == null) {
+                return;
+            }
+
             meta.setDisplayName(ThreadLocalRandom.current().nextInt() + "");
             meta.setLore(Collections.singletonList(ThreadLocalRandom.current().nextInt() + ""));
             clonedItem.setItemMeta(meta);
@@ -39,7 +54,7 @@ public class InventoryUtil {
             int openSlots = 0;
 
             while (testInv.firstEmpty() != -1) {
-                testInv.addItem(new ItemStack(Material.OAK_LOG, 64));
+                testInv.addItem(new ItemStack(Material.BARRIER, 64));
                 openSlots++;
             }
 
@@ -49,13 +64,24 @@ public class InventoryUtil {
         return testInv.addItem(item).isEmpty();
     }
 
-    public static boolean hasItems(Inventory inventory, ItemStack itemStack) {
+    /**
+     * Check whether an inventory has an ItemStack.
+     *
+     * @param inventory         Inventory to check.
+     * @param itemStack         ItemStack to check for.
+     * @param amount            The amount to check for.
+     * @param compareFlags      Whether to match the flags.
+     * @param compareName       Whether to match the name.
+     * @param compareLore       Whether to match the lore.
+     * @param compareDurability Whether to match the durability.
+     * @return Whether the inventory has the items.
+     */
+    public static boolean hasItems(Inventory inventory, ItemStack itemStack, int amount, boolean compareFlags, boolean compareName, boolean compareLore, boolean compareDurability) {
         if (itemStack == null) {
             return false;
         }
 
         AtomicInteger currentSlot = new AtomicInteger(0);
-
         Inventory testInv = Bukkit.createInventory(null, inventory instanceof PlayerInventory ? 36 : inventory.getSize());
 
         ItemStack[] contents = inventory.getContents().clone();
@@ -75,37 +101,64 @@ public class InventoryUtil {
 
         int found = 0;
         for (ItemStack item : testInv.getContents()) {
-            if (item != null && item.getType() != Material.AIR) {
-                if (ItemStackUtil.isSimilarWithLore(item, itemStack)) {
-                    if (itemStack.getType() == Material.SPAWNER) {
-                        BlockStateMeta meta = (BlockStateMeta) item.getItemMeta();
-                        BlockStateMeta otherMeta = (BlockStateMeta) itemStack.getItemMeta();
-
-                        if (((CreatureSpawner) meta.getBlockState()).getSpawnedType() != ((CreatureSpawner) otherMeta.getBlockState()).getSpawnedType()) {
-                            continue;
-                        }
-
-                        found += item.getAmount();
-                    } else if (item.getDurability() == itemStack.getDurability()) {
-                        found += item.getAmount();
-                    }
-                }
+            if (item == null || item.getType() == Material.AIR) {
+                continue;
             }
-        }
-        if (found >= itemStack.getAmount()) {
-            return true;
+
+            if (!ItemStackUtil.isSimilar(item, itemStack, compareFlags, compareName, compareLore)) {
+                continue;
+            }
+
+            if (itemStack.getType() == Material.SPAWNER && ItemStackUtil.spawnerMatches(itemStack, item)) {
+                found += item.getAmount();
+                continue;
+            }
+
+            if (compareDurability && item.getDurability() == itemStack.getDurability()) {
+                found += item.getAmount();
+                continue;
+            }
+
+            found += item.getAmount();
         }
 
-        return false;
+        return found >= amount;
     }
 
-    public static int getItems(Inventory inventory, ItemStack itemStack) {
+    /**
+     * Check whether an inventory has an ItemStack.
+     * <p>
+     * NOTE: This is a very basic matching. It does
+     * not take name, lore, flags or durability
+     * into account. For that use {@link #hasItems(Inventory, ItemStack, int, boolean, boolean, boolean, boolean)}.
+     *
+     * @param inventory Inventory to check.
+     * @param itemStack ItemStack to check for.
+     * @param amount    The amount to check for.
+     * @return Whether the inventory has the items.
+     */
+    public static boolean hasItems(Inventory inventory, ItemStack itemStack, int amount) {
+        return hasItems(inventory, itemStack, amount, false, false, false, false);
+    }
+
+    /**
+     * Get how many of a certain ItemStack is in the
+     * provided inventory.
+     *
+     * @param inventory         Inventory to check.
+     * @param itemStack         ItemStack to check for.
+     * @param compareFlags      Whether to match the flags.
+     * @param compareName       Whether to match the name.
+     * @param compareLore       Whether to match the lore.
+     * @param compareDurability Whether to match the durability.
+     * @return The amount of items discovered.
+     */
+    public static int getItems(Inventory inventory, ItemStack itemStack, boolean compareFlags, boolean compareName, boolean compareLore, boolean compareDurability) {
         if (itemStack == null) {
             return 0;
         }
 
         AtomicInteger currentSlot = new AtomicInteger(0);
-
         Inventory testInv = Bukkit.createInventory(null, inventory instanceof PlayerInventory ? 36 : inventory.getSize());
 
         ItemStack[] contents = inventory.getContents().clone();
@@ -125,28 +178,44 @@ public class InventoryUtil {
 
         int found = 0;
         for (ItemStack item : testInv.getContents()) {
-            if (item != null && item.getType() != Material.AIR) {
-                if (ItemStackUtil.isSimilarWithLore(item, itemStack)) {
-                    if (itemStack.getType() == Material.SPAWNER) {
-                        BlockStateMeta meta = (BlockStateMeta) item.getItemMeta();
-                        BlockStateMeta otherMeta = (BlockStateMeta) itemStack.getItemMeta();
-
-                        if (((CreatureSpawner) meta.getBlockState()).getSpawnedType() != ((CreatureSpawner) otherMeta.getBlockState()).getSpawnedType()) {
-                            continue;
-                        }
-
-                        found += item.getAmount();
-                    } else if (item.getDurability() == itemStack.getDurability()) {
-                        found += item.getAmount();
-                    }
-                }
+            if (item == null || item.getType() == Material.AIR) {
+                continue;
             }
-        }
-        if (found >= itemStack.getAmount()) {
-            return found;
+
+            if (!ItemStackUtil.isSimilar(item, itemStack, compareFlags, compareName, compareLore)) {
+                continue;
+            }
+
+            if (itemStack.getType() == Material.SPAWNER && ItemStackUtil.spawnerMatches(itemStack, item)) {
+                found += item.getAmount();
+                continue;
+            }
+
+            if (compareDurability && item.getDurability() == itemStack.getDurability()) {
+                found += item.getAmount();
+                continue;
+            }
+
+            found += item.getAmount();
         }
 
-        return 0;
+        return found;
+    }
+
+    /**
+     * Get how many of a certain ItemStack is in the
+     * provided inventory.
+     * <p>
+     * NOTE: This is a very basic matching. It does
+     * not take name, lore, flags or durability
+     * into account. For that use {@link #getItems(Inventory, ItemStack, boolean, boolean, boolean, boolean)}.
+     *
+     * @param inventory Inventory to check.
+     * @param itemStack ItemStack to check for.
+     * @return The amount of items discovered.
+     */
+    public static int getItems(Inventory inventory, ItemStack itemStack) {
+        return getItems(inventory, itemStack, false, false, false, false);
     }
 
 }
