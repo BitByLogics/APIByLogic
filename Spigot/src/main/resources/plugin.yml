@@ -1,7 +1,7 @@
 name: JustAPI
 version: ${project.version}
 main: net.justugh.japi.JustAPIPlugin
-api-version: 1.16
+api-version: 1.17
 authors: [ Justugh ]
 description: TODO
 website: https://www.justugh.net

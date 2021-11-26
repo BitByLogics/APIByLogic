@@ -59,6 +59,48 @@ public class HikariAPI {
         }
     }
 
+    public void executeStatement(String query, Consumer<ResultSet> consumer, Object... arguments) {
+        Connection connection = null;
+        PreparedStatement statement = null;
+
+        try {
+            connection = hikari.getConnection();
+            statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
+
+            int index = 1;
+            for (Object argument : arguments) {
+                statement.setObject(index++, argument);
+            }
+
+            statement.executeUpdate();
+            ResultSet result = statement.getGeneratedKeys();
+
+            if (result != null && result.next()) {
+                consumer.accept(result);
+            }
+
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     public void executeQuery(String query, Consumer<ResultSet> consumer, Object... arguments) {
         Connection connection = null;
         PreparedStatement statement = null;
