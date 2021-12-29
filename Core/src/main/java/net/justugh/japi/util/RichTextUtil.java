@@ -29,4 +29,30 @@ public class RichTextUtil {
         return newString.toArray(new String[]{});
     }
 
+    /**
+     * Retrieve data from a string array.
+     * <p>
+     * Example:
+     * <p>
+     * Input: Testing! 123 | Wow
+     * Output: ["Testing! 123", "Wow"]
+     *
+     * @param args       The string.
+     * @param startIndex Index to start from.
+     * @return A String array of extracted data.
+     */
+    public static String[] getRichText(String args, int startIndex) {
+        List<String> newString = new ArrayList<>();
+
+        for (String s : args.trim().split("\\|")) {
+            newString.add(s.trim());
+        }
+
+        if (newString.isEmpty()) {
+            newString.add(args.trim());
+        }
+
+        return newString.toArray(new String[]{});
+    }
+
 }

@@ -35,6 +35,10 @@ public class TimeConverter {
         return convertToReadableTime(time, false);
     }
 
+    public static void main(String[] args) {
+        System.out.println(convertToReadableTime(convert("42d")));
+    }
+
     /**
      * Convert a long to a human-readable time.
      *
@@ -43,6 +47,10 @@ public class TimeConverter {
      * @return A readable time string.
      */
     public static String convertToReadableTime(long time, boolean longPrefixes) {
+        if (time <= 0) {
+            return "Forever";
+        }
+
         long seconds = TimeUnit.MILLISECONDS.toSeconds(time);
         seconds = seconds - ((seconds / 60) * 60);
         long minutes = TimeUnit.MILLISECONDS.toMinutes(time);
@@ -52,14 +60,12 @@ public class TimeConverter {
         long days = TimeUnit.MILLISECONDS.toDays(time);
         long months = days / 30;
         days = days - ((days / 30) * 30);
+        long weeks = days / 7;
+        days = days - ((days / 7) * 7);
         long years = months / 12;
         months = months - ((months / 12) * 12);
 
         StringBuilder message = new StringBuilder();
-
-        if (time == -1) {
-            message.append(TimeAbbreviation.INFINITE.getPrefix(longPrefixes));
-        }
 
         if (years > 0) {
             message.append(years).append(TimeAbbreviation.YEAR.getPrefix(longPrefixes)).append(" ");
@@ -67,6 +73,10 @@ public class TimeConverter {
 
         if (months > 0) {
             message.append(months).append(TimeAbbreviation.MONTH.getPrefix(longPrefixes)).append(" ");
+        }
+
+        if (weeks > 0) {
+            message.append(weeks).append(TimeAbbreviation.WEEK.getPrefix(longPrefixes)).append(" ");
         }
 
         if (days > 0) {

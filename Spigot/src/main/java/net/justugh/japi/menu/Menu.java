@@ -224,7 +224,7 @@ public class Menu implements InventoryHolder {
                 item.setSourceInventory(targetInventory);
                 item.getSlots().forEach(slot -> {
                     availableSlots.get().removeAll(Collections.singletonList(slot));
-                    targetInventory.setItem(slot, item.getItem().clone());
+                    targetInventory.setItem(slot, item.getItemUpdateProvider() == null ? item.getItem().clone() : item.getItemUpdateProvider().requestItem());
                 });
 
                 return;

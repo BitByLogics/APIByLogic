@@ -75,7 +75,10 @@ public class HikariAPI {
             statement.executeUpdate();
             ResultSet result = statement.getGeneratedKeys();
 
-            if (result != null && result.next()) {
+            if (result == null) {
+                consumer.accept(null);
+            } else {
+                result.next();
                 consumer.accept(result);
             }
 

@@ -3,6 +3,7 @@ package net.justugh.japi.menu;
 import com.google.common.base.Preconditions;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import net.justugh.japi.menu.action.MenuClickActionType;
 import net.justugh.japi.util.Format;
 import net.justugh.japi.util.ItemStackUtil;
 import net.justugh.japi.util.Placeholder;
@@ -10,6 +11,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Getter
@@ -107,15 +109,7 @@ public class MenuBuilder {
 
         ConfigurationSection itemSection = section.getConfigurationSection("Items");
 
-        loadItemsFromConfig(itemSection, placeholders);
-
-        if (section.getConfigurationSection("Filler-Item") != null) {
-            ItemStack fillerItem = ItemStackUtil.getItemStackFromConfig(section.getConfigurationSection("Filler-Item"), placeholders);
-
-            data.setFillerItem(new MenuItem("filler-item", fillerItem, new ArrayList<>(), false));
-        }
-
-        return this;
+        return loadItemsFromConfig(itemSection, placeholders);
     }
 
     /**
@@ -135,6 +129,29 @@ public class MenuBuilder {
         for (String identifier : section.getKeys(false)) {
             ItemStack item = ItemStackUtil.getItemStackFromConfig(section.getConfigurationSection(identifier), placeholders);
             MenuItem menuItem = new MenuItem(identifier, item, new ArrayList<>(), section.getBoolean(identifier + ".Update", false));
+
+            if (!section.getStringList(identifier + ".Actions").isEmpty()) {
+                HashMap<MenuClickActionType, String> internalActions = new HashMap<>();
+                section.getStringList(identifier + ".Actions").forEach(action -> {
+                    String[] data = action.split(":");
+                    MenuClickActionType type = MenuClickActionType.parseType(data[0]);
+                    internalActions.put(type, data[1]);
+                });
+                menuItem.setInternalActions(internalActions);
+            }
+
+            ConfigurationSection metaDataSection = section.getConfigurationSection(identifier + ".Metadata");
+
+            if (metaDataSection != null) {
+                for (String metaKey : metaDataSection.getKeys(false)) {
+                    menuItem.getMetaData().put(metaKey, metaDataSection.getString(metaKey));
+                }
+            }
+
+            if (section.getBoolean(identifier + ".Filler", false)) {
+                data.setFillerItem(menuItem);
+                continue;
+            }
 
             if (!section.getIntegerList(identifier + ".Slots").isEmpty()) {
                 menuItem.getSlots().addAll(section.getIntegerList(identifier + ".Slots"));

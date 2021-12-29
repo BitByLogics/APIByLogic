@@ -34,6 +34,11 @@ public class ListenerComponent {
         return this;
     }
 
+    public ListenerComponent addDataRaw(String key, String value) {
+        data.put(key, value);
+        return this;
+    }
+
     public <T> T getData(String key, Class<T> type) {
         if (!data.containsKey(key)) {
             return null;

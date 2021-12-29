@@ -7,6 +7,7 @@ import net.justugh.japi.action.ChatInputAction;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 
 import java.util.List;
 import java.util.function.Predicate;
@@ -15,6 +16,17 @@ import java.util.function.Predicate;
 public class ActionListener implements Listener {
 
     private final ActionManager actionManager;
+
+    @EventHandler(ignoreCancelled = true)
+    public void onInteract(PlayerInteractEvent event) {
+        if (event.getItem() == null || !event.getItem().hasItemMeta()) {
+            return;
+        }
+
+        actionManager.getItemActionMap().stream().filter(action -> action.matches(event.getItem())).forEach(action -> {
+            action.onTrigger(event);
+        });
+    }
 
     @EventHandler(ignoreCancelled = true)
     public void onChat(AsyncPlayerChatEvent event) {

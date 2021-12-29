@@ -1,19 +1,23 @@
 package net.justugh.japi.util;
 
+import net.justugh.japi.JustAPIPlugin;
+import net.justugh.japi.action.ItemInteractAction;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class ItemBuilder {
 
     private ItemStack itemStack;
 
-    //Test
     private ItemBuilder(ItemStack itemStack) {
         this.itemStack = itemStack;
     }
@@ -76,6 +80,22 @@ public class ItemBuilder {
         ItemMeta meta = itemStack.getItemMeta();
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_POTION_EFFECTS);
         itemStack.setItemMeta(meta);
+        return this;
+    }
+
+    public ItemBuilder unbreakable() {
+        ItemMeta meta = itemStack.getItemMeta();
+        meta.setUnbreakable(true);
+        itemStack.setItemMeta(meta);
+        return this;
+    }
+
+    public ItemBuilder addAction(ItemInteractAction action) {
+        String itemIdentifier = UUID.randomUUID().toString();
+        ItemMeta meta = itemStack.getItemMeta();
+        meta.getPersistentDataContainer().set(new NamespacedKey(JustAPIPlugin.getInstance(), itemIdentifier), PersistentDataType.STRING, "");
+        itemStack.setItemMeta(meta);
+        JustAPIPlugin.getInstance().getActionManager().addItemAction(action, itemIdentifier);
         return this;
     }
 

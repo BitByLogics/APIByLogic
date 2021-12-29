@@ -18,13 +18,20 @@ public class ActionManager implements Listener {
 
     private final JavaPlugin plugin;
 
+    private final List<ItemInteractAction> itemActionMap;
     private final HashMap<UUID, List<Action>> actionMap;
 
     public ActionManager(JavaPlugin plugin) {
         this.plugin = plugin;
+        itemActionMap = Lists.newArrayList();
         actionMap = Maps.newHashMap();
 
         Bukkit.getServer().getPluginManager().registerEvents(new ActionListener(this), plugin);
+    }
+
+    public void addItemAction(ItemInteractAction action, String itemIdentifier) {
+        action.setItemIdentifier(itemIdentifier);
+        itemActionMap.add(action);
     }
 
     public void trackAction(Player player, Action action) {
@@ -33,16 +40,13 @@ public class ActionManager implements Listener {
         actionMap.put(player.getUniqueId(), actions);
 
         if (action.getExpireTime() != -1) {
-            Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-                @Override
-                public void run() {
-                    List<Action> actions = actionMap.getOrDefault(player.getUniqueId(), Lists.newArrayList());
-                    actions.remove(action);
-                    actionMap.put(player.getUniqueId(), actions);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                List<Action> actions1 = actionMap.getOrDefault(player.getUniqueId(), Lists.newArrayList());
+                actions1.remove(action);
+                actionMap.put(player.getUniqueId(), actions1);
 
-                    if(!action.isCompleted()) {
-                        action.onExpire(player);
-                    }
+                if (!action.isCompleted()) {
+                    action.onExpire(player);
                 }
             }, action.getExpireTime());
         }
