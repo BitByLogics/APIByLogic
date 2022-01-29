@@ -7,7 +7,7 @@
     <parent>
         <groupId>net.justugh</groupId>
         <artifactId>JustAPI</artifactId>
-        <version>2021.10</version>
+        <version>2022.1</version>
     </parent>
 
     <artifactId>JustAPI-Spigot</artifactId>
