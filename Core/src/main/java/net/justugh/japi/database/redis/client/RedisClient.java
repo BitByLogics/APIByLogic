@@ -13,11 +13,13 @@ import java.util.List;
 public class RedisClient {
 
     private final transient RedisManager redisManager;
+    private final String serverId;
     private final String ID;
     private final transient List<RedisMessageListener> listeners;
 
     public RedisClient(RedisManager redisManager, String ID) {
         this.redisManager = redisManager;
+        this.serverId = redisManager.getSourceID();
         this.ID = ID;
         listeners = new ArrayList<>();
     }

@@ -5,6 +5,8 @@ import net.justugh.japi.action.ActionManager;
 import net.justugh.japi.database.redis.RedisManager;
 import net.justugh.japi.menu.Menu;
 import net.justugh.japi.menu.listener.MenuListener;
+import net.justugh.japi.util.event.armor.listener.ArmorListener;
+import net.justugh.japi.util.event.armor.listener.DispenserArmorListener;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -33,6 +35,8 @@ public class JustAPIPlugin extends JavaPlugin {
         actionManager = new ActionManager(this);
 
         Bukkit.getPluginManager().registerEvents(new MenuListener(), this);
+        Bukkit.getPluginManager().registerEvents(new ArmorListener(getConfig().getStringList("Ignored-Materials")), this);
+        Bukkit.getPluginManager().registerEvents(new DispenserArmorListener(), this);
 
         startMenuTask();
     }

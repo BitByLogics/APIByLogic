@@ -26,7 +26,7 @@ public class RichTextUtil {
             newString.add(s.trim());
         }
 
-        return newString.toArray(new String[]{});
+        return newString.isEmpty() ? new String[] {combinedString} : newString.toArray(new String[]{});
     }
 
     /**

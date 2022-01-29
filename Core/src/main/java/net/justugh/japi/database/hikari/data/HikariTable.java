@@ -53,4 +53,8 @@ public abstract class HikariTable<O extends HikariObject> {
 
     public abstract O loadObject(ResultSet set) throws SQLException;
 
+    public O getDataById(Object id) {
+        return data.stream().filter(o -> o.getDataId() == id).findFirst().orElse(null);
+    }
+
 }

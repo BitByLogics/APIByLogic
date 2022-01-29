@@ -88,15 +88,19 @@ public class RedisManager {
         ListenerComponent component = gson.fromJson(message, ListenerComponent.class);
 
         if (component.getTarget() == null) {
-            clients.stream().filter(client ->
-                    !SOURCE_ID.equalsIgnoreCase(component.getSource().getID())).forEach(client ->
+            clients.forEach(client ->
                     client.getListeners().stream().filter(listener ->
                             listener.getChannelName().equalsIgnoreCase(component.getChannel())).forEach(listener -> listener.onReceive(component)));
+            return;
         }
 
-        clients.stream().filter(client -> !client.getID().equalsIgnoreCase(component.getSource().getID())).forEach(client -> {
+        if(!SOURCE_ID.equalsIgnoreCase(component.getTarget())) {
+            return;
+        }
+
+        clients.forEach(client -> {
             if (debug) {
-                Logger.getGlobal().info(String.format("%s -> %s (%s): %s", component.getSource(), component.getTarget(), component.getChannel(), component.getData().toString()));
+                Logger.getGlobal().info(String.format("%s -> %s (%s): %s", component.getSource().getID(), component.getTarget(), component.getChannel(), component.getData().toString()));
             }
 
             client.getListeners().stream().filter(listener ->

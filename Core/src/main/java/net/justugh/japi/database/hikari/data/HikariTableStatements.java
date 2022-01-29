@@ -8,4 +8,8 @@ public abstract class HikariTableStatements {
     public abstract String getSaveStatement();
     public abstract String getDeleteStatement();
 
+    public static HikariTableStatements generateFromHikariObject(Class<? extends HikariObject> object) {
+        return null;
+    }
+
 }

@@ -1,8 +1,10 @@
 package net.justugh.japi.util;
 
 import com.google.common.collect.Lists;
+import net.md_5.bungee.api.ChatColor;
 import net.minecraft.locale.LocaleLanguage;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.CreatureSpawner;
@@ -13,6 +15,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.List;
@@ -53,6 +56,13 @@ public class ItemStackUtil {
         if (section.getBoolean("Glow")) {
             stack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
+
+        if(stack.getType().name().startsWith("LEATHER_") && section.getString("Dye-Color") != null) {
+            LeatherArmorMeta leatherArmorMeta = (LeatherArmorMeta) stack.getItemMeta();
+            java.awt.Color color = ChatColor.of(section.getString("Dye-Color")).getColor();
+            leatherArmorMeta.setColor(Color.fromRGB(color.getRed(), color.getGreen(), color.getBlue()));
+            stack.setItemMeta(leatherArmorMeta);
         }
 
         stack.setItemMeta(meta);

@@ -35,10 +35,6 @@ public class TimeConverter {
         return convertToReadableTime(time, false);
     }
 
-    public static void main(String[] args) {
-        System.out.println(convertToReadableTime(convert("42d")));
-    }
-
     /**
      * Convert a long to a human-readable time.
      *
