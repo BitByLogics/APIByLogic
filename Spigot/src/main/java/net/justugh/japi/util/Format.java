@@ -1,10 +1,15 @@
 package net.justugh.japi.util;
 
-import org.bukkit.ChatColor;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class Format {
+
+    private static final Pattern hexPattern = Pattern.compile("%hex_(#.+?)%");
 
     /**
      * Format a string with color & placeholders.
@@ -20,8 +25,14 @@ public class Format {
             formattedMessage = formattedMessage.replace(placeholder.getKey(), placeholder.getValue());
         }
 
+        Matcher matcher = hexPattern.matcher(formattedMessage);
+        while (matcher.find()) {
+            formattedMessage = formattedMessage.replace(matcher.group(), ChatColor.of(matcher.group(1)).toString());
+        }
+
         return ChatColor.translateAlternateColorCodes('&', formattedMessage);
     }
+
 
     /**
      * Send a command target a formatted

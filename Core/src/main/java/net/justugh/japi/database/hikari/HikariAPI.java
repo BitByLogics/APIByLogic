@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 public class HikariAPI {
@@ -24,124 +25,58 @@ public class HikariAPI {
     }
 
     public void executeStatement(String query, Object... arguments) {
-        Connection connection = null;
-        PreparedStatement statement = null;
-
-        try {
-            connection = hikari.getConnection();
-            statement = connection.prepareStatement(query);
-
-            int index = 1;
-            for (Object argument : arguments) {
-                statement.setObject(index++, argument);
-            }
-
-            statement.execute();
-            statement.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        executeStatement(query, null, arguments);
     }
 
     public void executeStatement(String query, Consumer<ResultSet> consumer, Object... arguments) {
-        Connection connection = null;
-        PreparedStatement statement = null;
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try (Connection connection = hikari.getConnection()) {
+                try (PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    int index = 1;
+                    for (Object argument : arguments) {
+                        statement.setObject(index++, argument);
+                    }
 
-        try {
-            connection = hikari.getConnection();
-            statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
+                    statement.executeUpdate();
+                    try (ResultSet result = statement.getGeneratedKeys()) {
+                        if (consumer != null) {
+                            if (result != null) {
+                                result.next();
+                            }
 
-            int index = 1;
-            for (Object argument : arguments) {
-                statement.setObject(index++, argument);
-            }
-
-            statement.executeUpdate();
-            ResultSet result = statement.getGeneratedKeys();
-
-            if (result == null) {
-                consumer.accept(null);
-            } else {
-                result.next();
-                consumer.accept(result);
-            }
-
-            statement.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
+                            consumer.accept(result);
+                        }
+                    }
                 }
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        });
     }
 
     public void executeQuery(String query, Consumer<ResultSet> consumer, Object... arguments) {
-        Connection connection = null;
-        PreparedStatement statement = null;
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try (Connection connection = hikari.getConnection()) {
+                try (PreparedStatement statement = connection.prepareStatement(query, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                    int index = 1;
+                    for (Object argument : arguments) {
+                        statement.setObject(index++, argument);
+                    }
 
-        try {
-            connection = hikari.getConnection();
-            statement = connection.prepareStatement(query, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                    try (ResultSet result = statement.executeQuery()) {
+                        if (consumer != null) {
+                            if (result != null) {
+                                result.next();
+                            }
 
-            int index = 1;
-            for (Object argument : arguments) {
-                statement.setObject(index++, argument);
-            }
-
-            ResultSet result = statement.executeQuery();
-
-            consumer.accept(result);
-
-            result.close();
-            statement.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
+                            consumer.accept(result);
+                        }
+                    }
                 }
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        });
     }
 
 }

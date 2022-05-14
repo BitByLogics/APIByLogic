@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Setter
 public class Menu implements InventoryHolder {
 
+    private String id;
     private final String title;
     private final int size;
 
@@ -81,7 +82,7 @@ public class Menu implements InventoryHolder {
                     continue;
                 }
 
-                ItemStack item = menuItem.getItemUpdateProvider().requestItem();
+                ItemStack item = menuItem.getItemUpdateProvider().requestItem(menuItem);
                 updateItemMeta(item);
 
                 slots.forEach(slot -> inventory.setItem(slot, item));
@@ -121,7 +122,7 @@ public class Menu implements InventoryHolder {
     }
 
     /**
-     * Get a MenuItem instance by it's identifier.
+     * Get a MenuItem instance by its identifier.
      *
      * @param identifier The MenuItem identifier.
      * @return The optional MenuItem instance.
@@ -131,7 +132,7 @@ public class Menu implements InventoryHolder {
     }
 
     /**
-     * Get a MenuItem instance by it's slot.
+     * Get a MenuItem instance by its slot.
      *
      * @param slot The MenuItem slot.
      * @return The optional MenuItem instance.
@@ -224,7 +225,7 @@ public class Menu implements InventoryHolder {
                 item.setSourceInventory(targetInventory);
                 item.getSlots().forEach(slot -> {
                     availableSlots.get().removeAll(Collections.singletonList(slot));
-                    targetInventory.setItem(slot, item.getItemUpdateProvider() == null ? item.getItem().clone() : item.getItemUpdateProvider().requestItem());
+                    targetInventory.setItem(slot, item.getItemUpdateProvider() == null ? item.getItem().clone() : item.getItemUpdateProvider().requestItem(item));
                 });
 
                 return;
@@ -235,7 +236,7 @@ public class Menu implements InventoryHolder {
 
             item.setSourceInventory(targetInventory);
             item.getSlots().add(slot);
-            targetInventory.setItem(slot, item.isUpdatable() ? item.getItemUpdateProvider().requestItem() : item.getItem().clone());
+            targetInventory.setItem(slot, item.isUpdatable() ? item.getItemUpdateProvider().requestItem(item) : item.getItem().clone());
         });
 
         items.addAll(itemCache);

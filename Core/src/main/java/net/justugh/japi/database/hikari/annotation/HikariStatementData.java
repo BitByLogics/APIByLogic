@@ -9,7 +9,12 @@ public @interface HikariStatementData {
 
     String dataType();
 
-    boolean allowNull() default false;
+    boolean allowNull() default true;
+
     boolean autoIncrement() default false;
+
+    boolean primaryKey() default false;
+
+    boolean updateOnSave() default true;
 
 }

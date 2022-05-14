@@ -42,4 +42,18 @@ public class StringUtil {
                 .collect(Collectors.joining(" "));
     }
 
+    /**
+     * Calculate the time it takes to read a string
+     * in seconds.
+     *
+     * @param string       The string to read
+     * @param readingSpeed The speed of reading in wpm
+     * @return A long of time in seconds
+     */
+    public static long calculateReadingTime(String string, int readingSpeed) {
+        double numberOfWords = string.split(" ").length;
+        double readingTime = (numberOfWords / readingSpeed);
+        return (long) (readingTime * 60000);
+    }
+
 }

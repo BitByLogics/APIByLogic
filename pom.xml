@@ -11,6 +11,11 @@
 
     <name>JustAPI</name>
 
+    <modules>
+        <module>Core</module>
+        <module>Spigot</module>
+    </modules>
+
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -29,12 +34,8 @@
             <groupId>com.intellij</groupId>
             <artifactId>annotations</artifactId>
             <version>9.0.4</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
-
-    <modules>
-        <module>Core</module>
-        <module>Spigot</module>
-    </modules>
 
 </project>

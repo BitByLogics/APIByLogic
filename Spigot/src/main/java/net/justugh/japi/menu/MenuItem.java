@@ -18,7 +18,6 @@ import java.util.List;
 public class MenuItem {
 
     private final String identifier;
-    private final boolean updatable;
 
     private ItemStack item;
     private MenuItemUpdateProvider itemUpdateProvider;
@@ -26,6 +25,7 @@ public class MenuItem {
     private Inventory sourceInventory;
     private List<Integer> slots;
     private HashMap<String, String> metaData;
+    private boolean updatable;
     private MenuClickRequirement clickRequirement;
     private MenuAction action;
     private HashMap<MenuClickActionType, String> internalActions;

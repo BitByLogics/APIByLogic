@@ -1,6 +1,10 @@
 package net.justugh.japi.util;
 
 import com.google.common.collect.Lists;
+import net.justugh.japi.JustAPIPlugin;
+import net.justugh.japi.util.Format;
+import net.justugh.japi.util.NumberUtil;
+import net.justugh.japi.util.Placeholder;
 import net.md_5.bungee.api.ChatColor;
 import net.minecraft.locale.LocaleLanguage;
 import org.bukkit.Bukkit;
@@ -13,10 +17,10 @@ import org.bukkit.craftbukkit.v1_17_R1.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BlockStateMeta;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.inventory.meta.*;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.List;
 import java.util.Set;
@@ -53,12 +57,19 @@ public class ItemStackUtil {
 
         meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_ATTRIBUTES);
 
+        if (!section.getStringList("Custom-Data").isEmpty()) {
+            section.getStringList("Custom-Data").forEach(data -> {
+                String[] splitData = data.split(":");
+                meta.getPersistentDataContainer().set(new NamespacedKey(JustAPIPlugin.getInstance(), splitData[0]), PersistentDataType.STRING, splitData[1]);
+            });
+        }
+
         if (section.getBoolean("Glow")) {
             stack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         }
 
-        if(stack.getType().name().startsWith("LEATHER_") && section.getString("Dye-Color") != null) {
+        if (stack.getType().name().startsWith("LEATHER_") && section.getString("Dye-Color") != null) {
             LeatherArmorMeta leatherArmorMeta = (LeatherArmorMeta) stack.getItemMeta();
             java.awt.Color color = ChatColor.of(section.getString("Dye-Color")).getColor();
             leatherArmorMeta.setColor(Color.fromRGB(color.getRed(), color.getGreen(), color.getBlue()));
@@ -67,10 +78,24 @@ public class ItemStackUtil {
 
         stack.setItemMeta(meta);
 
+        if (stack.getType() == Material.SPLASH_POTION || stack.getType() == Material.POTION) {
+            ConfigurationSection potionSection = section.getConfigurationSection("Potion-Data");
+            PotionMeta potionMeta = (PotionMeta) meta;
+            PotionEffectType type = PotionEffectType.getByName(potionSection.getString("Type"));
+            potionMeta.addCustomEffect(new PotionEffect(type, potionSection.getInt("Duration"), potionSection.getInt("Amplifier")), true);
+            stack.setItemMeta(meta);
+        }
+
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
             skullMeta.setOwner(Format.format(section.getString("Skull-Name"), placeholders));
             stack.setItemMeta(skullMeta);
+        }
+
+        if(section.getInt("Model-Data") != 0) {
+            ItemMeta updatedMeta = stack.getItemMeta();
+            updatedMeta.setCustomModelData(section.getInt("Model-Data"));
+            stack.setItemMeta(updatedMeta);
         }
 
         section.getStringList("Enchantments").forEach(enchant -> {
@@ -90,6 +115,7 @@ public class ItemStackUtil {
 
             stack.addUnsafeEnchantment(enchantment, level);
         });
+
 
         return stack;
     }
@@ -261,16 +287,24 @@ public class ItemStackUtil {
      * @return Whether the lore matches.
      */
     public static boolean loreMatches(ItemStack item, ItemStack otherItem) {
+        if (item.getItemMeta() == null && otherItem.getItemMeta() == null) {
+            return true;
+        }
+
         if (item.getItemMeta() == null || otherItem.getItemMeta() == null) {
             return false;
         }
 
-        if (!item.getItemMeta().hasLore() && !otherItem.getItemMeta().hasLore()) {
-            return true;
+        if (item.getItemMeta().hasLore() != otherItem.getItemMeta().hasLore()) {
+            return false;
         }
 
         List<String> itemLore = item.getItemMeta().getLore();
         List<String> otherItemLore = otherItem.getItemMeta().getLore();
+
+        if (itemLore == null && otherItemLore == null) {
+            return true;
+        }
 
         if (itemLore == null || otherItemLore == null) {
             return false;

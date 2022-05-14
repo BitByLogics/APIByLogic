@@ -44,6 +44,15 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <minimizeJar>true</minimizeJar>
+                            <filters>
+                                <filter>
+                                    <artifact>net.justugh:JustAPI-Core</artifact>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                </filter>
+                            </filters>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
                     </execution>
@@ -74,7 +83,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Spigot NMS -->
+        <!-- Spigot NMS 1.17.1 -->
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot</artifactId>
@@ -86,30 +95,8 @@
         <dependency>
             <groupId>net.justugh</groupId>
             <artifactId>JustAPI-Core</artifactId>
-            <version>2021.10</version>
+            <version>2022.1</version>
             <scope>compile</scope>
-        </dependency>
-
-        <!-- JSON -->
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20210307</version>
-        </dependency>
-
-        <!-- HTTP Components -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.13</version>
-        </dependency>
-
-        <!-- Unirest -->
-        <dependency>
-            <groupId>com.mashape.unirest</groupId>
-            <artifactId>unirest-java</artifactId>
-            <version>1.4.9</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 

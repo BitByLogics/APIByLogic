@@ -5,9 +5,11 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 
+import java.io.Serializable;
+
 @Getter
 @AllArgsConstructor
-public class SafeLocation {
+public class SafeLocation implements Serializable {
 
     private final String world;
     private final double x, y, z;
@@ -19,6 +21,10 @@ public class SafeLocation {
 
     public static SafeLocation fromBukkitLocation(Location location) {
         return new SafeLocation(location.getWorld().getName(), location.getX(), location.getY(), location.getZ());
+    }
+
+    public boolean matches(Location loc) {
+        return loc.getWorld().getName().equalsIgnoreCase(world) && loc.getX() == x && loc.getY() == y && loc.getZ() == z;
     }
 
     public Location toBukkitLocation() {

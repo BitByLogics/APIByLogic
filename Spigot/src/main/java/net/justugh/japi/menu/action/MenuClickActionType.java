@@ -2,6 +2,8 @@ package net.justugh.japi.menu.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import net.justugh.japi.menu.Menu;
+import net.justugh.japi.menu.MenuAction;
 import net.justugh.japi.util.Format;
 import net.justugh.japi.util.Placeholder;
 import net.justugh.japi.util.RichTextUtil;
@@ -26,13 +28,26 @@ public enum MenuClickActionType {
         for (String message : RichTextUtil.getRichText(args, 0)) {
             event.getWhoClicked().sendMessage(Format.format(message, new Placeholder("%player%", event.getWhoClicked().getName())));
         }
+    }),
+    INTERNAL_ACTION((event, args) -> {
+        Menu menu = (Menu) event.getInventory().getHolder();
+        if (menu == null) {
+            return;
+        }
+
+        MenuAction internalAction = menu.getData().getAction(args);
+        if (internalAction == null) {
+            return;
+        }
+
+        internalAction.onClick(event);
     });
 
     private final ClickTypeAction action;
 
     public static MenuClickActionType parseType(String name) {
         for (MenuClickActionType type : values()) {
-            if(type.name().equalsIgnoreCase(name)) {
+            if (type.name().equalsIgnoreCase(name)) {
                 return type;
             }
         }

@@ -18,6 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 public class MenuBuilder {
 
+    private String id;
     private String title;
     private int size;
 
@@ -73,6 +74,7 @@ public class MenuBuilder {
 
         menu = new Menu(title, size);
         menu.setData(data);
+        menu.setId(id);
 
         items.forEach(menuItem -> {
             if (menuItem.getSlots().isEmpty()) {
@@ -93,6 +95,7 @@ public class MenuBuilder {
      * @return This builder.
      */
     public MenuBuilder fromConfiguration(ConfigurationSection section, Placeholder... placeholders) {
+        id = section.getName();
         title = Format.format(Preconditions.checkNotNull(Format.format(section.getString("Title"), placeholders), "Invalid/Missing Title"));
         size = section.getInt("Size");
 

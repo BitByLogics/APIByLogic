@@ -4,6 +4,6 @@ import org.bukkit.inventory.ItemStack;
 
 public interface MenuItemUpdateProvider {
 
-    ItemStack requestItem();
+    ItemStack requestItem(MenuItem menuItem);
 
 }
