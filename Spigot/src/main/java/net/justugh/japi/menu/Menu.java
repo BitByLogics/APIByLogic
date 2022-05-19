@@ -138,7 +138,7 @@ public class Menu implements InventoryHolder {
      * @return The optional MenuItem instance.
      */
     public Optional<MenuItem> getItem(Inventory inventory, int slot) {
-        return items.stream().filter(item -> item.getSlots().contains(slot) && item.getSourceInventory().equals(inventory)).findFirst();
+        return items.stream().filter(item -> item.getSlots().contains(slot) && (item.getSourceInventory() != null && item.getSourceInventory().equals(inventory))).findFirst();
     }
 
     /**

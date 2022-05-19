@@ -44,19 +44,23 @@ public class ItemStackUtil {
             return null;
         }
 
+        // Define the items name
         if (section.getString("Name") != null) {
             meta.setDisplayName(Format.format(section.getString("Name"), placeholders));
         }
 
         List<String> lore = Lists.newArrayList();
 
+        // Define the items lore
         section.getStringList("Lore").forEach(string ->
                 lore.add(Format.format(string, placeholders)));
 
         meta.setLore(lore);
 
+        // Add flags to hide potion effects/attributes
         meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_ATTRIBUTES);
 
+        // Add persistent data keys
         if (!section.getStringList("Custom-Data").isEmpty()) {
             section.getStringList("Custom-Data").forEach(data -> {
                 String[] splitData = data.split(":");
@@ -64,11 +68,13 @@ public class ItemStackUtil {
             });
         }
 
+        // Make the item glow
         if (section.getBoolean("Glow")) {
             stack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         }
 
+        // If leather armor, apply dye color if defined
         if (stack.getType().name().startsWith("LEATHER_") && section.getString("Dye-Color") != null) {
             LeatherArmorMeta leatherArmorMeta = (LeatherArmorMeta) stack.getItemMeta();
             java.awt.Color color = ChatColor.of(section.getString("Dye-Color")).getColor();
@@ -78,6 +84,7 @@ public class ItemStackUtil {
 
         stack.setItemMeta(meta);
 
+        // If the item is a potion, apply potion data
         if (stack.getType() == Material.SPLASH_POTION || stack.getType() == Material.POTION) {
             ConfigurationSection potionSection = section.getConfigurationSection("Potion-Data");
             PotionMeta potionMeta = (PotionMeta) meta;
@@ -86,18 +93,21 @@ public class ItemStackUtil {
             stack.setItemMeta(meta);
         }
 
+        // If the item is a player head, apply skin
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
             skullMeta.setOwner(Format.format(section.getString("Skull-Name"), placeholders));
             stack.setItemMeta(skullMeta);
         }
 
+        // Used for resourcepacks, to display custom models
         if(section.getInt("Model-Data") != 0) {
             ItemMeta updatedMeta = stack.getItemMeta();
             updatedMeta.setCustomModelData(section.getInt("Model-Data"));
             stack.setItemMeta(updatedMeta);
         }
 
+        // Apply enchantments
         section.getStringList("Enchantments").forEach(enchant -> {
             String[] data = enchant.split(":");
             NamespacedKey key = NamespacedKey.minecraft(data[0]);
