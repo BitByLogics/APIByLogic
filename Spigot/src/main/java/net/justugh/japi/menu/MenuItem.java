@@ -10,6 +10,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -26,9 +27,9 @@ public class MenuItem {
     private List<Integer> slots;
     private HashMap<String, String> metaData;
     private boolean updatable;
-    private MenuClickRequirement clickRequirement;
     private MenuAction action;
     private HashMap<MenuClickActionType, String> internalActions;
+    private List<MenuClickRequirement> requirements;
 
     public MenuItem(String identifier, ItemStack item, List<Integer> slots, boolean updatable, MenuAction action, HashMap<MenuClickActionType, String> internalActions) {
         this(identifier, item, slots, updatable);
@@ -50,6 +51,7 @@ public class MenuItem {
         this.action = null;
         this.internalActions = new HashMap<>();
         this.metaData = new HashMap<>();
+        this.requirements = new ArrayList<>();
     }
 
     public MenuItem addSlot(int slot) {
@@ -58,7 +60,7 @@ public class MenuItem {
     }
 
     public void onClick(InventoryClickEvent event) {
-        if (clickRequirement != null && !clickRequirement.canClick((Player) event.getWhoClicked())) {
+        if (!requirements.isEmpty() && requirements.stream().anyMatch(requirement -> !requirement.canClick((Player) event.getWhoClicked()))) {
             return;
         }
 

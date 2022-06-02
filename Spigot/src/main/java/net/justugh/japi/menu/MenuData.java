@@ -2,6 +2,7 @@ package net.justugh.japi.menu;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.justugh.japi.menu.action.MenuClickRequirement;
 import net.justugh.japi.menu.placeholder.PlaceholderProvider;
 
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ public class MenuData {
 
     private final List<MenuFlag> flags;
     private final Map<String, MenuAction> actions;
+    private final Map<String, MenuClickRequirement> requirements;
     private final Map<String, Object> metaData;
     private final List<PlaceholderProvider> placeholderProviders;
 
@@ -28,6 +30,7 @@ public class MenuData {
         this.itemStorage = new ArrayList<>();
         this.flags = new ArrayList<>();
         this.actions = new HashMap<>();
+        this.requirements = new HashMap<>();
         this.metaData = new HashMap<>();
         this.placeholderProviders = new ArrayList<>();
     }
@@ -40,8 +43,16 @@ public class MenuData {
         actions.put(identifier, action);
     }
 
+    public void registerRequirement(String identifier, MenuClickRequirement requirement) {
+        requirements.put(identifier, requirement);
+    }
+
     public MenuAction getAction(String identifier) {
         return actions.get(identifier);
+    }
+
+    public MenuClickRequirement getRequirement(String identifier) {
+        return requirements.get(identifier);
     }
 
     public void addFlag(MenuFlag flag) {

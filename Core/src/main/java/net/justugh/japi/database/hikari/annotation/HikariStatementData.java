@@ -17,4 +17,6 @@ public @interface HikariStatementData {
 
     boolean updateOnSave() default true;
 
+    String processorID() default "";
+
 }

@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.justugh.japi.menu.action.MenuClickActionType;
+import net.justugh.japi.menu.action.MenuClickRequirement;
 import net.justugh.japi.util.Format;
 import net.justugh.japi.util.ItemStackUtil;
 import net.justugh.japi.util.Placeholder;

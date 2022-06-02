@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.justugh.japi.database.redis.client.RedisClient;
 import net.justugh.japi.database.redis.listener.ListenerComponent;
+import net.justugh.japi.database.redis.policy.RedisEvictionPolicy;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
@@ -32,7 +33,7 @@ public class RedisManager {
 
     public RedisManager(String host, int port, String password, String sourceId) {
         JedisPoolConfig config = new JedisPoolConfig();
-        config.setEvictionPolicyClassName("net.justugh.japi.database.redis.policy.RedisEvictionPolicy");
+        config.setEvictionPolicy(new RedisEvictionPolicy<>());
         config.setMaxTotal(25);
         config.setMaxIdle(10);
         config.setMinIdle(5);

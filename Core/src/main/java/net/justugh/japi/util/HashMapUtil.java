@@ -25,7 +25,7 @@ public class HashMapUtil {
 
         for (String dataString : mapData) {
             String[] data = dataString.split(":");
-            map.put(wrapper.wrapKey(data[0]), wrapper.wrapValue(data[1]));
+            map.put(wrapper == null ? (K) data[0] : wrapper.wrapKey(data[0]), wrapper == null ? (V) data[1] : wrapper.wrapValue(data[1]));
         }
 
         return map;
@@ -33,6 +33,7 @@ public class HashMapUtil {
 
     public interface ObjectWrapper<K, V> {
         K wrapKey(String key);
+
         V wrapValue(String value);
     }
 

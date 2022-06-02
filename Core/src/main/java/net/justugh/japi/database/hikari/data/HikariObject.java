@@ -3,6 +3,7 @@ package net.justugh.japi.database.hikari.data;
 import com.google.common.collect.Lists;
 import lombok.Getter;
 import net.justugh.japi.database.hikari.annotation.HikariStatementData;
+import net.justugh.japi.database.hikari.processor.HikariDataProcessor;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -13,8 +14,10 @@ public abstract class HikariObject {
     private final HashMap<String, String> statementData = new HashMap<>();
     private final HashMap<String, HikariStatementData> rawStatementData = new HashMap<>();
     private final HashMap<String, String> fieldNames = new HashMap<>();
+    private final HashMap<String, HikariDataProcessor> processorMap = new HashMap<>();
 
     public HikariObject() {
+        loadProcessors();
         loadStatementData();
     }
 
@@ -23,6 +26,8 @@ public abstract class HikariObject {
     public abstract String getTableId();
 
     public abstract Object[] getDataObjects();
+
+    public abstract void loadProcessors();
 
     private void loadStatementData() {
         List<Field> fields = Lists.newArrayList();
@@ -60,13 +65,15 @@ public abstract class HikariObject {
         List<String> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
 
-        keys.add(statementData.get("#primary-key"));
-        values.add(statementData.get(statementData.get("#primary-key")));
+        if (statementData.containsKey("#primary-key")) {
+            keys.add(statementData.get("#primary-key"));
+            values.add(statementData.get(statementData.get("#primary-key")));
+        }
 
         for (Map.Entry<String, String> entry : statementData.entrySet()) {
             if (entry.getKey().equalsIgnoreCase("#primary-key")
                     || entry.getKey().equalsIgnoreCase("#auto-increment")
-                    || statementData.get("#primary-key").equalsIgnoreCase(entry.getKey())) {
+                    || statementData.getOrDefault("#primary-key", "").equalsIgnoreCase(entry.getKey())) {
                 continue;
             }
 
@@ -92,8 +99,30 @@ public abstract class HikariObject {
 
         List<String> data = new ArrayList<>();
 
+        if (statementData.containsKey("#primary-key")) {
+            String primaryKey = statementData.get("#primary-key");
+
+            try {
+                HikariStatementData rawStatementData = getRawStatementData().get(primaryKey);
+                Field field = this.getClass().getDeclaredField(fieldNames.get(primaryKey));
+                field.setAccessible(true);
+                Object fieldObject = field.get(this);
+
+                if (!rawStatementData.processorID().isEmpty()) {
+                    HikariDataProcessor processor = processorMap.get(rawStatementData.processorID());
+                    data.add(String.format("'%s'", processor.processObject(fieldObject)));
+                } else {
+                    data.add(String.format("'%s'", fieldObject.toString()));
+                }
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         for (Map.Entry<String, String> entry : statementData.entrySet()) {
-            if (entry.getKey().equalsIgnoreCase("#primary-key") || entry.getKey().equalsIgnoreCase("#auto-increment")) {
+            if (entry.getKey().equalsIgnoreCase("#primary-key")
+                    || entry.getKey().equalsIgnoreCase("#auto-increment")
+                    || statementData.getOrDefault("#primary-key", "").equalsIgnoreCase(entry.getKey())) {
                 continue;
             }
 
@@ -102,9 +131,18 @@ public abstract class HikariObject {
             }
 
             try {
+                HikariStatementData rawStatementData = getRawStatementData().get(entry.getKey());
                 Field field = this.getClass().getDeclaredField(fieldNames.get(entry.getKey()));
                 field.setAccessible(true);
-                data.add("'" + field.get(this).toString() + "'");
+                Object fieldObject = field.get(this);
+
+                if (!rawStatementData.processorID().isEmpty()) {
+                    HikariDataProcessor processor = processorMap.get(rawStatementData.processorID());
+                    data.add(String.format("'%s'", processor.processObject(fieldObject)));
+                    continue;
+                }
+
+                data.add(String.format("'%s'", fieldObject.toString()));
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
@@ -178,9 +216,18 @@ public abstract class HikariObject {
             String key = entry.getKey();
 
             try {
-                Field field = this.getClass().getDeclaredField(fieldNames.get(entry.getKey()));
+                HikariStatementData rawStatementData = getRawStatementData().get(key);
+                Field field = this.getClass().getDeclaredField(fieldNames.get(key));
                 field.setAccessible(true);
-                entries.add(key + "= '" + field.get(this).toString() + "'");
+                Object fieldObject = field.get(this);
+
+                if (!rawStatementData.processorID().isEmpty()) {
+                    HikariDataProcessor processor = processorMap.get(rawStatementData.processorID());
+                    entries.add(String.format("key= '%s'", processor.processObject(fieldObject)));
+                    continue;
+                }
+
+                entries.add(String.format("key= '%s'", fieldObject.toString()));
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
@@ -189,9 +236,20 @@ public abstract class HikariObject {
         String primaryKey = statementData.get("#primary-key");
 
         try {
+            HikariStatementData rawStatementData = getRawStatementData().get(primaryKey);
             Field field = this.getClass().getDeclaredField(fieldNames.get(primaryKey));
             field.setAccessible(true);
-            builder.append(String.join(", ", entries)).append(" WHERE ").append(primaryKey).append(" = '").append(field.get(this).toString()).append("';");
+            Object fieldObject = field.get(this);
+
+            builder.append(String.join(", ", entries)).append(" WHERE ").append(primaryKey).append(" = ");
+
+            if (!rawStatementData.processorID().isEmpty()) {
+                HikariDataProcessor processor = processorMap.get(rawStatementData.processorID());
+                builder.append(String.format("'%s';", processor.processObject(fieldObject)));
+                return builder.toString();
+            }
+
+            builder.append(String.format("'%s';", fieldObject.toString()));
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -210,9 +268,18 @@ public abstract class HikariObject {
                 .append(" WHERE ").append(primaryKey).append("=");
 
         try {
+            HikariStatementData rawStatementData = getRawStatementData().get(primaryKey);
             Field field = this.getClass().getDeclaredField(fieldNames.get(primaryKey));
             field.setAccessible(true);
-            builder.append("'").append(field.get(this).toString()).append("';");
+            Object fieldObject = field.get(this);
+
+            if (!rawStatementData.processorID().isEmpty()) {
+                HikariDataProcessor processor = processorMap.get(rawStatementData.processorID());
+                builder.append(String.format("'%s';", processor.processObject(fieldObject)));
+                return builder.toString();
+            }
+
+            builder.append(String.format("'%s';", fieldObject.toString()));
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }

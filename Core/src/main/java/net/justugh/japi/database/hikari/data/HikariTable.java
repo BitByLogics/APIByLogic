@@ -41,15 +41,33 @@ public abstract class HikariTable<O extends HikariObject> {
         this.table = null;
         this.statements = statements;
         data = new ArrayList<>();
-        Executors.newSingleThreadExecutor().execute(() -> hikariAPI.executeStatement(statements.getTableCreateStatement()));
-
-        loadData();
+        Executors.newSingleThreadExecutor().execute(() -> {
+            hikariAPI.executeStatement(statements.getTableCreateStatement());
+            loadData();
+        });
     }
 
     private void loadData() {
         data.clear();
 
         Executors.newSingleThreadExecutor().execute(() -> {
+            if(statements == null) {
+                hikariAPI.executeQuery(String.format("SELECT * FROM %s;", table), result -> {
+                    if (result == null) {
+                        return;
+                    }
+
+                    try {
+                        while (result.next()) {
+                            data.add(loadObject(result));
+                        }
+                    } catch (SQLException exception) {
+                        exception.printStackTrace();
+                    }
+                });
+                return;
+            }
+
             hikariAPI.executeQuery(statements.getDataStatement(), result -> {
                 if (result == null) {
                     return;
@@ -64,6 +82,10 @@ public abstract class HikariTable<O extends HikariObject> {
                 }
             });
         });
+    }
+
+    public void save(O object) {
+        save(object, null);
     }
 
     public void save(O object, Consumer<ResultSet> result) {
@@ -87,7 +109,7 @@ public abstract class HikariTable<O extends HikariObject> {
     public abstract O loadObject(ResultSet set) throws SQLException;
 
     public O getDataById(Object id) {
-        return data.stream().filter(o -> o.getDataId() == id).findFirst().orElse(null);
+        return data.stream().filter(o -> o.getDataId().equals(id)).findFirst().orElse(null);
     }
 
 }

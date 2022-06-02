@@ -66,7 +66,7 @@ public class HikariAPI {
                     try (ResultSet result = statement.executeQuery()) {
                         if (consumer != null) {
                             if (result != null) {
-                                result.next();
+//                                result.next();
                             }
 
                             consumer.accept(result);

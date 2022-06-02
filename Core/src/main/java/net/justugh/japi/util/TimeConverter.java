@@ -1,5 +1,6 @@
 package net.justugh.japi.util;
 
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,7 +43,7 @@ public class TimeConverter {
      * @param longPrefixes Whether to use long time prefixes.
      * @return A readable time string.
      */
-    public static String convertToReadableTime(long time, boolean longPrefixes) {
+    public static String convertToReadableTime(long time, boolean longPrefixes, String... excludedTimes) {
         if (time <= 0) {
             return "Forever";
         }
@@ -63,32 +64,32 @@ public class TimeConverter {
 
         StringBuilder message = new StringBuilder();
 
-        if (years > 0) {
-            message.append(years).append(TimeAbbreviation.YEAR.getPrefix(longPrefixes)).append(" ");
+        if (years > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("year"))) {
+            message.append(years).append(TimeAbbreviation.YEAR.getPrefix(longPrefixes) + (years > 1 ? "s" : "")).append(" ");
         }
 
-        if (months > 0) {
-            message.append(months).append(TimeAbbreviation.MONTH.getPrefix(longPrefixes)).append(" ");
+        if (months > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("month"))) {
+            message.append(months).append(TimeAbbreviation.MONTH.getPrefix(longPrefixes) + (months > 1 ? "s" : "")).append(" ");
         }
 
-        if (weeks > 0) {
-            message.append(weeks).append(TimeAbbreviation.WEEK.getPrefix(longPrefixes)).append(" ");
+        if (weeks > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("weeks"))) {
+            message.append(weeks).append(TimeAbbreviation.WEEK.getPrefix(longPrefixes) + (weeks > 1 ? "s" : "")).append(" ");
         }
 
-        if (days > 0) {
-            message.append(days).append(TimeAbbreviation.DAY.getPrefix(longPrefixes)).append(" ");
+        if (days > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("days"))) {
+            message.append(days).append(TimeAbbreviation.DAY.getPrefix(longPrefixes) + (days > 1 ? "s" : "")).append(" ");
         }
 
-        if (hours > 0) {
-            message.append(hours).append(TimeAbbreviation.HOUR.getPrefix(longPrefixes)).append(" ");
+        if (hours > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("hours"))) {
+            message.append(hours).append(TimeAbbreviation.HOUR.getPrefix(longPrefixes) + (hours > 1 ? "s" : "")).append(" ");
         }
 
-        if (minutes > 0) {
-            message.append(minutes).append(TimeAbbreviation.MINUTE.getPrefix(longPrefixes)).append(" ");
+        if (minutes > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("minutes"))) {
+            message.append(minutes).append(TimeAbbreviation.MINUTE.getPrefix(longPrefixes) + (minutes > 1 ? "s" : "")).append(" ");
         }
 
-        if (seconds > 0) {
-            message.append(seconds).append(TimeAbbreviation.SECOND.getPrefix(longPrefixes));
+        if (seconds > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("seconds"))) {
+            message.append(seconds).append(TimeAbbreviation.SECOND.getPrefix(longPrefixes) + (seconds > 1 ? "s" : ""));
         }
 
         return message.toString().trim();
@@ -139,13 +140,13 @@ public class TimeConverter {
 
     public enum TimeAbbreviation {
 
-        SECOND(1, "s", " Second(s)"),
-        MINUTE(60, "m", " Minute(s)"),
-        HOUR(3600, "h", " Hour(s)"),
-        DAY(86400, "d", " Day(s)"),
-        WEEK(604800, "w", " Week(s)"),
-        MONTH(2592000, "mh", " Month(s)"),
-        YEAR(31556952, "y", " Year(s)"),
+        SECOND(1, "s", " Second"),
+        MINUTE(60, "m", " Minute"),
+        HOUR(3600, "h", " Hour"),
+        DAY(86400, "d", " Day"),
+        WEEK(604800, "w", " Week"),
+        MONTH(2592000, "mh", " Month"),
+        YEAR(31556952, "y", " Year"),
         INFINITE(-1, "f", "Forever");
 
         String[] prefix;
