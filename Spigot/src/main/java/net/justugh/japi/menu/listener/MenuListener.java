@@ -2,7 +2,6 @@ package net.justugh.japi.menu.listener;
 
 import net.justugh.japi.JustAPIPlugin;
 import net.justugh.japi.menu.Menu;
-import net.justugh.japi.menu.MenuAction;
 import net.justugh.japi.menu.MenuFlag;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -33,11 +32,6 @@ public class MenuListener implements Listener {
 
         menu.getItem(inventory, event.getSlot()).ifPresent(menuItem -> {
             menuItem.onClick(event);
-            MenuAction action = menu.getData().getAction(menuItem.getIdentifier());
-
-            if (action != null) {
-                action.onClick(event);
-            }
         });
     }
 

@@ -2,6 +2,7 @@ package net.justugh.japi.menu.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import net.justugh.japi.JustAPIPlugin;
 import net.justugh.japi.menu.Menu;
 import net.justugh.japi.menu.MenuAction;
 import net.justugh.japi.util.Format;
@@ -30,12 +31,8 @@ public enum MenuClickActionType {
         }
     }),
     INTERNAL_ACTION((event, args) -> {
-        Menu menu = (Menu) event.getInventory().getHolder();
-        if (menu == null) {
-            return;
-        }
+        MenuAction internalAction = JustAPIPlugin.getInstance().getMenuManager().getGlobalAction(args);
 
-        MenuAction internalAction = menu.getData().getAction(args);
         if (internalAction == null) {
             return;
         }

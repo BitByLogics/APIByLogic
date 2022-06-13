@@ -2,9 +2,6 @@ package net.justugh.japi.util;
 
 import com.google.common.collect.Lists;
 import net.justugh.japi.JustAPIPlugin;
-import net.justugh.japi.util.Format;
-import net.justugh.japi.util.NumberUtil;
-import net.justugh.japi.util.Placeholder;
 import net.md_5.bungee.api.ChatColor;
 import net.minecraft.locale.LocaleLanguage;
 import org.bukkit.Bukkit;
@@ -31,13 +28,13 @@ public class ItemStackUtil {
      * Create an ItemStack object from a configuration
      * section.
      *
-     * @param section      The configuration section.
-     * @param placeholders Placeholders to replace in the name/lore.
+     * @param section   The configuration section.
+     * @param modifiers Modifiers to replace in the name/lore.
      * @return New ItemStack instance.
      */
-    public static ItemStack getItemStackFromConfig(ConfigurationSection section, Placeholder... placeholders) {
+    public static ItemStack getItemStackFromConfig(ConfigurationSection section, StringModifier... modifiers) {
         int amount = section.getInt("Amount") == 0 ? 1 : section.getInt("Amount");
-        ItemStack stack = new ItemStack(Material.valueOf(Format.format(section.getString("Material", "BARRIER"), placeholders)), amount);
+        ItemStack stack = new ItemStack(Material.valueOf(Format.format(section.getString("Material", "BARRIER"), modifiers)), amount);
         ItemMeta meta = stack.getItemMeta();
 
         if (meta == null) {
@@ -46,14 +43,14 @@ public class ItemStackUtil {
 
         // Define the items name
         if (section.getString("Name") != null) {
-            meta.setDisplayName(Format.format(section.getString("Name"), placeholders));
+            meta.setDisplayName(Format.format(section.getString("Name"), modifiers));
         }
 
         List<String> lore = Lists.newArrayList();
 
         // Define the items lore
         section.getStringList("Lore").forEach(string ->
-                lore.add(Format.format(string, placeholders)));
+                lore.add(Format.format(string, modifiers)));
 
         meta.setLore(lore);
 
@@ -70,7 +67,7 @@ public class ItemStackUtil {
 
         // Make the item glow
         if (section.getBoolean("Glow")) {
-            stack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
+            meta.addEnchant(Enchantment.DURABILITY, 1, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         }
 
@@ -96,16 +93,18 @@ public class ItemStackUtil {
         // If the item is a player head, apply skin
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
-            skullMeta.setOwner(Format.format(section.getString("Skull-Name"), placeholders));
+            skullMeta.setOwner(Format.format(section.getString("Skull-Name"), modifiers));
             stack.setItemMeta(skullMeta);
         }
 
         // Used for resourcepacks, to display custom models
-        if(section.getInt("Model-Data") != 0) {
+        if (section.getInt("Model-Data") != 0) {
             ItemMeta updatedMeta = stack.getItemMeta();
             updatedMeta.setCustomModelData(section.getInt("Model-Data"));
             stack.setItemMeta(updatedMeta);
         }
+
+        ItemMeta updatedMeta = stack.getItemMeta();
 
         // Apply enchantments
         section.getStringList("Enchantments").forEach(enchant -> {
@@ -123,9 +122,10 @@ public class ItemStackUtil {
                 return;
             }
 
-            stack.addUnsafeEnchantment(enchantment, level);
+            updatedMeta.addEnchant(enchantment, level, true);
         });
 
+        stack.setItemMeta(updatedMeta);
 
         return stack;
     }
@@ -145,21 +145,21 @@ public class ItemStackUtil {
      * codes & the provided placeholders.
      *
      * @param item         The ItemStack to update.
-     * @param placeholders The placeholders to replace.
+     * @param modifiers The placeholders to replace.
      */
-    public static void updateItem(ItemStack item, Placeholder... placeholders) {
+    public static void updateItem(ItemStack item, StringModifier... modifiers) {
         if (item == null || !item.hasItemMeta() || item.getItemMeta() == null) {
             return;
         }
 
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(Format.format(meta.getDisplayName(), placeholders));
+        meta.setDisplayName(Format.format(meta.getDisplayName(), modifiers));
 
         if (meta.hasLore() && meta.getLore() != null) {
             List<String> lore = meta.getLore();
             List<String> updatedLore = Lists.newArrayList();
 
-            lore.forEach(string -> updatedLore.add(Format.format(string, placeholders)));
+            lore.forEach(string -> updatedLore.add(Format.format(string, modifiers)));
             meta.setLore(updatedLore);
         }
 

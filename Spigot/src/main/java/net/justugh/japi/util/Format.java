@@ -14,15 +14,15 @@ public class Format {
     /**
      * Format a string with color & placeholders.
      *
-     * @param string       The string being formatted.
-     * @param placeholders The placeholders being applied.
+     * @param string    The string being formatted.
+     * @param modifiers The modifiers being applied.
      * @return The formatted string.
      */
-    public static String format(String string, Placeholder... placeholders) {
+    public static String format(String string, StringModifier... modifiers) {
         String formattedMessage = string;
 
-        for (Placeholder placeholder : placeholders) {
-            formattedMessage = formattedMessage.replace(placeholder.getKey(), placeholder.getValue());
+        for (StringModifier modifier : modifiers) {
+            formattedMessage = modifier.modify(formattedMessage);
         }
 
         Matcher matcher = hexPattern.matcher(formattedMessage);
@@ -38,13 +38,13 @@ public class Format {
      * Send a command target a formatted
      * message from the provided configuration.
      *
-     * @param target       The target being sent the message.
-     * @param config       The configuration.
-     * @param path         The message path.
-     * @param placeholders The message placeholders.
+     * @param target    The target being sent the message.
+     * @param config    The configuration.
+     * @param path      The message path.
+     * @param modifiers The message modifiers.
      */
-    public static void sendConfigMessage(CommandSender target, FileConfiguration config, String path, Placeholder... placeholders) {
-        target.sendMessage(Format.format(config.getString(path), placeholders));
+    public static void sendConfigMessage(CommandSender target, FileConfiguration config, String path, StringModifier... modifiers) {
+        target.sendMessage(Format.format(config.getString(path), modifiers));
     }
 
 }

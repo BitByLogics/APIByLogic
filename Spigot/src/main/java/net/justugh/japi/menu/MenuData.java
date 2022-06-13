@@ -2,8 +2,8 @@ package net.justugh.japi.menu;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.justugh.japi.menu.action.MenuClickRequirement;
 import net.justugh.japi.menu.placeholder.PlaceholderProvider;
+import net.justugh.japi.menu.placeholder.UserPlaceholderProvider;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,38 +21,22 @@ public class MenuData {
     private MenuCloseAction closeAction;
 
     private final List<MenuFlag> flags;
-    private final Map<String, MenuAction> actions;
-    private final Map<String, MenuClickRequirement> requirements;
     private final Map<String, Object> metaData;
+    private final List<Integer> validSlots;
     private final List<PlaceholderProvider> placeholderProviders;
+    private final List<UserPlaceholderProvider> userPlaceholderProviders;
 
     public MenuData() {
         this.itemStorage = new ArrayList<>();
         this.flags = new ArrayList<>();
-        this.actions = new HashMap<>();
-        this.requirements = new HashMap<>();
         this.metaData = new HashMap<>();
+        this.validSlots = new ArrayList<>();
         this.placeholderProviders = new ArrayList<>();
+        this.userPlaceholderProviders = new ArrayList<>();
     }
 
     public MenuItem getItemFromStorage(String identifier) {
         return itemStorage.stream().filter(item -> item.getIdentifier() != null && item.getIdentifier().equalsIgnoreCase(identifier)).findFirst().orElse(null);
-    }
-
-    public void registerAction(String identifier, MenuAction action) {
-        actions.put(identifier, action);
-    }
-
-    public void registerRequirement(String identifier, MenuClickRequirement requirement) {
-        requirements.put(identifier, requirement);
-    }
-
-    public MenuAction getAction(String identifier) {
-        return actions.get(identifier);
-    }
-
-    public MenuClickRequirement getRequirement(String identifier) {
-        return requirements.get(identifier);
     }
 
     public void addFlag(MenuFlag flag) {

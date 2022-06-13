@@ -43,12 +43,55 @@ public class Menu implements InventoryHolder {
         this.inventories = new ArrayList<>();
         this.userMenus = new HashMap<>();
 
-        JustAPIPlugin.getInstance().getActiveMenus().add(this);
+        JustAPIPlugin.getInstance().getMenuManager().getActiveMenus().add(this);
     }
 
     //TODO: Introduce a way to fully remove MenuItem
-    public void pushUpdates() {
-        List<Inventory> allInventories = new ArrayList<>(inventories);
+    private void pushUpdates() {
+        for (Inventory inventory : inventories) {
+            Iterator<MenuItem> slotIterator = items.iterator();
+
+            while (slotIterator.hasNext()) {
+                MenuItem menuItem = slotIterator.next();
+
+                if (menuItem.getSourceInventory() != inventory) {
+                    continue;
+                }
+
+                List<Integer> slots = menuItem.getSlots();
+
+                if (menuItem.getItem() == null) {
+                    slots.forEach(slot -> inventory.setItem(slot, null));
+                    continue;
+                }
+
+                ItemStack item = menuItem.getItem();
+                updateItemMeta(item);
+
+                slots.forEach(slot -> {
+                    if (inventory.getItem(slot) == null) {
+                        inventory.setItem(slot, item);
+                    }
+
+                    if (inventory.getItem(slot).getType() != item.getType()) {
+                        inventory.setItem(slot, item);
+                    }
+                });
+
+                if (!menuItem.isUpdatable()) {
+                    continue;
+                }
+
+                ItemStack updatedItem = menuItem.getItemUpdateProvider().requestItem(menuItem);
+                updateItemMeta(updatedItem);
+
+                slots.forEach(slot -> inventory.setItem(slot, updatedItem));
+            }
+        }
+    }
+
+    private void pushUserUpdates() {
+        List<Inventory> allInventories = new ArrayList<>();
         userMenus.values().forEach(allInventories::addAll);
 
         for (Inventory inventory : allInventories) {
@@ -68,13 +111,16 @@ public class Menu implements InventoryHolder {
                     continue;
                 }
 
+                ItemStack item = menuItem.getItem();
+                updateItemMeta(item);
+
                 slots.forEach(slot -> {
                     if (inventory.getItem(slot) == null) {
-                        inventory.setItem(slot, menuItem.getItem());
+                        inventory.setItem(slot, item);
                     }
 
-                    if (inventory.getItem(slot).getType() != menuItem.getItem().getType()) {
-                        inventory.setItem(slot, menuItem.getItem());
+                    if (inventory.getItem(slot).getType() != item.getType()) {
+                        inventory.setItem(slot, item);
                     }
                 });
 
@@ -82,10 +128,10 @@ public class Menu implements InventoryHolder {
                     continue;
                 }
 
-                ItemStack item = menuItem.getItemUpdateProvider().requestItem(menuItem);
-                updateItemMeta(item);
+                ItemStack updatedItem = menuItem.getItemUpdateProvider().requestItem(menuItem);
+                updateItemMeta(updatedItem);
 
-                slots.forEach(slot -> inventory.setItem(slot, item));
+                slots.forEach(slot -> inventory.setItem(slot, updatedItem));
             }
         }
     }
@@ -152,10 +198,12 @@ public class Menu implements InventoryHolder {
             return inventories.get(0);
         }
 
-        List<Integer> validSlots = new ArrayList<>();
+        List<Integer> validSlots = data.getValidSlots();
 
-        for (int i = 0; i < (items.size() > size - 1 ? size - 9 : size); i++) {
-            validSlots.add(i);
+        if (validSlots.isEmpty()) {
+            for (int i = 0; i < (items.size() > size - 1 ? size - 9 : size); i++) {
+                validSlots.add(i);
+            }
         }
 
         int pages = items.size() / (size - 9.0d) % 1 == 0 ? items.size() / (size - 9) : items.size() / (size - 9) + 1;
@@ -195,7 +243,7 @@ public class Menu implements InventoryHolder {
                 MenuItem previousPageItem = getData().getItemFromStorage("Previous-Page-Item").clone();
                 nextPageItem.setSourceInventory(currentInventory);
 
-                previousPageItem.setAction((event) -> event.getWhoClicked().openInventory(currentInventory));
+                previousPageItem.addAction((event) -> event.getWhoClicked().openInventory(currentInventory));
 
                 nextPageItem.setSlots((List<Integer>) getData().getMetaData().get("Next-Page-Slots"));
                 nextPageItem.getSlots().forEach(slot -> currentInventory.setItem(slot, nextPageItem.getItem().clone()));
@@ -207,7 +255,7 @@ public class Menu implements InventoryHolder {
                 previousPageItem.setSourceInventory(newInventory);
                 previousPageItem.setSlots((List<Integer>) getData().getMetaData().get("Previous-Page-Slots"));
 
-                nextPageItem.setAction((event) -> event.getWhoClicked().openInventory(newInventory));
+                nextPageItem.addAction((event) -> event.getWhoClicked().openInventory(newInventory));
 
                 previousPageItem.getSlots().forEach(slot -> newInventory.setItem(slot, previousPageItem.getItem().clone()));
                 availableSlots.set(new ArrayList<>(validSlots));
@@ -252,7 +300,10 @@ public class Menu implements InventoryHolder {
             });
         }
 
-        Bukkit.getScheduler().runTaskTimer(JustAPIPlugin.getInstance(), this::pushUpdates, 20, 20);
+        Bukkit.getScheduler().runTaskTimer(JustAPIPlugin.getInstance(), () -> {
+            pushUpdates();
+            pushUserUpdates();
+        }, 20, 20);
 
         return inventories.get(0);
     }

@@ -3,15 +3,16 @@ package net.justugh.japi.menu;
 import com.google.common.base.Preconditions;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import net.justugh.japi.JustAPIPlugin;
 import net.justugh.japi.menu.action.MenuClickActionType;
-import net.justugh.japi.menu.action.MenuClickRequirement;
 import net.justugh.japi.util.Format;
 import net.justugh.japi.util.ItemStackUtil;
-import net.justugh.japi.util.Placeholder;
+import net.justugh.japi.util.StringModifier;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -91,17 +92,22 @@ public class MenuBuilder {
     /**
      * Create a Menu from a configuration section.
      *
-     * @param section      The ConfigurationSection.
-     * @param placeholders The Placeholders.
+     * @param section   The ConfigurationSection.
+     * @param modifiers The Placeholders.
      * @return This builder.
      */
-    public MenuBuilder fromConfiguration(ConfigurationSection section, Placeholder... placeholders) {
+    public MenuBuilder fromConfiguration(ConfigurationSection section, StringModifier... modifiers) {
+        List<StringModifier> modifierList = new ArrayList<>(Arrays.asList(modifiers));
+        modifierList.addAll(JustAPIPlugin.getInstance().getMenuManager().getStringModifiers());
+
         id = section.getName();
-        title = Format.format(Preconditions.checkNotNull(Format.format(section.getString("Title"), placeholders), "Invalid/Missing Title"));
+        title = Format.format(Preconditions.checkNotNull(Format.format(section.getString("Title"), modifierList.toArray(new StringModifier[]{})), "Invalid/Missing Title"));
         size = section.getInt("Size");
 
         menu = new Menu(title, size);
         data = new MenuData();
+
+        data.getValidSlots().addAll(section.getIntegerList("Valid-Slots"));
 
         ConfigurationSection metaDataSection = section.getConfigurationSection("Metadata");
 
@@ -113,17 +119,17 @@ public class MenuBuilder {
 
         ConfigurationSection itemSection = section.getConfigurationSection("Items");
 
-        return loadItemsFromConfig(itemSection, placeholders);
+        return loadItemsFromConfig(itemSection, modifierList.toArray(new StringModifier[]{}));
     }
 
     /**
      * Load Menu Items from a ConfigurationSection.
      *
-     * @param section      The ConfigurationSection.
-     * @param placeholders The Placeholders.
+     * @param section   The ConfigurationSection.
+     * @param modifiers The Modifiers.
      * @return This builder.
      */
-    public MenuBuilder loadItemsFromConfig(ConfigurationSection section, Placeholder... placeholders) {
+    public MenuBuilder loadItemsFromConfig(ConfigurationSection section, StringModifier... modifiers) {
         if (section == null) {
             return null;
         }
@@ -131,7 +137,7 @@ public class MenuBuilder {
         items = new ArrayList<>();
 
         for (String identifier : section.getKeys(false)) {
-            ItemStack item = ItemStackUtil.getItemStackFromConfig(section.getConfigurationSection(identifier), placeholders);
+            ItemStack item = ItemStackUtil.getItemStackFromConfig(section.getConfigurationSection(identifier), modifiers);
             MenuItem menuItem = new MenuItem(identifier, item, new ArrayList<>(), section.getBoolean(identifier + ".Update", false));
 
             if (!section.getStringList(identifier + ".Actions").isEmpty()) {
@@ -142,6 +148,12 @@ public class MenuBuilder {
                     internalActions.put(type, data[1]);
                 });
                 menuItem.setInternalActions(internalActions);
+            }
+
+            if (!section.getStringList(identifier + ".Requirements").isEmpty()) {
+                section.getStringList(identifier + ".Requirements").forEach(requirement -> {
+                    menuItem.addRequirement(JustAPIPlugin.getInstance().getMenuManager().getGlobalRequirement(requirement));
+                });
             }
 
             ConfigurationSection metaDataSection = section.getConfigurationSection(identifier + ".Metadata");

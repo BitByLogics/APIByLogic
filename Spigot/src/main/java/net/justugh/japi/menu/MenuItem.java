@@ -27,19 +27,19 @@ public class MenuItem {
     private List<Integer> slots;
     private HashMap<String, String> metaData;
     private boolean updatable;
-    private MenuAction action;
+    private List<MenuAction> actions;
     private HashMap<MenuClickActionType, String> internalActions;
     private List<MenuClickRequirement> requirements;
 
     public MenuItem(String identifier, ItemStack item, List<Integer> slots, boolean updatable, MenuAction action, HashMap<MenuClickActionType, String> internalActions) {
         this(identifier, item, slots, updatable);
-        this.action = action;
+        this.actions.add(action);
         this.internalActions = internalActions;
     }
 
     public MenuItem(String identifier, ItemStack item, List<Integer> slots, boolean updatable, MenuAction action) {
         this(identifier, item, slots, updatable);
-        this.action = action;
+        this.actions.add(action);
         this.internalActions = new HashMap<>();
     }
 
@@ -48,7 +48,7 @@ public class MenuItem {
         this.item = item;
         this.slots = slots;
         this.updatable = updatable;
-        this.action = null;
+        this.actions = new ArrayList<>();
         this.internalActions = new HashMap<>();
         this.metaData = new HashMap<>();
         this.requirements = new ArrayList<>();
@@ -59,18 +59,27 @@ public class MenuItem {
         return this;
     }
 
+    public MenuItem addAction(MenuAction action) {
+        actions.add(action);
+        return this;
+    }
+
+    public MenuItem addRequirement(MenuClickRequirement requirement) {
+        requirements.add(requirement);
+        return this;
+    }
+
+    public MenuAction getAction() {
+        return actions.get(0);
+    }
+
     public void onClick(InventoryClickEvent event) {
         if (!requirements.isEmpty() && requirements.stream().anyMatch(requirement -> !requirement.canClick((Player) event.getWhoClicked()))) {
             return;
         }
 
         internalActions.keySet().forEach(action -> action.getAction().onClick(event, internalActions.get(action)));
-
-        if (action == null) {
-            return;
-        }
-
-        action.onClick(event);
+        actions.forEach(action -> action.onClick(event));
     }
 
     public MenuItem clone() {
