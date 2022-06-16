@@ -7,7 +7,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 @Getter
@@ -24,14 +23,12 @@ public abstract class HikariTable<O extends HikariObject> {
         this.statements = null;
         data = new ArrayList<>();
 
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                hikariAPI.executeStatement(objectClass.newInstance().getTableCreateStatement());
-            } catch (InstantiationException | IllegalAccessException e) {
-                System.out.println("[JustAPI] [HikariAPI] (" + table + "): Unable to create table.");
-                e.printStackTrace();
-            }
-        });
+        try {
+            hikariAPI.executeStatement(objectClass.newInstance().getTableCreateStatement());
+        } catch (InstantiationException | IllegalAccessException e) {
+            System.out.println("[JustAPI] [HikariAPI] (" + table + "): Unable to create table.");
+            e.printStackTrace();
+        }
 
         loadData();
     }
@@ -41,34 +38,15 @@ public abstract class HikariTable<O extends HikariObject> {
         this.table = null;
         this.statements = statements;
         data = new ArrayList<>();
-        Executors.newSingleThreadExecutor().execute(() -> {
-            hikariAPI.executeStatement(statements.getTableCreateStatement());
-            loadData();
-        });
+        hikariAPI.executeStatement(statements.getTableCreateStatement());
+        loadData();
     }
 
     private void loadData() {
         data.clear();
 
-        Executors.newSingleThreadExecutor().execute(() -> {
-            if(statements == null) {
-                hikariAPI.executeQuery(String.format("SELECT * FROM %s;", table), result -> {
-                    if (result == null) {
-                        return;
-                    }
-
-                    try {
-                        while (result.next()) {
-                            data.add(loadObject(result));
-                        }
-                    } catch (SQLException exception) {
-                        exception.printStackTrace();
-                    }
-                });
-                return;
-            }
-
-            hikariAPI.executeQuery(statements.getDataStatement(), result -> {
+        if (statements == null) {
+            hikariAPI.executeQuery(String.format("SELECT * FROM %s;", table), result -> {
                 if (result == null) {
                     return;
                 }
@@ -81,6 +59,21 @@ public abstract class HikariTable<O extends HikariObject> {
                     exception.printStackTrace();
                 }
             });
+            return;
+        }
+
+        hikariAPI.executeQuery(statements.getDataStatement(), result -> {
+            if (result == null) {
+                return;
+            }
+
+            try {
+                while (result.next()) {
+                    data.add(loadObject(result));
+                }
+            } catch (SQLException exception) {
+                exception.printStackTrace();
+            }
         });
     }
 
@@ -90,20 +83,20 @@ public abstract class HikariTable<O extends HikariObject> {
 
     public void save(O object, Consumer<ResultSet> result) {
         if (!object.getRawStatementData().isEmpty()) {
-            Executors.newSingleThreadExecutor().execute(() -> hikariAPI.executeStatement(object.getDataSaveStatement(), result));
+            hikariAPI.executeStatement(object.getDataSaveStatement(), result);
             return;
         }
 
-        Executors.newSingleThreadExecutor().execute(() -> hikariAPI.executeStatement(statements.getSaveStatement(), result, object.getDataObjects()));
+        hikariAPI.executeStatement(statements.getSaveStatement(), result, object.getDataObjects());
     }
 
     public void delete(O object) {
         if (!object.getRawStatementData().isEmpty()) {
-            Executors.newSingleThreadExecutor().execute(() -> hikariAPI.executeStatement(object.getDataDeleteStatement()));
+            hikariAPI.executeStatement(object.getDataDeleteStatement());
             return;
         }
 
-        Executors.newSingleThreadExecutor().execute(() -> hikariAPI.executeStatement(statements.getDeleteStatement(), object.getDataId()));
+        hikariAPI.executeStatement(statements.getDeleteStatement(), object.getDataId());
     }
 
     public abstract O loadObject(ResultSet set) throws SQLException;

@@ -54,8 +54,12 @@ public class Menu implements InventoryHolder {
             while (slotIterator.hasNext()) {
                 MenuItem menuItem = slotIterator.next();
 
-                if (menuItem.getSourceInventory() != inventory) {
+                if (menuItem.getSourceInventory() != null && menuItem.getSourceInventory() != inventory) {
                     continue;
+                }
+
+                if(menuItem.getSourceInventory() == null) {
+                    menuItem.setSourceInventory(inventory);
                 }
 
                 List<Integer> slots = menuItem.getSlots();

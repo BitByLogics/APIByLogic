@@ -1,7 +1,14 @@
 package net.justugh.japi.util.location;
 
+import net.justugh.japi.JustAPIPlugin;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+
+import java.util.HashMap;
 
 public class LocationUtil {
 
@@ -12,11 +19,15 @@ public class LocationUtil {
      * @return The converted string.
      */
     public static String locationToString(Location location) {
-        return location.getWorld().getName() + ":" +
-                location.getX() + ":" +
-                location.getY() + ":" +
-                location.getZ() + ":" +
-                location.getYaw() + ":" +
+        return locationToString(location, ":");
+    }
+
+    public static String locationToString(Location location, String separator) {
+        return location.getWorld().getName() + separator +
+                location.getX() + separator +
+                location.getY() + separator +
+                location.getZ() + separator +
+                location.getYaw() + separator +
                 location.getPitch();
     }
 
@@ -27,13 +38,25 @@ public class LocationUtil {
      * @return The converted location.
      */
     public static Location stringToLocation(String string) {
-        String[] splitArgs = string.split(":");
+        return stringToLocation(string, ":");
+    }
+
+    public static Location stringToLocation(String string, String separator) {
+        String[] splitArgs = string.split(separator);
 
         if (splitArgs.length == 4) {
             return new Location(Bukkit.getWorld(splitArgs[0]), Double.parseDouble(splitArgs[1]), Double.parseDouble(splitArgs[2]), Double.parseDouble(splitArgs[3]));
         } else {
             return new Location(Bukkit.getWorld(splitArgs[0]), Double.parseDouble(splitArgs[1]), Double.parseDouble(splitArgs[2]), Double.parseDouble(splitArgs[3]), Float.parseFloat(splitArgs[4]), Float.parseFloat(splitArgs[5]));
         }
+    }
+
+    public static boolean isLocationString(String string) {
+        return isLocationString(string, ":");
+    }
+
+    public static boolean isLocationString(String string, String separator) {
+        return string.split(separator).length >= 4;
     }
 
     public static boolean matches(Location location, Location other) {
@@ -46,6 +69,59 @@ public class LocationUtil {
         }
 
         return location.getX() == other.getX() && location.getY() == other.getY() && location.getZ() == other.getZ();
+    }
+
+    public static HashMap<Location, PersistentDataContainer> getAllPersistentData(Chunk chunk) {
+        HashMap<Location, PersistentDataContainer> data = new HashMap<>();
+        PersistentDataContainer dataContainer = chunk.getPersistentDataContainer();
+
+        if (dataContainer.isEmpty()) {
+            return data;
+        }
+
+        dataContainer.getKeys().forEach(key -> {
+            if (!isLocationString(key.getKey(), "._.")) {
+                return;
+            }
+
+            if (dataContainer.get(key, PersistentDataType.TAG_CONTAINER) == null) {
+                return;
+            }
+
+            data.put(stringToLocation(key.getKey(), "._."), dataContainer.get(key, PersistentDataType.TAG_CONTAINER));
+        });
+
+        return data;
+    }
+
+    public static boolean hasPersistentData(Location location) {
+        return location.getChunk().getPersistentDataContainer().has(new NamespacedKey(JustAPIPlugin.getInstance(), locationToString(location, "._.")), PersistentDataType.TAG_CONTAINER);
+    }
+
+    public static PersistentDataContainer getPersistentData(Location location) {
+        NamespacedKey locationKey = new NamespacedKey(JustAPIPlugin.getInstance(), locationToString(location, "._."));
+        Chunk chunk = location.getChunk();
+
+        if (!chunk.getPersistentDataContainer().has(locationKey, PersistentDataType.TAG_CONTAINER)) {
+            chunk.getPersistentDataContainer().set(locationKey, PersistentDataType.TAG_CONTAINER,
+                    chunk.getPersistentDataContainer().getAdapterContext().newPersistentDataContainer());
+        }
+
+        return chunk.getPersistentDataContainer().get(locationKey, PersistentDataType.TAG_CONTAINER);
+    }
+
+    public static void deletePersistentData(Location location) {
+        NamespacedKey locationKey = new NamespacedKey(JustAPIPlugin.getInstance(), locationToString(location, "._."));
+
+        if (!location.getChunk().getPersistentDataContainer().has(locationKey, PersistentDataType.TAG_CONTAINER)) {
+            return;
+        }
+
+        location.getChunk().getPersistentDataContainer().remove(locationKey);
+    }
+
+    public static void savePersistentData(Location location, PersistentDataContainer container) {
+        location.getChunk().getPersistentDataContainer().set(new NamespacedKey(JustAPIPlugin.getInstance(), locationToString(location, "._.")), PersistentDataType.TAG_CONTAINER, container);
     }
 
 }
