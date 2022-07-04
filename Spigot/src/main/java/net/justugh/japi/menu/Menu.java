@@ -58,7 +58,7 @@ public class Menu implements InventoryHolder {
                     continue;
                 }
 
-                if(menuItem.getSourceInventory() == null) {
+                if (menuItem.getSourceInventory() == null) {
                     menuItem.setSourceInventory(inventory);
                 }
 
@@ -86,7 +86,7 @@ public class Menu implements InventoryHolder {
                     continue;
                 }
 
-                ItemStack updatedItem = menuItem.getItemUpdateProvider().requestItem(menuItem);
+                ItemStack updatedItem = menuItem.getItemUpdateProvider() == null ? menuItem.getItem().clone() : menuItem.getItemUpdateProvider().requestItem(menuItem);
                 updateItemMeta(updatedItem);
 
                 slots.forEach(slot -> inventory.setItem(slot, updatedItem));
@@ -273,11 +273,14 @@ public class Menu implements InventoryHolder {
 
             Inventory targetInventory = inventory.get();
 
+            ItemStack itemStack = item.getItemUpdateProvider() == null ? item.getItem().clone() : item.getItemUpdateProvider().requestItem(item);
+            updateItemMeta(itemStack);
+
             if (!item.getSlots().isEmpty()) {
                 item.setSourceInventory(targetInventory);
                 item.getSlots().forEach(slot -> {
                     availableSlots.get().removeAll(Collections.singletonList(slot));
-                    targetInventory.setItem(slot, item.getItemUpdateProvider() == null ? item.getItem().clone() : item.getItemUpdateProvider().requestItem(item));
+                    targetInventory.setItem(slot, itemStack);
                 });
 
                 return;
@@ -288,7 +291,8 @@ public class Menu implements InventoryHolder {
 
             item.setSourceInventory(targetInventory);
             item.getSlots().add(slot);
-            targetInventory.setItem(slot, item.isUpdatable() ? item.getItemUpdateProvider().requestItem(item) : item.getItem().clone());
+
+            targetInventory.setItem(slot, itemStack);
         });
 
         items.addAll(itemCache);

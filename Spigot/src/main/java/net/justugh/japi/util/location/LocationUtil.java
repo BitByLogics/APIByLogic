@@ -24,11 +24,9 @@ public class LocationUtil {
 
     public static String locationToString(Location location, String separator) {
         return location.getWorld().getName() + separator +
-                location.getX() + separator +
-                location.getY() + separator +
-                location.getZ() + separator +
-                location.getYaw() + separator +
-                location.getPitch();
+                location.getBlockX() + separator +
+                location.getBlockY() + separator +
+                location.getBlockZ() + separator;
     }
 
     /**
@@ -44,11 +42,7 @@ public class LocationUtil {
     public static Location stringToLocation(String string, String separator) {
         String[] splitArgs = string.split(separator);
 
-        if (splitArgs.length == 4) {
-            return new Location(Bukkit.getWorld(splitArgs[0]), Double.parseDouble(splitArgs[1]), Double.parseDouble(splitArgs[2]), Double.parseDouble(splitArgs[3]));
-        } else {
-            return new Location(Bukkit.getWorld(splitArgs[0]), Double.parseDouble(splitArgs[1]), Double.parseDouble(splitArgs[2]), Double.parseDouble(splitArgs[3]), Float.parseFloat(splitArgs[4]), Float.parseFloat(splitArgs[5]));
-        }
+        return new Location(Bukkit.getWorld(splitArgs[0]), Integer.parseInt(splitArgs[1]), Integer.parseInt(splitArgs[2]), Integer.parseInt(splitArgs[3]));
     }
 
     public static boolean isLocationString(String string) {

@@ -8,6 +8,7 @@ import net.justugh.japi.menu.action.MenuClickRequirement;
 import net.justugh.japi.menu.listener.MenuListener;
 import net.justugh.japi.util.StringModifier;
 import org.bukkit.Bukkit;
+import org.bukkit.event.EventHandler;
 import org.bukkit.inventory.Inventory;
 
 import java.util.*;

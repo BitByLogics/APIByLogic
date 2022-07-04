@@ -17,7 +17,7 @@ public class ActionListener implements Listener {
 
     private final ActionManager actionManager;
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onInteract(PlayerInteractEvent event) {
         if (event.getItem() == null || !event.getItem().hasItemMeta()) {
             return;

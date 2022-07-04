@@ -73,10 +73,6 @@ public class ItemBuilder {
     }
 
     public ItemBuilder removeAttributes() {
-        if (itemStack == null) {
-            build();
-        }
-
         ItemMeta meta = itemStack.getItemMeta();
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_POTION_EFFECTS);
         itemStack.setItemMeta(meta);
@@ -91,11 +87,22 @@ public class ItemBuilder {
     }
 
     public ItemBuilder addAction(ItemInteractAction action) {
+        if(itemStack == null) {
+            build();
+        }
+
         String itemIdentifier = UUID.randomUUID().toString();
         ItemMeta meta = itemStack.getItemMeta();
         meta.getPersistentDataContainer().set(new NamespacedKey(JustAPIPlugin.getInstance(), itemIdentifier), PersistentDataType.STRING, "");
         itemStack.setItemMeta(meta);
         JustAPIPlugin.getInstance().getActionManager().addItemAction(action, itemIdentifier);
+        return this;
+    }
+
+    public <T, Z> ItemBuilder addPersistentData(String key, PersistentDataType<T, Z> type, Z value) {
+        ItemMeta meta = itemStack.getItemMeta();
+        meta.getPersistentDataContainer().set(new NamespacedKey(JustAPIPlugin.getInstance(), key), type, value);
+        itemStack.setItemMeta(meta);
         return this;
     }
 

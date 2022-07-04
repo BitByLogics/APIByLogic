@@ -3,18 +3,19 @@ package net.justugh.japi.util;
 import com.google.common.collect.Lists;
 import net.justugh.japi.JustAPIPlugin;
 import net.md_5.bungee.api.ChatColor;
-import net.minecraft.locale.LocaleLanguage;
+import net.minecraft.locale.Language;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.craftbukkit.v1_18_R2.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_19_R1.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -137,14 +138,14 @@ public class ItemStackUtil {
      * @return ItemStack's Vanilla Name.
      */
     public static String getVanillaName(ItemStack item) {
-        return Format.format("&f" + LocaleLanguage.a().a(CraftItemStack.asNMSCopy(item).n().o()));
+        return Format.format("&f" + Language.getInstance().getOrDefault(CraftItemStack.asNMSCopy(item).getDescriptionId()));
     }
 
     /**
      * Update an ItemStack's name & lore with color
      * codes & the provided placeholders.
      *
-     * @param item         The ItemStack to update.
+     * @param item      The ItemStack to update.
      * @param modifiers The placeholders to replace.
      */
     public static void updateItem(ItemStack item, StringModifier... modifiers) {
@@ -356,6 +357,15 @@ public class ItemStackUtil {
         }
 
         return ((CreatureSpawner) meta.getBlockState()).getSpawnedType() != ((CreatureSpawner) otherMeta.getBlockState()).getSpawnedType();
+    }
+
+    public static boolean hasPersistentData(ItemStack itemStack, String key) {
+        return itemStack.getItemMeta().getPersistentDataContainer().getKeys().stream().anyMatch(pKey -> pKey.getKey().equalsIgnoreCase(key));
+    }
+
+    public static <T, Z> boolean persistentDataMatches(ItemStack itemStack, PersistentDataType<T, Z> type, Z value) {
+        PersistentDataContainer dataContainer = itemStack.getItemMeta().getPersistentDataContainer();
+        return dataContainer.getKeys().stream().filter(pKey -> dataContainer.has(pKey, type)).anyMatch(pKey -> dataContainer.get(pKey, type) == value);
     }
 
 }
