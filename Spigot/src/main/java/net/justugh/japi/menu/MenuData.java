@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.justugh.japi.menu.placeholder.PlaceholderProvider;
 import net.justugh.japi.menu.placeholder.UserPlaceholderProvider;
+import net.justugh.japi.util.StringModifier;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ public class MenuData {
     private final List<Integer> validSlots;
     private final List<PlaceholderProvider> placeholderProviders;
     private final List<UserPlaceholderProvider> userPlaceholderProviders;
+    private final List<StringModifier> modifiers;
 
     public MenuData() {
         this.itemStorage = new ArrayList<>();
@@ -33,6 +35,7 @@ public class MenuData {
         this.validSlots = new ArrayList<>();
         this.placeholderProviders = new ArrayList<>();
         this.userPlaceholderProviders = new ArrayList<>();
+        this.modifiers = new ArrayList<>();
     }
 
     public MenuItem getItemFromStorage(String identifier) {
@@ -45,6 +48,10 @@ public class MenuData {
 
     public boolean hasFlag(MenuFlag flag) {
         return flags.contains(flag);
+    }
+
+    public void addModifier(StringModifier modifier) {
+        modifiers.add(modifier);
     }
 
 }

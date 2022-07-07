@@ -107,6 +107,7 @@ public class MenuBuilder {
         menu = new Menu(title, size);
         data = new MenuData();
 
+        data.getModifiers().addAll(modifierList);
         data.getValidSlots().addAll(section.getIntegerList("Valid-Slots"));
 
         ConfigurationSection metaDataSection = section.getConfigurationSection("Metadata");
@@ -137,7 +138,7 @@ public class MenuBuilder {
         items = new ArrayList<>();
 
         for (String identifier : section.getKeys(false)) {
-            ItemStack item = ItemStackUtil.getItemStackFromConfig(section.getConfigurationSection(identifier), modifiers);
+            ItemStack item = ItemStackUtil.getItemStackFromConfig(section.getConfigurationSection(identifier));
             MenuItem menuItem = new MenuItem(identifier, item, new ArrayList<>(), section.getBoolean(identifier + ".Update", false));
 
             if (!section.getStringList(identifier + ".Actions").isEmpty()) {

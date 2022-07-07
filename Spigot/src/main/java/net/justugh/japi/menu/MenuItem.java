@@ -23,7 +23,7 @@ public class MenuItem {
     private ItemStack item;
     private MenuItemUpdateProvider itemUpdateProvider;
 
-    private Inventory sourceInventory;
+    private List<Inventory> sourceInventories = new ArrayList<>();
     private List<Integer> slots;
     private HashMap<String, String> metaData;
     private boolean updatable;
@@ -67,6 +67,10 @@ public class MenuItem {
     public MenuItem addRequirement(MenuClickRequirement requirement) {
         requirements.add(requirement);
         return this;
+    }
+
+    public void addSourceInventory(Inventory inventory) {
+        sourceInventories.add(inventory);
     }
 
     public MenuAction getAction() {
