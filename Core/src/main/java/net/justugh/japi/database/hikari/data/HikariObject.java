@@ -142,7 +142,7 @@ public abstract class HikariObject {
                     continue;
                 }
 
-                data.add(String.format("'%s'", fieldObject.toString()));
+                data.add(String.format("'%s'", fieldObject == null ? null : fieldObject.toString()));
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 throw new RuntimeException(e);
             }

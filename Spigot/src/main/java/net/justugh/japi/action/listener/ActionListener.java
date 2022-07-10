@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import net.justugh.japi.action.Action;
 import net.justugh.japi.action.ActionManager;
 import net.justugh.japi.action.ChatInputAction;
+import net.justugh.japi.action.ItemInteractAction;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
@@ -11,6 +12,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 public class ActionListener implements Listener {
@@ -23,7 +25,13 @@ public class ActionListener implements Listener {
             return;
         }
 
-        actionManager.getItemActionMap().stream().filter(action -> action.matches(event.getItem())).forEach(action -> {
+        List<ItemInteractAction> actions = actionManager.getItemActionMap().stream().filter(action -> action.matches(event.getItem())).collect(Collectors.toList());
+
+        if (actions.isEmpty()) {
+            return;
+        }
+
+        actions.forEach(action -> {
             action.onTrigger(event);
         });
     }
