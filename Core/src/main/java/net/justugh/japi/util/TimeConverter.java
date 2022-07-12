@@ -65,31 +65,31 @@ public class TimeConverter {
         StringBuilder message = new StringBuilder();
 
         if (years > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("year"))) {
-            message.append(years).append(TimeAbbreviation.YEAR.getPrefix(longPrefixes) + (years > 1 ? "s" : "")).append(" ");
+            message.append(years).append(TimeAbbreviation.YEAR.getPrefix(longPrefixes) + (longPrefixes ? (years > 1 ? "s" : "") : "")).append(" ");
         }
 
         if (months > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("month"))) {
-            message.append(months).append(TimeAbbreviation.MONTH.getPrefix(longPrefixes) + (months > 1 ? "s" : "")).append(" ");
+            message.append(months).append(TimeAbbreviation.MONTH.getPrefix(longPrefixes) + (longPrefixes ? (months > 1 ? "s" : "") : "")).append(" ");
         }
 
         if (weeks > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("weeks"))) {
-            message.append(weeks).append(TimeAbbreviation.WEEK.getPrefix(longPrefixes) + (weeks > 1 ? "s" : "")).append(" ");
+            message.append(weeks).append(TimeAbbreviation.WEEK.getPrefix(longPrefixes) + (longPrefixes ? (weeks > 1 ? "s" : "") : "")).append(" ");
         }
 
         if (days > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("days"))) {
-            message.append(days).append(TimeAbbreviation.DAY.getPrefix(longPrefixes) + (days > 1 ? "s" : "")).append(" ");
+            message.append(days).append(TimeAbbreviation.DAY.getPrefix(longPrefixes) + (longPrefixes ? (days > 1 ? "s" : "") : "")).append(" ");
         }
 
         if (hours > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("hours"))) {
-            message.append(hours).append(TimeAbbreviation.HOUR.getPrefix(longPrefixes) + (hours > 1 ? "s" : "")).append(" ");
+            message.append(hours).append(TimeAbbreviation.HOUR.getPrefix(longPrefixes) + (longPrefixes ? (hours > 1 ? "s" : "") : "")).append(" ");
         }
 
         if (minutes > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("minutes"))) {
-            message.append(minutes).append(TimeAbbreviation.MINUTE.getPrefix(longPrefixes) + (minutes > 1 ? "s" : "")).append(" ");
+            message.append(minutes).append(TimeAbbreviation.MINUTE.getPrefix(longPrefixes) + (longPrefixes ? (minutes > 1 ? "s" : "") : "")).append(" ");
         }
 
         if (seconds > 0 && Arrays.stream(excludedTimes).noneMatch(s -> s.equalsIgnoreCase("seconds"))) {
-            message.append(seconds).append(TimeAbbreviation.SECOND.getPrefix(longPrefixes) + (seconds > 1 ? "s" : ""));
+            message.append(seconds).append(TimeAbbreviation.SECOND.getPrefix(longPrefixes) + (longPrefixes ? (seconds > 1 ? "s" : "") : ""));
         }
 
         return message.toString().trim();
