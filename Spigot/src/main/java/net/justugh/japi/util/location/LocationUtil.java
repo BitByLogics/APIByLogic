@@ -22,11 +22,24 @@ public class LocationUtil {
         return locationToString(location, ":");
     }
 
+    public static String locationToStringWithYawPitch(Location location) {
+        return locationToStringWithYawPitch(location, ":");
+    }
+
     public static String locationToString(Location location, String separator) {
         return location.getWorld().getName() + separator +
                 location.getBlockX() + separator +
                 location.getBlockY() + separator +
-                location.getBlockZ() + separator;
+                location.getBlockZ();
+    }
+
+    public static String locationToStringWithYawPitch(Location location, String separator) {
+        return location.getWorld().getName() + separator +
+                location.getBlockX() + separator +
+                location.getBlockY() + separator +
+                location.getBlockZ() + separator +
+                location.getYaw() + separator +
+                location.getPitch();
     }
 
     /**
@@ -42,7 +55,11 @@ public class LocationUtil {
     public static Location stringToLocation(String string, String separator) {
         String[] splitArgs = string.split(separator);
 
-        return new Location(Bukkit.getWorld(splitArgs[0]), Integer.parseInt(splitArgs[1]), Integer.parseInt(splitArgs[2]), Integer.parseInt(splitArgs[3]));
+        if(splitArgs.length == 4) {
+            return new Location(Bukkit.getWorld(splitArgs[0]), Integer.parseInt(splitArgs[1]), Integer.parseInt(splitArgs[2]), Integer.parseInt(splitArgs[3]));
+        } else {
+            return new Location(Bukkit.getWorld(splitArgs[0]), Integer.parseInt(splitArgs[1]), Integer.parseInt(splitArgs[2]), Integer.parseInt(splitArgs[3]), Float.parseFloat(splitArgs[4]), Float.parseFloat(splitArgs[5]));
+        }
     }
 
     public static boolean isLocationString(String string) {
