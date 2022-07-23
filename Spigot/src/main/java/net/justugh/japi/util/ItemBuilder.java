@@ -72,6 +72,13 @@ public class ItemBuilder {
         return this;
     }
 
+    public ItemBuilder modelData(int modelData) {
+        ItemMeta meta = itemStack.getItemMeta();
+        meta.setCustomModelData(modelData);
+        itemStack.setItemMeta(meta);
+        return this;
+    }
+
     public ItemBuilder removeAttributes() {
         ItemMeta meta = itemStack.getItemMeta();
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_POTION_EFFECTS);

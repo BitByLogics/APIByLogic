@@ -1,29 +1,25 @@
 package net.justugh.japi.database.redis;
 
-import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import net.justugh.japi.database.redis.client.RedisClient;
-import net.justugh.japi.database.redis.listener.ListenerComponent;
-import net.justugh.japi.database.redis.policy.RedisEvictionPolicy;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.JedisPubSub;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
 @Getter
 public class RedisManager {
 
-    private final JedisPool jedisPool;
+    private RedissonClient redissonClient;
     private final List<RedisClient> clients;
 
-    @Getter(AccessLevel.NONE)
-    private final String LISTENER_CHANNEL = "japi_channel";
     @Getter(AccessLevel.NONE)
     private final String SOURCE_ID;
 
@@ -32,32 +28,28 @@ public class RedisManager {
     private boolean debug;
 
     public RedisManager(String host, int port, String password, String sourceId) {
-        JedisPoolConfig config = new JedisPoolConfig();
-        config.setEvictionPolicy(new RedisEvictionPolicy<>());
-        config.setMaxTotal(25);
-        config.setMaxIdle(10);
-        config.setMinIdle(5);
-
-        this.jedisPool = password.isEmpty() ? new JedisPool(config, host, port, 10_000) : new JedisPool(config, host, port, 10_000, password);
         this.SOURCE_ID = sourceId;
         this.gson = new GsonBuilder().create();
 
-        this.clients = Lists.newArrayList();
+        this.clients = new ArrayList<>();
 
-        Thread.UncaughtExceptionHandler errHandler = (thread, error) -> {
-            Logger.getGlobal().severe("(Redis): Error: " + error + ", Line Number: " + error.getStackTrace()[0].getLineNumber());
-            error.printStackTrace(System.out);
-        };
+        Config config = new Config();
+        config.useSingleServer()
+                .setAddress(String.format("redis://%s:%s", host, port))
+                .setPassword(password.isEmpty() ? null : password)
+                .setPingConnectionInterval(50)
+                .setConnectTimeout(20_000)
+                .setTimeout(25_000_000)
+                .setRetryInterval(750)
+                .setConnectionMinimumIdleSize(4)
+                .setConnectionPoolSize(16);
 
-        Thread subThread = new Thread(() -> jedisPool.getResource().subscribe(new JedisPubSub() {
-            @Override
-            public void onMessage(String channel, String message) {
-                handleMessage(message);
-            }
-        }, LISTENER_CHANNEL));
-
-        subThread.setUncaughtExceptionHandler(errHandler);
-        subThread.start();
+        try {
+            redissonClient = Redisson.create(config);
+        } catch (Exception exception) {
+            Logger.getGlobal().severe("[REDIS]: Unable to connect to redis, contact developer with error below.");
+            exception.printStackTrace();
+        }
     }
 
     /**
@@ -77,45 +69,6 @@ public class RedisManager {
         clients.add(client);
 
         return client;
-    }
-
-    /**
-     * Handles all incoming Redis messages to be rerouted
-     * to listeners.
-     *
-     * @param message The message to reroute.
-     */
-    private void handleMessage(String message) {
-        ListenerComponent component = gson.fromJson(message, ListenerComponent.class);
-
-        if (component.getTarget() == null) {
-            clients.forEach(client ->
-                    client.getListeners().stream().filter(listener ->
-                            listener.getChannelName().equalsIgnoreCase(component.getChannel())).forEach(listener -> listener.onReceive(component)));
-            return;
-        }
-
-        if(!SOURCE_ID.equalsIgnoreCase(component.getTarget())) {
-            return;
-        }
-
-        clients.forEach(client -> {
-            if (debug) {
-                Logger.getGlobal().info(String.format("%s -> %s (%s): %s", component.getSource().getID(), component.getTarget(), component.getChannel(), component.getData().toString()));
-            }
-
-            client.getListeners().stream().filter(listener ->
-                    listener.getChannelName().equalsIgnoreCase(component.getChannel())).forEach(listener -> listener.onReceive(component));
-        });
-    }
-
-    /**
-     * Get the listener channel id.
-     *
-     * @return The listener channel id.
-     */
-    public String getListenerChannel() {
-        return LISTENER_CHANNEL;
     }
 
     /**

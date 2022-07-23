@@ -1,6 +1,5 @@
 package net.justugh.japi.database.hikari.data;
 
-import com.google.common.collect.Lists;
 import lombok.Getter;
 import net.justugh.japi.database.hikari.annotation.HikariStatementData;
 import net.justugh.japi.database.hikari.processor.HikariDataProcessor;
@@ -30,7 +29,7 @@ public abstract class HikariObject {
     public abstract void loadProcessors();
 
     private void loadStatementData() {
-        List<Field> fields = Lists.newArrayList();
+        List<Field> fields = new ArrayList<>();
 
         fields.addAll(Arrays.asList(getClass().getFields()));
         fields.addAll(Arrays.asList(getClass().getDeclaredFields()));

@@ -18,4 +18,5 @@ public abstract class RedisMessageListener {
      * @param message The message associated with the incoming channel message.
      */
     public abstract void onReceive(ListenerComponent message);
+
 }

@@ -1,6 +1,5 @@
 package net.justugh.japi.database.redis.listener;
 
-import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,7 +19,7 @@ public class ListenerComponent {
     private final HashMap<String, String> data;
 
     public ListenerComponent(String target, String channel) {
-        this(target, channel, Maps.newHashMap());
+        this(target, channel, new HashMap<>());
     }
 
     public ListenerComponent(String target, String channel, HashMap<String, String> data) {
