@@ -32,6 +32,11 @@ public class MessageProvider {
         config.getKeys(true).stream().filter(key -> !(config.get(key) instanceof MemorySection)).forEach(key -> messages.put(key, config.get(key)));
     }
 
+    public void reload(ConfigurationSection section) {
+        messages.clear();
+        section.getKeys(true).stream().filter(key -> !(section.get(key) instanceof MemorySection)).forEach(key -> messages.put(key, section.get(key)));
+    }
+
     public void registerPlaceholder(Placeholder placeholder) {
         placeholders.add(placeholder);
     }

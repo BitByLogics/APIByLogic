@@ -1,7 +1,7 @@
 package net.justugh.japi.util;
 
 import net.justugh.japi.JustAPIPlugin;
-import net.justugh.japi.action.ItemInteractAction;
+import net.justugh.japi.action.ItemAction;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -93,8 +93,8 @@ public class ItemBuilder {
         return this;
     }
 
-    public ItemBuilder addAction(ItemInteractAction action) {
-        if(itemStack == null) {
+    public ItemBuilder addAction(ItemAction<?> action) {
+        if (itemStack == null) {
             build();
         }
 
@@ -102,7 +102,8 @@ public class ItemBuilder {
         ItemMeta meta = itemStack.getItemMeta();
         meta.getPersistentDataContainer().set(new NamespacedKey(JustAPIPlugin.getInstance(), itemIdentifier), PersistentDataType.STRING, "");
         itemStack.setItemMeta(meta);
-        JustAPIPlugin.getInstance().getActionManager().addItemAction(action, itemIdentifier);
+        action.setItemIdentifier(itemIdentifier);
+        JustAPIPlugin.getInstance().getActionManager().trackAction(null, action);
         return this;
     }
 

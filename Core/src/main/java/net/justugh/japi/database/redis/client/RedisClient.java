@@ -41,7 +41,7 @@ public class RedisClient {
             try {
                 ListenerComponent component = redisManager.getGson().fromJson(msg, ListenerComponent.class);
 
-                if (component.getTarget() == null) {
+                if (component.getTarget() == null || component.getTarget().isEmpty()) {
                     listeners.stream().filter(l -> l.getChannelName().equalsIgnoreCase(component.getChannel()))
                             .forEach(l -> l.onReceive(component));
                     return;

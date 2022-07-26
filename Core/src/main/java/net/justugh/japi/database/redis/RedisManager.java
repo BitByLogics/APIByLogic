@@ -42,7 +42,7 @@ public class RedisManager {
                 .setTimeout(25_000_000)
                 .setRetryInterval(750)
                 .setConnectionMinimumIdleSize(4)
-                .setConnectionPoolSize(16);
+                .setConnectionPoolSize(32);
 
         try {
             redissonClient = Redisson.create(config);
