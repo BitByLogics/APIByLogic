@@ -43,6 +43,12 @@ public class MenuItem {
         this.internalActions = new HashMap<>();
     }
 
+    public MenuItem(String identifier, ItemStack item, List<Integer> slots, boolean updatable, List<MenuAction> actions) {
+        this(identifier, item, slots, updatable);
+        this.actions = actions;
+        this.internalActions = new HashMap<>();
+    }
+
     public MenuItem(String identifier, ItemStack item, List<Integer> slots, boolean updatable) {
         this.identifier = identifier;
         this.item = item;
@@ -87,6 +93,10 @@ public class MenuItem {
     }
 
     public MenuItem clone() {
-        return new MenuItem(identifier, item.clone(), Lists.newArrayList(), updatable);
+        return clone(true);
+    }
+
+    public MenuItem clone(boolean cloneAction) {
+        return new MenuItem(identifier, item.clone(), Lists.newArrayList(), updatable, cloneAction ? actions : Lists.newArrayList());
     }
 }

@@ -21,10 +21,34 @@ public class ActionManager implements Listener {
     private final JavaPlugin plugin;
 
     private final HashMap<UUID, List<Action<?>>> actionMap;
+    private final HashMap<UUID, List<ItemAction<?>>> itemActionMap;
 
     public ActionManager(JavaPlugin plugin) {
         this.plugin = plugin;
         actionMap = Maps.newHashMap();
+        itemActionMap = Maps.newHashMap();
+    }
+
+    public void trackItemAction(@Nullable Player player, ItemAction<?> action) {
+        UUID id = player == null ? globalUUID : player.getUniqueId();
+
+        List<ItemAction<?>> actions = itemActionMap.getOrDefault(id, Lists.newArrayList());
+        actions.add(action);
+        itemActionMap.put(id, actions);
+        plugin.getServer().getPluginManager().registerEvents(action, plugin);
+
+        if (action.getExpireTime() != -1) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                List<ItemAction<?>> actions1 = itemActionMap.getOrDefault(id, Lists.newArrayList());
+                actions1.remove(action);
+                HandlerList.unregisterAll(action);
+                itemActionMap.put(id, actions1);
+
+                if (!action.isCompleted()) {
+                    action.onExpire(player);
+                }
+            }, action.getExpireTime());
+        }
     }
 
     public void trackAction(@Nullable Player player, Action<?> action) {

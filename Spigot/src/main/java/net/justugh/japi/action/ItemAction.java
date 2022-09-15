@@ -1,15 +1,17 @@
 package net.justugh.japi.action;
 
+import lombok.Getter;
 import lombok.Setter;
 import net.justugh.japi.JustAPIPlugin;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
-import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.TimeUnit;
 
@@ -18,24 +20,26 @@ import java.util.concurrent.TimeUnit;
  * Current supported events are listed below:
  * - PlayerInteractEvent
  * - PlayerInteractAtEntityEvent
- *
- * @param <E> Event to listen to
  */
+@Getter
 @Setter
-public abstract class ItemAction<E extends Event> extends Action<E> {
+public abstract class ItemAction<E extends Event> implements Listener {
 
     private String itemIdentifier;
+    private long expireTime = -1;
+    private int allowedActivations;
 
     public ItemAction() {
-        super(TimeUnit.SECONDS, -1, -1);
+        this(TimeUnit.SECONDS, -1, -1);
     }
 
     public ItemAction(int allowedActivations) {
-        super(TimeUnit.SECONDS, -1, allowedActivations);
+        this(TimeUnit.SECONDS, -1, allowedActivations);
     }
 
     public ItemAction(TimeUnit unit, int time, int allowedActivations) {
-        super(unit, time, allowedActivations);
+        this.expireTime = time > 0 ? unit.toSeconds(time) * 20 : time;
+        this.allowedActivations = allowedActivations;
     }
 
     public boolean matches(ItemStack itemStack) {
@@ -43,42 +47,29 @@ public abstract class ItemAction<E extends Event> extends Action<E> {
             return false;
         }
 
+        if (itemStack.getItemMeta() == null) {
+            return false;
+        }
+
         return itemStack.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(JustAPIPlugin.getInstance(), itemIdentifier), PersistentDataType.STRING);
     }
 
+    public abstract void onExpire(@Nullable Player player);
+
+    public abstract void onTrigger(PlayerInteractEvent event);
+
     @EventHandler
-    public void superTrigger(E event) {
-        if (event instanceof PlayerInteractEvent) {
-            PlayerInteractEvent castedEvent = (PlayerInteractEvent) event;
-
-            if (!matches(castedEvent.getItem())) {
-                return;
-            }
-
-            onTrigger(event);
-        }
-
-        if (event instanceof PlayerInteractAtEntityEvent) {
-            PlayerInteractAtEntityEvent castedEvent = (PlayerInteractAtEntityEvent) event;
-
-            if (!matches(castedEvent.getPlayer().getInventory().getItemInMainHand())
-                    && !matches(castedEvent.getPlayer().getInventory().getItemInOffHand())) {
-                return;
-            }
-
-            onTrigger(event);
-        }
-
-        if (getAllowedActivations() == -1) {
+    public void superTrigger(PlayerInteractEvent event) {
+        if (!matches(event.getPlayer().getInventory().getItemInMainHand())
+                && !matches(event.getPlayer().getInventory().getItemInOffHand())) {
             return;
         }
 
-        if (getAllowedActivations() == 0) {
-            HandlerList.unregisterAll(this);
-            return;
-        }
+        onTrigger(event);
+    }
 
-        setAllowedActivations(getAllowedActivations() - 1);
+    public boolean isCompleted() {
+        return allowedActivations == 0;
     }
 
 }

@@ -26,6 +26,29 @@ public abstract class HikariTable<O extends HikariObject> {
 
     private RedisClient redisClient;
 
+    public HikariTable(HikariAPI hikariAPI, Class<O> objectClass, String table, boolean loadData) {
+        this.hikariAPI = hikariAPI;
+        this.table = table;
+        this.statements = null;
+        data = new ArrayList<>();
+
+        try {
+            O tempObject = objectClass.newInstance();
+            hikariAPI.executeStatement(tempObject.getTableCreateStatement());
+            Map.Entry<String, HikariStatementData> data = tempObject.getRawStatementData().entrySet().stream().filter(entry -> entry.getValue().primaryKey()).findFirst().orElse(null);
+            idFieldName = data == null ? null : data.getKey();
+        } catch (InstantiationException | IllegalAccessException e) {
+            System.out.println("[JustAPI] [HikariAPI] (" + table + "): Unable to create table.");
+            e.printStackTrace();
+        }
+
+        if (!loadData) {
+            return;
+        }
+
+        loadData();
+    }
+
     public HikariTable(HikariAPI hikariAPI, Class<O> objectClass, String table) {
         this.hikariAPI = hikariAPI;
         this.table = table;
@@ -99,7 +122,7 @@ public abstract class HikariTable<O extends HikariObject> {
 
             if (redisClient != null) {
                 redisClient.sendListenerMessage(new ListenerComponent(null, "hikari-update")
-                        .addData("updateType", HikariRedisUpdateType.DELETE).addData("objectId", object.getDataId().toString()));
+                        .addData("updateType", HikariRedisUpdateType.SAVE).addData("objectId", object.getDataId().toString()));
             }
             return;
         }
@@ -108,7 +131,7 @@ public abstract class HikariTable<O extends HikariObject> {
 
         if (redisClient != null) {
             redisClient.sendListenerMessage(new ListenerComponent(null, "hikari-update")
-                    .addData("updateType", HikariRedisUpdateType.DELETE).addData("objectId", object.getDataId().toString()));
+                    .addData("updateType", HikariRedisUpdateType.SAVE).addData("objectId", object.getDataId().toString()));
         }
     }
 
@@ -139,11 +162,13 @@ public abstract class HikariTable<O extends HikariObject> {
 
     public void getDataFromDB(Object id, Consumer<O> consumer) {
         if (idFieldName == null) {
+            consumer.accept(null);
             return;
         }
 
         hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, idFieldName, id.toString()), result -> {
             if (result == null) {
+                consumer.accept(null);
                 return;
             }
 

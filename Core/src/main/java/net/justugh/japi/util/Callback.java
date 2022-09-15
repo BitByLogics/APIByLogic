@@ -1,7 +1,7 @@
 package net.justugh.japi.util;
 
-public interface Callback {
+public interface Callback<O> {
 
-    void call();
+    void call(O object);
 
 }

@@ -5,6 +5,9 @@ import net.justugh.japi.database.hikari.data.HikariTable;
 import net.justugh.japi.database.redis.listener.ListenerComponent;
 import net.justugh.japi.database.redis.listener.RedisMessageListener;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 public class HikariUpdateRedisMessageListener<O extends HikariObject> extends RedisMessageListener {
 
     private final HikariTable<O> hikariTable;
@@ -21,24 +24,26 @@ public class HikariUpdateRedisMessageListener<O extends HikariObject> extends Re
 
         O object = hikariTable.getDataById(objectId);
 
-        switch (updateType) {
-            case SAVE:
-                if (object != null) {
-                    hikariTable.getData().remove(object);
-                }
+        Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+            switch (updateType) {
+                case SAVE:
+                    if (object != null) {
+                        hikariTable.getData().remove(object);
+                    }
 
-                hikariTable.getDataFromDB(objectId, o -> {
-                    hikariTable.getData().add(o);
-                });
-                break;
-            case DELETE:
-                if (object != null) {
-                    hikariTable.getData().remove(object);
-                }
-                break;
-            default:
-                break;
-        }
+                    hikariTable.getDataFromDB(objectId, o -> {
+                        hikariTable.getData().add(o);
+                    });
+                    break;
+                case DELETE:
+                    if (object != null) {
+                        hikariTable.getData().remove(object);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }, 1, TimeUnit.SECONDS);
     }
 
 }
