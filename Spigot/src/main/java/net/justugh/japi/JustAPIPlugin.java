@@ -1,7 +1,9 @@
 package net.justugh.japi;
 
 import lombok.Getter;
+import lombok.Setter;
 import net.justugh.japi.action.ActionManager;
+import net.justugh.japi.command.JustAPICommand;
 import net.justugh.japi.database.redis.RedisManager;
 import net.justugh.japi.menu.manager.MenuManager;
 import net.justugh.japi.util.event.armor.listener.ArmorListener;
@@ -15,6 +17,9 @@ public class JustAPIPlugin extends JavaPlugin {
     @Getter
     private static JustAPIPlugin instance;
 
+    @Setter
+    private boolean debug = false;
+
     private RedisManager redisManager;
     private ActionManager actionManager;
     private MenuManager menuManager;
@@ -23,6 +28,8 @@ public class JustAPIPlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+
+        getCommand("justapi").setExecutor(new JustAPICommand());
 
         if (!getConfig().getString("Redis-Credentials.Host").isEmpty()) {
             redisManager = new RedisManager(
@@ -40,7 +47,14 @@ public class JustAPIPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if(redisManager != null && redisManager.getRedissonClient() != null) {
+            redisManager.getRedissonClient().shutdown();
+        }
+    }
 
+    public void toggleDebug() {
+        debug = !debug;
+        redisManager.setDebug(debug);
     }
 
 }

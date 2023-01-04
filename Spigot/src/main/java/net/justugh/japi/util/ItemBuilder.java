@@ -94,6 +94,13 @@ public class ItemBuilder {
         return this;
     }
 
+    public ItemBuilder addFlag(ItemFlag flag) {
+        ItemMeta meta = itemStack.getItemMeta();
+        meta.addItemFlags(flag);
+        itemStack.setItemMeta(meta);
+        return this;
+    }
+
     public ItemBuilder addAction(PlayerInteractAction action) {
         if (itemStack == null) {
             build();

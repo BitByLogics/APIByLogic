@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Getter
 @Setter
-public class Menu implements InventoryHolder {
+public class Menu implements InventoryHolder, Cloneable {
 
     private String id;
     private final String title;
@@ -44,6 +44,23 @@ public class Menu implements InventoryHolder {
         this.data = new MenuData();
         this.inventories = new ArrayList<>();
         this.userMenus = new HashMap<>();
+
+        JustAPIPlugin.getInstance().getMenuManager().getActiveMenus().add(this);
+
+        Bukkit.getScheduler().runTaskTimer(JustAPIPlugin.getInstance(), () -> {
+            pushUpdates();
+            pushUserUpdates();
+        }, 0, 5);
+    }
+
+    public Menu(String id, String title, int size, List<MenuItem> items, MenuData data, List<Inventory> inventories, HashMap<UUID, List<Inventory>> userMenus) {
+        this.id = id;
+        this.title = title;
+        this.size = size;
+        this.items = items;
+        this.data = data;
+        this.inventories = inventories;
+        this.userMenus = userMenus;
 
         JustAPIPlugin.getInstance().getMenuManager().getActiveMenus().add(this);
 
@@ -357,6 +374,13 @@ public class Menu implements InventoryHolder {
         }
 
         return inventories.get(0);
+    }
+
+    @Override
+    public Menu clone() {
+        List<MenuItem> items = new ArrayList<>();
+        this.items.forEach(item -> items.add(item.clone()));
+        return new Menu(id, title, size, items, data.clone(), new ArrayList<>(), new HashMap<>());
     }
 
 }

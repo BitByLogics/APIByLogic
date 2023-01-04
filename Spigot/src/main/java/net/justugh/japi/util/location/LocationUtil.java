@@ -1,10 +1,7 @@
 package net.justugh.japi.util.location;
 
 import net.justugh.japi.JustAPIPlugin;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -55,10 +52,10 @@ public class LocationUtil {
     public static Location stringToLocation(String string, String separator) {
         String[] splitArgs = string.split(separator);
 
-        if(splitArgs.length == 4) {
-            return new Location(Bukkit.getWorld(splitArgs[0]), Integer.parseInt(splitArgs[1]), Integer.parseInt(splitArgs[2]), Integer.parseInt(splitArgs[3]));
+        if (splitArgs.length == 4) {
+            return new Location(Bukkit.getWorld(splitArgs[0]), Double.parseDouble(splitArgs[1]), Double.parseDouble(splitArgs[2]), Double.parseDouble(splitArgs[3]));
         } else {
-            return new Location(Bukkit.getWorld(splitArgs[0]), Integer.parseInt(splitArgs[1]), Integer.parseInt(splitArgs[2]), Integer.parseInt(splitArgs[3]), Float.parseFloat(splitArgs[4]), Float.parseFloat(splitArgs[5]));
+            return new Location(Bukkit.getWorld(splitArgs[0]), Double.parseDouble(splitArgs[1]), Double.parseDouble(splitArgs[2]), Double.parseDouble(splitArgs[3]), Float.parseFloat(splitArgs[4]), Float.parseFloat(splitArgs[5]));
         }
     }
 
@@ -109,11 +106,15 @@ public class LocationUtil {
         return location.getChunk().getPersistentDataContainer().has(new NamespacedKey(JustAPIPlugin.getInstance(), locationToString(location, "._.")), PersistentDataType.TAG_CONTAINER);
     }
 
-    public static PersistentDataContainer getPersistentData(Location location) {
+    public static PersistentDataContainer getPersistentData(Location location, boolean create) {
         NamespacedKey locationKey = new NamespacedKey(JustAPIPlugin.getInstance(), locationToString(location, "._."));
         Chunk chunk = location.getChunk();
 
         if (!chunk.getPersistentDataContainer().has(locationKey, PersistentDataType.TAG_CONTAINER)) {
+            if (!create) {
+                return null;
+            }
+
             chunk.getPersistentDataContainer().set(locationKey, PersistentDataType.TAG_CONTAINER,
                     chunk.getPersistentDataContainer().getAdapterContext().newPersistentDataContainer());
         }
@@ -123,16 +124,34 @@ public class LocationUtil {
 
     public static void deletePersistentData(Location location) {
         NamespacedKey locationKey = new NamespacedKey(JustAPIPlugin.getInstance(), locationToString(location, "._."));
+        Chunk chunk = location.getChunk();
 
-        if (!location.getChunk().getPersistentDataContainer().has(locationKey, PersistentDataType.TAG_CONTAINER)) {
+        if (!chunk.getPersistentDataContainer().has(locationKey, PersistentDataType.TAG_CONTAINER)) {
             return;
         }
 
-        location.getChunk().getPersistentDataContainer().remove(locationKey);
+        chunk.getPersistentDataContainer().remove(locationKey);
     }
 
     public static void savePersistentData(Location location, PersistentDataContainer container) {
         location.getChunk().getPersistentDataContainer().set(new NamespacedKey(JustAPIPlugin.getInstance(), locationToString(location, "._.")), PersistentDataType.TAG_CONTAINER, container);
+    }
+
+    public static int getHighestBlockY(World world, int x, int z) {
+        int currentY = world.getMaxHeight();
+        int minY = world.getMinHeight();
+
+        world.getChunkAt(x, z);
+
+        for (int y = currentY; y > minY; y--) {
+            if (world.getBlockAt(x, y, z).getType().isAir()) {
+                continue;
+            }
+
+            return y;
+        }
+
+        return 0;
     }
 
 }

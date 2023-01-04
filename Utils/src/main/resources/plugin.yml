@@ -1,0 +1,7 @@
+name: JustUtils
+version: '${project.version}'
+main: net.justugh.ju.JustUtils
+api-version: 1.19
+depend: [ JustAPI ]
+authors: [ Justugh ]
+website: www.justugh.net

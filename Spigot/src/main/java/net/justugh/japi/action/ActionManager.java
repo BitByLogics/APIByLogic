@@ -20,7 +20,7 @@ public class ActionManager implements Listener {
     private final UUID globalUUID = UUID.randomUUID();
     private final JavaPlugin plugin;
 
-    private final HashMap<UUID, List<Action<?>>> actionMap;
+    private final HashMap<UUID, List<Action>> actionMap;
     private final HashMap<UUID, List<ItemAction<?>>> itemActionMap;
 
     public ActionManager(JavaPlugin plugin) {
@@ -51,17 +51,17 @@ public class ActionManager implements Listener {
         }
     }
 
-    public void trackAction(@Nullable Player player, Action<?> action) {
+    public void trackAction(@Nullable Player player, Action action) {
         UUID id = player == null ? globalUUID : player.getUniqueId();
 
-        List<Action<?>> actions = actionMap.getOrDefault(id, Lists.newArrayList());
+        List<Action> actions = actionMap.getOrDefault(id, Lists.newArrayList());
         actions.add(action);
         actionMap.put(id, actions);
-        plugin.getServer().getPluginManager().registerEvents(action, plugin);
+        action.register();
 
         if (action.getExpireTime() != -1) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                List<Action<?>> actions1 = actionMap.getOrDefault(id, Lists.newArrayList());
+                List<Action> actions1 = actionMap.getOrDefault(id, Lists.newArrayList());
                 actions1.remove(action);
                 HandlerList.unregisterAll(action);
                 actionMap.put(id, actions1);

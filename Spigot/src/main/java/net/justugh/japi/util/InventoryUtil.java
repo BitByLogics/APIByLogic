@@ -5,12 +5,9 @@ import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Objects;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class InventoryUtil {
@@ -29,39 +26,22 @@ public class InventoryUtil {
         }
 
         ItemStack item = new ItemStack(itemStack.clone());
-        Inventory testInv = Bukkit.createInventory(null, inventory instanceof PlayerInventory ? 36 : inventory.getSize());
+        int availableSpace = 0;
 
-        Arrays.stream(inventory.getContents().clone()).filter(Objects::nonNull).forEach(invItem -> {
-            ItemStack clonedItem = invItem.clone();
-            ItemMeta meta = clonedItem.getItemMeta();
-
-            if (meta == null) {
-                return;
+        for (ItemStack content : inventory.getContents()) {
+            if (content == null || content.getType() == Material.AIR) {
+                availableSpace += item.getMaxStackSize();
+                continue;
             }
 
-            meta.setDisplayName(ThreadLocalRandom.current().nextInt() + "");
-            meta.setLore(Collections.singletonList(ThreadLocalRandom.current().nextInt() + ""));
-            clonedItem.setItemMeta(meta);
-            testInv.addItem(clonedItem);
-        });
-
-        // Potion Fix
-        if (itemStack.getType() == Material.POTION) {
-            if (itemStack.getAmount() > 36) {
-                return false;
+            if (!ItemStackUtil.isSimilar(item, content, true, true, true)) {
+                continue;
             }
 
-            int openSlots = 0;
-
-            while (testInv.firstEmpty() != -1) {
-                testInv.addItem(new ItemStack(Material.BARRIER, 64));
-                openSlots++;
-            }
-
-            return openSlots >= itemStack.getAmount();
+            availableSpace += content.getMaxStackSize() - content.getAmount();
         }
 
-        return testInv.addItem(item).isEmpty();
+        return availableSpace > 0;
     }
 
     /**

@@ -1,11 +1,16 @@
 package net.justugh.japi.database.redis.listener;
 
 import lombok.Getter;
+import lombok.Setter;
+import net.justugh.japi.database.redis.client.RedisClient;
 
 @Getter
+@Setter
 public abstract class RedisMessageListener {
 
     private final String channelName;
+    private boolean selfActivation;
+    private RedisClient client;
 
     public RedisMessageListener(String channelName) {
         this.channelName = channelName;

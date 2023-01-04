@@ -4,8 +4,13 @@ import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.Setter;
 import net.justugh.japi.database.redis.client.RedisClient;
+import net.justugh.japi.database.redis.timed.RedisTimedRequest;
+import net.justugh.japi.database.redis.timed.RedisTimedResponse;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Getter
 public class ListenerComponent {
@@ -17,6 +22,13 @@ public class ListenerComponent {
     private final String channel;
 
     private final HashMap<String, String> data;
+    private final HashMap<RedisTimedRequest, Long> timedRequests = new HashMap<>();
+    private final List<RedisTimedResponse> timedResponses = new ArrayList<>();
+    private boolean allowRequestSelfActivation;
+
+    public ListenerComponent() {
+        this(null, null);
+    }
 
     public ListenerComponent(String target, String channel) {
         this(target, channel, new HashMap<>());
@@ -38,12 +50,31 @@ public class ListenerComponent {
         return this;
     }
 
+    public ListenerComponent addTimedRequest(TimeUnit unit, int time, RedisTimedRequest request) {
+        timedRequests.put(request, unit.toMillis(time));
+        return this;
+    }
+
+    public ListenerComponent addTimedResponse(RedisTimedResponse response) {
+        timedResponses.add(response);
+        return this;
+    }
+
+    public ListenerComponent selfActivation(boolean selfActivation) {
+        this.allowRequestSelfActivation = selfActivation;
+        return this;
+    }
+
     public <T> T getData(String key, Class<T> type) {
         if (!data.containsKey(key)) {
             return null;
         }
 
         return new Gson().fromJson(data.get(key), type);
+    }
+
+    public RedisTimedRequest getRequestByID(String id) {
+        return timedRequests.keySet().stream().filter(request -> request.getId().equalsIgnoreCase(id)).findFirst().orElse(null);
     }
 
 }

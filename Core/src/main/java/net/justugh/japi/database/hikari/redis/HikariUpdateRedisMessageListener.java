@@ -24,6 +24,8 @@ public class HikariUpdateRedisMessageListener<O extends HikariObject> extends Re
 
         O object = hikariTable.getDataById(objectId);
 
+        System.out.printf("RECEIVED ORDER TO %s FROM %s WITH OBJECT ID %s%n", updateType.name(), component.getSource().getID(), objectId);
+
         Executors.newSingleThreadScheduledExecutor().schedule(() -> {
             switch (updateType) {
                 case SAVE:

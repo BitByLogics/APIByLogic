@@ -1,5 +1,6 @@
 package net.justugh.japi.menu;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import net.justugh.japi.menu.placeholder.PlaceholderProvider;
@@ -13,7 +14,8 @@ import java.util.Map;
 
 @Getter
 @Setter
-public class MenuData {
+@AllArgsConstructor
+public class MenuData implements Cloneable {
 
     private final List<MenuItem> itemStorage;
 
@@ -54,4 +56,12 @@ public class MenuData {
         modifiers.add(modifier);
     }
 
+    @Override
+    public MenuData clone() {
+        List<MenuItem> itemStorage = new ArrayList<>();
+        this.itemStorage.forEach(item -> itemStorage.add(item.clone()));
+        return new MenuData(itemStorage, fillerItem, externalClickAction, closeAction,
+                flags, metaData, validSlots, placeholderProviders,
+                userPlaceholderProviders, modifiers);
+    }
 }

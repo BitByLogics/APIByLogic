@@ -6,7 +6,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 public class HikariAPI {
@@ -29,54 +28,52 @@ public class HikariAPI {
     }
 
     public void executeStatement(String query, Consumer<ResultSet> consumer, Object... arguments) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try (Connection connection = hikari.getConnection()) {
-                try (PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
-                    int index = 1;
-                    for (Object argument : arguments) {
-                        statement.setObject(index++, argument);
-                    }
+        try (Connection connection = hikari.getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                int index = 1;
+                for (Object argument : arguments) {
+                    statement.setObject(index++, argument);
+                }
 
-                    statement.executeUpdate();
-                    try (ResultSet result = statement.getGeneratedKeys()) {
-                        if (consumer != null) {
-                            if (result != null) {
-                                result.next();
-                            }
-
-                            consumer.accept(result);
+                statement.executeUpdate();
+                try (ResultSet result = statement.getGeneratedKeys()) {
+                    if (consumer != null) {
+                        if (result != null) {
+                            result.next();
                         }
+
+                        consumer.accept(result);
                     }
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
+
+                statement.close();
+                connection.close();
             }
-        });
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void executeQuery(String query, Consumer<ResultSet> consumer, Object... arguments) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try (Connection connection = hikari.getConnection()) {
-                try (PreparedStatement statement = connection.prepareStatement(query, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                    int index = 1;
-                    for (Object argument : arguments) {
-                        statement.setObject(index++, argument);
-                    }
+        try (Connection connection = hikari.getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(query, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                int index = 1;
+                for (Object argument : arguments) {
+                    statement.setObject(index++, argument);
+                }
 
-                    try (ResultSet result = statement.executeQuery()) {
-                        if (consumer != null) {
-                            if (result != null) {
-//                                result.next();
-                            }
-
-                            consumer.accept(result);
-                        }
+                try (ResultSet result = statement.executeQuery()) {
+                    if (consumer != null) {
+                        consumer.accept(result);
                     }
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
+
+                statement.close();
+                connection.close();
             }
-        });
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
 }

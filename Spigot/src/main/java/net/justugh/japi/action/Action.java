@@ -3,9 +3,9 @@ package net.justugh.japi.action;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import net.justugh.japi.JustAPIPlugin;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 @Getter
 @NoArgsConstructor
-public abstract class Action<E extends Event> implements Listener {
+public abstract class Action implements Listener {
 
     private long expireTime = -1;
 
@@ -28,26 +28,26 @@ public abstract class Action<E extends Event> implements Listener {
 
     public abstract void onExpire(@Nullable Player player);
 
-    public abstract void onTrigger(E event);
-
-    @EventHandler
-    public void superTrigger(E event) {
-        onTrigger(event);
-
+    public boolean onActivate() {
         if (allowedActivations == -1) {
-            return;
+            return false;
         }
 
         if (allowedActivations == 0) {
             HandlerList.unregisterAll(this);
-            return;
+            return true;
         }
 
         allowedActivations--;
+        return false;
     }
 
     public boolean isCompleted() {
         return allowedActivations == 0;
+    }
+
+    public void register() {
+        Bukkit.getServer().getPluginManager().registerEvents(this, JustAPIPlugin.getInstance());
     }
 
 }

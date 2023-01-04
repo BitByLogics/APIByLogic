@@ -8,6 +8,7 @@ import net.justugh.japi.database.hikari.redis.HikariUpdateRedisMessageListener;
 import net.justugh.japi.database.redis.client.RedisClient;
 import net.justugh.japi.database.redis.listener.ListenerComponent;
 
+import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -34,7 +35,9 @@ public abstract class HikariTable<O extends HikariObject> {
 
         try {
             O tempObject = objectClass.newInstance();
-            hikariAPI.executeStatement(tempObject.getTableCreateStatement());
+            hikariAPI.executeStatement(tempObject.getTableCreateStatement(), rs -> {
+                loadData();
+            });
             Map.Entry<String, HikariStatementData> data = tempObject.getRawStatementData().entrySet().stream().filter(entry -> entry.getValue().primaryKey()).findFirst().orElse(null);
             idFieldName = data == null ? null : data.getKey();
         } catch (InstantiationException | IllegalAccessException e) {
@@ -57,7 +60,10 @@ public abstract class HikariTable<O extends HikariObject> {
 
         try {
             O tempObject = objectClass.newInstance();
-            hikariAPI.executeStatement(tempObject.getTableCreateStatement());
+
+            hikariAPI.executeStatement(tempObject.getTableCreateStatement(), rs -> {
+                loadData();
+            });
             Map.Entry<String, HikariStatementData> data = tempObject.getRawStatementData().entrySet().stream().filter(entry -> entry.getValue().primaryKey()).findFirst().orElse(null);
             idFieldName = data == null ? null : data.getKey();
         } catch (InstantiationException | IllegalAccessException e) {
@@ -73,8 +79,9 @@ public abstract class HikariTable<O extends HikariObject> {
         this.table = null;
         this.statements = statements;
         data = new ArrayList<>();
-        hikariAPI.executeStatement(statements.getTableCreateStatement());
-        loadData();
+        hikariAPI.executeStatement(statements.getTableCreateStatement(), rs -> {
+            loadData();
+        });
     }
 
     private void loadData() {
@@ -118,10 +125,30 @@ public abstract class HikariTable<O extends HikariObject> {
 
     public void save(O object, Consumer<ResultSet> result) {
         if (!object.getRawStatementData().isEmpty()) {
-            hikariAPI.executeStatement(object.getDataSaveStatement(), result);
+            hikariAPI.executeStatement(object.getDataSaveStatement(), rs -> {
+                object.getRawStatementData().forEach((s, data) -> {
+                    if (!data.autoIncrement()) {
+                        return;
+                    }
+
+                    try {
+                        Field field = object.getClass().getDeclaredField(s);
+                        boolean originalState = field.canAccess(this);
+                        field.setAccessible(true);
+                        field.setInt(object, rs.getInt(1));
+                        field.setAccessible(originalState);
+                    } catch (NoSuchFieldException | SQLException | IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                });
+
+                if(result != null) {
+                    result.accept(rs);
+                }
+            });
 
             if (redisClient != null) {
-                redisClient.sendListenerMessage(new ListenerComponent(null, "hikari-update")
+                redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
                         .addData("updateType", HikariRedisUpdateType.SAVE).addData("objectId", object.getDataId().toString()));
             }
             return;
@@ -130,7 +157,7 @@ public abstract class HikariTable<O extends HikariObject> {
         hikariAPI.executeStatement(statements.getSaveStatement(), result, object.getDataObjects());
 
         if (redisClient != null) {
-            redisClient.sendListenerMessage(new ListenerComponent(null, "hikari-update")
+            redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
                     .addData("updateType", HikariRedisUpdateType.SAVE).addData("objectId", object.getDataId().toString()));
         }
     }
@@ -139,7 +166,7 @@ public abstract class HikariTable<O extends HikariObject> {
         if (!object.getRawStatementData().isEmpty()) {
             hikariAPI.executeStatement(object.getDataDeleteStatement(), rs -> {
                 if (redisClient != null) {
-                    redisClient.sendListenerMessage(new ListenerComponent(null, "hikari-update")
+                    redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
                             .addData("updateType", HikariRedisUpdateType.DELETE).addData("objectId", object.getDataId().toString()));
                 }
             });
@@ -148,7 +175,7 @@ public abstract class HikariTable<O extends HikariObject> {
 
         hikariAPI.executeStatement(statements.getDeleteStatement(), rs -> {
             if (redisClient != null) {
-                redisClient.sendListenerMessage(new ListenerComponent(null, "hikari-update")
+                redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
                         .addData("updateType", HikariRedisUpdateType.DELETE).addData("objectId", object.getDataId().toString()));
             }
         }, object.getDataId());

@@ -16,7 +16,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class MenuItem {
+public class MenuItem implements Cloneable {
 
     private final String identifier;
 
@@ -97,6 +97,6 @@ public class MenuItem {
     }
 
     public MenuItem clone(boolean cloneAction) {
-        return new MenuItem(identifier, item.clone(), Lists.newArrayList(), updatable, cloneAction ? actions : Lists.newArrayList());
+        return new MenuItem(identifier, item.clone(), new ArrayList<>(slots), updatable, cloneAction ? actions : Lists.newArrayList());
     }
 }

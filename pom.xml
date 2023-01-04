@@ -15,6 +15,7 @@
         <module>Core</module>
         <module>Spigot</module>
         <module>Proxy</module>
+        <module>Utils</module>
     </modules>
 
     <properties>

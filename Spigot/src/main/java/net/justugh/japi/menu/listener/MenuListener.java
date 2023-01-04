@@ -26,9 +26,9 @@ public class MenuListener implements Listener {
             return;
         }
 
-        event.setCancelled(true);
-
         Menu menu = (Menu) inventory.getHolder();
+
+        event.setCancelled(menu.getItem(inventory, event.getSlot()).isPresent() || !menu.getData().hasFlag(MenuFlag.ALLOW_INPUT));
 
         menu.getItem(inventory, event.getSlot()).ifPresent(menuItem -> {
             menuItem.onClick(event);

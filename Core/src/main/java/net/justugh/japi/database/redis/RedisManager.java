@@ -6,6 +6,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import net.justugh.japi.database.redis.client.RedisClient;
+import net.justugh.japi.database.redis.gson.TimedRequestSerializer;
+import net.justugh.japi.database.redis.timed.RedisTimedRequest;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
@@ -29,7 +31,8 @@ public class RedisManager {
 
     public RedisManager(String host, int port, String password, String sourceId) {
         this.SOURCE_ID = sourceId;
-        this.gson = new GsonBuilder().create();
+        this.gson = new GsonBuilder().setPrettyPrinting().enableComplexMapKeySerialization()
+                .registerTypeHierarchyAdapter(RedisTimedRequest.class, new TimedRequestSerializer()).create();
 
         this.clients = new ArrayList<>();
 

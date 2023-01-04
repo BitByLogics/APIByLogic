@@ -12,22 +12,33 @@ public class CooldownUtil {
 
     private static final List<String> cooldowns = Lists.newArrayList();
 
-    public static void startCooldown(String key, UUID player) {
-        cooldowns.add(key + "-" + player);
+    public static void startCooldown(String key, UUID identifier) {
+        cooldowns.add(key + "-" + identifier);
     }
 
-    public static void startCooldown(String key, UUID player, long expireTime, TimeUnit unit) {
-        cooldowns.add(key + "-" + player);
+    public static void startCooldown(String key, UUID identifier, long expireTime, TimeUnit unit) {
+        cooldowns.add(key + "-" + identifier);
 
-        Bukkit.getScheduler().runTaskLater(JustAPIPlugin.getInstance(), () -> cooldowns.remove(key + "-" + player), unit.toSeconds(expireTime) * 20);
+        Bukkit.getScheduler().runTaskLater(JustAPIPlugin.getInstance(), () -> {
+            cooldowns.remove(key + "-" + identifier);
+        }, unit.toSeconds(expireTime) * 20);
     }
 
-    public static void endCooldown(String key, UUID player) {
-        cooldowns.remove(key + "-" + player);
+    public static void startCooldown(String key, UUID identifier, long expireTime, TimeUnit unit, Callback<Void> completeCallback) {
+        cooldowns.add(key + "-" + identifier);
+
+        Bukkit.getScheduler().runTaskLater(JustAPIPlugin.getInstance(), () -> {
+            cooldowns.remove(key + "-" + identifier);
+            completeCallback.call(null);
+        }, unit.toSeconds(expireTime) * 20);
     }
 
-    public static boolean hasCooldown(String key, UUID player) {
-        return cooldowns.contains(key + "-" + player);
+    public static void endCooldown(String key, UUID identifier) {
+        cooldowns.remove(key + "-" + identifier);
+    }
+
+    public static boolean hasCooldown(String key, UUID identifier) {
+        return cooldowns.contains(key + "-" + identifier);
     }
 
 }
