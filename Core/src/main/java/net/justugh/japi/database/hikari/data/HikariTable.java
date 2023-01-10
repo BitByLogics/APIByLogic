@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 @Getter
@@ -142,7 +143,7 @@ public abstract class HikariTable<O extends HikariObject> {
                     }
                 });
 
-                if(result != null) {
+                if (result != null) {
                     result.accept(rs);
                 }
             });
@@ -185,6 +186,35 @@ public abstract class HikariTable<O extends HikariObject> {
 
     public O getDataById(Object id) {
         return data.stream().filter(o -> o.getDataId().equals(id)).findFirst().orElse(null);
+    }
+
+    public O getDataFromDB(Object id, boolean checkCache) {
+        if(checkCache && getDataById(id) != null) {
+            return getDataById(id);
+        }
+
+        if (idFieldName == null) {
+            return null;
+        }
+
+        AtomicReference<O> databaseObject = new AtomicReference<>();
+
+        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, idFieldName, id.toString()), result -> {
+            if (result == null) {
+                return;
+            }
+
+            try {
+                while (result.next()) {
+                    databaseObject.set(loadObject(result));
+                    break;
+                }
+            } catch (SQLException exception) {
+                exception.printStackTrace();
+            }
+        });
+
+        return databaseObject.get();
     }
 
     public void getDataFromDB(Object id, Consumer<O> consumer) {

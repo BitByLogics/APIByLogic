@@ -1,19 +1,54 @@
 package net.justugh.japi.util;
 
-import com.google.common.collect.Maps;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import lombok.Setter;
+import net.justugh.japi.JustAPIPlugin;
+import net.justugh.japi.util.uuid.UUIDCache;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class UUIDUtil {
 
-    private final static HashMap<String, UUID> uuidCache = Maps.newHashMap();
+    private final static Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+    @Setter
+    private static File cacheFile;
+
+    @Setter
+    private static UUIDCache cache;
+
+    public static void initialize(File dataFolder) {
+        cacheFile = new File(JustAPIPlugin.getInstance().getDataFolder(), "uuid_cache.json");
+
+        if (!cacheFile.exists()) {
+            try {
+                cacheFile.createNewFile();
+                cache = new UUIDCache();
+
+                FileWriter writer = new FileWriter(cacheFile);
+                writer.write(gson.toJson(cache, UUIDCache.class));
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return;
+        }
+
+        try {
+            cache = gson.fromJson(new FileReader(cacheFile), UUIDCache.class);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * Read UUID data.
@@ -41,7 +76,7 @@ public class UUIDUtil {
     }
 
     /**
-     * Call the a URL to retrieve JSON data.
+     * Call a URL to retrieve JSON data.
      *
      * @param URL The URL to be scanned.
      * @return The data retrieved.
@@ -84,8 +119,14 @@ public class UUIDUtil {
      * @return The UUID retrieved.
      */
     public static UUID getUUID(String playerName) {
-        if (getUUIDCache().containsKey(playerName)) {
-            return getUUIDCache().get(playerName);
+        if (cache == null) {
+            return null;
+        }
+
+        Optional<UUID> uuidOptional = cache.getUUIDByName(playerName);
+
+        if (uuidOptional.isPresent()) {
+            return uuidOptional.get();
         }
 
         String output = callURL("https://api.mojang.com/users/profiles/minecraft/" + playerName);
@@ -100,20 +141,22 @@ public class UUIDUtil {
             return UUID.fromString("00000000-0000-0000-0000-000000000000");
         }
 
-        StringBuilder uuid = new StringBuilder();
+        StringBuilder uuidString = new StringBuilder();
 
         for (int i = 0; i <= 31; i++) {
-            uuid.append(newResult.charAt(i));
+            uuidString.append(newResult.charAt(i));
             if (i == 7 || i == 11 || i == 15 || i == 19) {
-                uuid.append("-");
+                uuidString.append("-");
             }
         }
 
-        getUUIDCache().put(playerName, UUID.fromString(uuid.toString()));
-        return UUID.fromString(uuid.toString());
+        UUID uuid = UUID.fromString(uuidString.toString());
+
+        List<String> playerNames = cache.getCachedUUIDs().getOrDefault(uuid, new ArrayList<>());
+        playerNames.add(playerName);
+        cache.getCachedUUIDs().put(uuid, playerNames);
+
+        return uuid;
     }
 
-    public static HashMap<String, UUID> getUUIDCache() {
-        return uuidCache;
-    }
 }

@@ -5,10 +5,12 @@ import com.google.common.collect.Maps;
 import lombok.Getter;
 import net.justugh.japi.util.Format;
 import net.justugh.japi.util.Placeholder;
+import net.justugh.japi.util.StringModifier;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -16,7 +18,7 @@ import java.util.List;
 public class MessageProvider {
 
     private final HashMap<String, Object> messages;
-    private final List<Placeholder> placeholders;
+    private final List<StringModifier> placeholders;
 
     public MessageProvider(ConfigurationSection section) {
         messages = Maps.newHashMap();
@@ -37,7 +39,12 @@ public class MessageProvider {
         section.getKeys(true).stream().filter(key -> !(section.get(key) instanceof MemorySection)).forEach(key -> messages.put(key, section.get(key)));
     }
 
+    // This is only kept for plugins that depend on an old version of JustAPI
     public void registerPlaceholder(Placeholder placeholder) {
+        placeholders.add(placeholder);
+    }
+
+    public void registerModifier(StringModifier placeholder) {
         placeholders.add(placeholder);
     }
 
@@ -52,11 +59,13 @@ public class MessageProvider {
             return null;
         }
 
+        rawMessage = Format.format(rawMessage, externalPlaceholders);
+
         if (applyPlaceholders) {
-            rawMessage = Format.format(rawMessage, placeholders.toArray(new Placeholder[]{}));
+            rawMessage = Format.format(rawMessage, placeholders.toArray(new StringModifier[]{}));
         }
 
-        return Format.format(rawMessage, externalPlaceholders);
+        return rawMessage;
     }
 
     public List<String> getMessageList(String key, Placeholder... externalPlaceholders) {
@@ -70,19 +79,13 @@ public class MessageProvider {
             return null;
         }
 
-        List<String> formattedMessages = Lists.newArrayList();
+        List<String> formattedMessages = new ArrayList<>();
+        rawList.forEach(string -> formattedMessages.add(Format.format(string, externalPlaceholders)));
+
+        List<String> finalMessages = new ArrayList<>();
 
         if (applyPlaceholders) {
-            Placeholder[] placeholderArray = placeholders.toArray(new Placeholder[]{});
-            rawList.forEach(string -> formattedMessages.add(Format.format(string, placeholderArray)));
-        }
-
-        List<String> finalMessages = Lists.newArrayList();
-
-        if (formattedMessages.isEmpty()) {
-            rawList.forEach(string -> finalMessages.add(Format.format(string, externalPlaceholders)));
-        } else {
-            formattedMessages.forEach(string -> finalMessages.add(Format.format(string, externalPlaceholders)));
+            formattedMessages.forEach(string -> finalMessages.add(Format.format(string, placeholders.toArray(new StringModifier[]{}))));
         }
 
         return finalMessages;

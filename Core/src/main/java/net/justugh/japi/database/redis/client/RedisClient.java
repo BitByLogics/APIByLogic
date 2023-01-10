@@ -32,7 +32,7 @@ public class RedisClient {
             ListenerComponent component = redisManager.getGson().fromJson(msg, ListenerComponent.class);
 
             if (redisManager.isDebug()) {
-                Logger.getGlobal().info(String.format("%s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
+                Logger.getGlobal().info(String.format("[INCOMING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
             }
 
             component.getTimedResponses().forEach(response -> {
@@ -71,15 +71,15 @@ public class RedisClient {
             try {
                 ListenerComponent component = redisManager.getGson().fromJson(msg, ListenerComponent.class);
 
-                if (redisManager.isDebug()) {
-                    Logger.getGlobal().info(String.format("%s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
-                }
-
                 if (component.getTarget() == null || component.getTarget().isEmpty()) {
                     listeners.stream().filter(l -> l.getChannelName().equalsIgnoreCase(component.getChannel()))
                             .forEach(l -> {
-                                if (component.getSource().getID().equalsIgnoreCase(redisManager.getSourceID()) && !l.isSelfActivation()) {
+                                if (component.getSource().getID().equalsIgnoreCase(l.getClient().getID()) && !l.isSelfActivation()) {
                                     return;
+                                }
+
+                                if (redisManager.isDebug()) {
+                                    Logger.getGlobal().info(String.format("[INCOMING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
                                 }
 
                                 l.onReceive(component);
@@ -91,7 +91,13 @@ public class RedisClient {
                     return;
                 }
 
-                listeners.stream().filter(l -> l.getChannelName().equalsIgnoreCase(component.getChannel())).forEach(l -> l.onReceive(component));
+                listeners.stream().filter(l -> l.getChannelName().equalsIgnoreCase(component.getChannel())).forEach(l -> {
+                    if (redisManager.isDebug()) {
+                        Logger.getGlobal().info(String.format("[INCOMING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
+                    }
+
+                    l.onReceive(component);
+                });
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -125,23 +131,24 @@ public class RedisClient {
         });
 
         if (redisManager.isDebug()) {
-            Logger.getGlobal().info(String.format("%s -> %s: %s", component.getSource().getID(), component.getTarget(), redisManager.getGson().toJson(component)));
+            Logger.getGlobal().info(String.format("[OUTGOING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), redisManager.getGson().toJson(component)));
         }
 
         redisManager.getRedissonClient().getTopic(component.getChannel()).publish(redisManager.getGson().toJson(component));
     }
 
     public void sendTimedResponse(ListenerComponent component) {
+        component.setSource(this);
+
         if (component.getTimedResponses().isEmpty()) {
             Logger.getGlobal().warning("Attempted to send response with no responses, skipped.");
             return;
         }
 
         if (redisManager.isDebug()) {
-            Logger.getGlobal().info(String.format("%s -> %s: %s", component.getSource().getID(), component.getTarget(), redisManager.getGson().toJson(component)));
+            Logger.getGlobal().info(String.format("[TIMED RESPONSE]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), redisManager.getGson().toJson(component)));
         }
 
-        component.setSource(this);
         redisManager.getRedissonClient().getTopic(REQUEST_TOPIC_ID).publish(redisManager.getGson().toJson(component));
     }
 
