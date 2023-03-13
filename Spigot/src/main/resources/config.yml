@@ -3,8 +3,18 @@
 #######################
 Server-ID: "Server"
 Redis-Credentials:
-  Host: "127.0.0.1"
+  Host: ""
   Port: 6379
+  Password: ""
+
+########################
+# Hikari Configuration #
+########################
+Hikari-Details:
+  Address: ""
+  Port: "3306"
+  Database: "test"
+  Username: "test"
   Password: "password"
 
 ######################

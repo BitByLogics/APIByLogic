@@ -3,10 +3,13 @@ package net.justugh.japi.menu;
 import lombok.Getter;
 import lombok.Setter;
 import net.justugh.japi.JustAPIPlugin;
-import net.justugh.japi.util.ItemStackUtil;
-import net.justugh.japi.util.Placeholder;
-import net.justugh.japi.util.StringModifier;
+import net.justugh.japi.menu.inventory.MenuInventory;
+import net.justugh.japi.menu.placeholder.PlaceholderProvider;
+import net.justugh.japi.menu.view.internal.NextPageViewRequirement;
+import net.justugh.japi.menu.view.internal.PreviousPageViewRequirement;
+import net.justugh.japi.util.*;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.HumanEntity;
@@ -14,9 +17,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -29,8 +34,12 @@ public class Menu implements InventoryHolder, Cloneable {
     private final List<MenuItem> items;
     private MenuData data;
 
-    private final List<Inventory> inventories;
-    private final HashMap<UUID, List<Inventory>> userMenus;
+    private final List<MenuInventory> inventories;
+    private final HashMap<UUID, List<MenuInventory>> userMenus;
+    private final List<UUID> activePlayers;
+
+    private BukkitTask updateTask;
+    private long lastUpdateCheck;
 
     public Menu(String title, Rows rows) {
         this(title, rows.getSize());
@@ -44,16 +53,15 @@ public class Menu implements InventoryHolder, Cloneable {
         this.data = new MenuData();
         this.inventories = new ArrayList<>();
         this.userMenus = new HashMap<>();
+        this.activePlayers = new ArrayList<>();
 
         JustAPIPlugin.getInstance().getMenuManager().getActiveMenus().add(this);
 
-        Bukkit.getScheduler().runTaskTimer(JustAPIPlugin.getInstance(), () -> {
-            pushUpdates();
-            pushUserUpdates();
-        }, 0, 5);
+        startTitleUpdateTask();
+        startUpdateTask();
     }
 
-    public Menu(String id, String title, int size, List<MenuItem> items, MenuData data, List<Inventory> inventories, HashMap<UUID, List<Inventory>> userMenus) {
+    public Menu(String id, String title, int size, List<MenuItem> items, MenuData data, List<MenuInventory> inventories, HashMap<UUID, List<MenuInventory>> userMenus) {
         this.id = id;
         this.title = title;
         this.size = size;
@@ -61,18 +69,79 @@ public class Menu implements InventoryHolder, Cloneable {
         this.data = data;
         this.inventories = inventories;
         this.userMenus = userMenus;
+        this.activePlayers = new ArrayList<>();
 
         JustAPIPlugin.getInstance().getMenuManager().getActiveMenus().add(this);
 
-        Bukkit.getScheduler().runTaskTimer(JustAPIPlugin.getInstance(), () -> {
+        startTitleUpdateTask();
+        startUpdateTask();
+    }
+
+    public void startTitleUpdateTask() {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(JustAPIPlugin.getInstance(), () -> {
+            List<StringModifier> modifiers = new ArrayList<>();
+            modifiers.addAll(data.getModifiers());
+            modifiers.addAll(data.getPlaceholderProviders().stream().map(PlaceholderProvider::asPlaceholder).collect(Collectors.toList()));
+
+            Placeholder pagesPlaceholder = new Placeholder("%pages%", inventories.size() + "");
+            modifiers.add(pagesPlaceholder);
+
+            inventories.forEach(menuInventory -> {
+                Inventory inventory = menuInventory.getInventory();
+
+                Placeholder pagePlaceholder = new Placeholder("%page%", getInventoryIndex(inventory) + "");
+                modifiers.add(pagePlaceholder);
+
+                new ArrayList<>(inventory.getViewers()).forEach(viewer -> {
+                    InventoryUpdate.updateInventory(JustAPIPlugin.getInstance(), (Player) viewer, Format.format(menuInventory.getTitle(),
+                            modifiers.toArray(new StringModifier[]{})));
+                });
+            });
+
+            userMenus.values().forEach(menuInventoryList -> {
+                menuInventoryList.forEach(menuInventory -> {
+                    Inventory inventory = menuInventory.getInventory();
+
+                    Placeholder pagePlaceholder = new Placeholder("%page%", getInventoryIndex(inventory) + "");
+                    modifiers.add(pagePlaceholder);
+
+                    new ArrayList<>(inventory.getViewers()).forEach(viewer -> {
+                        InventoryUpdate.updateInventory(JustAPIPlugin.getInstance(), (Player) viewer, Format.format(menuInventory.getTitle(),
+                                modifiers.toArray(new StringModifier[]{})));
+                    });
+                });
+            });
+        }, 5, 1);
+    }
+
+    public void startUpdateTask() {
+        if (updateTask != null && !updateTask.isCancelled()) {
+            return;
+        }
+
+        updateTask = Bukkit.getScheduler().runTaskTimer(JustAPIPlugin.getInstance(), () -> {
+            if (activePlayers.isEmpty()) {
+                updateTask.cancel();
+                updateTask = null;
+                return;
+            }
+
             pushUpdates();
             pushUserUpdates();
         }, 0, 5);
     }
 
-    //TODO: Introduce a way to fully remove MenuItem
     private void pushUpdates() {
-        for (Inventory inventory : inventories) {
+        if (data.getMaxInventories() != -1) {
+            Inventory finalInventory = inventories.get(inventories.size() - 1).getInventory();
+
+            if (!InventoryUtil.hasSpace(finalInventory, null, data.getValidSlots())) {
+                generateNewInventory().ifPresent(inventories::add);
+            }
+        }
+
+        for (MenuInventory menuInventory : inventories) {
+            Inventory inventory = menuInventory.getInventory();
             Iterator<MenuItem> slotIterator = items.iterator();
 
             while (slotIterator.hasNext()) {
@@ -80,6 +149,11 @@ public class Menu implements InventoryHolder, Cloneable {
 
                 if (!menuItem.getSourceInventories().contains(inventory)) {
                     menuItem.getSourceInventories().add(inventory);
+                }
+
+                if (menuItem.getViewRequirements().stream().anyMatch(requirement -> !requirement.canView(inventory, menuItem, this))) {
+                    menuItem.getSlots().forEach(slot -> inventory.setItem(slot, null));
+                    continue;
                 }
 
                 List<Integer> slots = menuItem.getSlots();
@@ -116,7 +190,17 @@ public class Menu implements InventoryHolder, Cloneable {
 
     private void pushUserUpdates() {
         userMenus.forEach((uuid, allInventories) -> {
-            for (Inventory inventory : allInventories) {
+            if (data.getMaxInventories() != -1) {
+                Inventory finalInventory = allInventories.get(allInventories.size() - 1).getInventory();
+
+                if (!InventoryUtil.hasSpace(finalInventory, null, data.getValidSlots())) {
+                    generateNewInventory().ifPresent(allInventories::add);
+                }
+            }
+
+            for (MenuInventory menuInventory : allInventories) {
+                Inventory inventory = menuInventory.getInventory();
+                List<Integer> validSlots = new ArrayList<>(data.getValidSlots());
                 Iterator<MenuItem> slotIterator = items.iterator();
 
                 while (slotIterator.hasNext()) {
@@ -124,6 +208,11 @@ public class Menu implements InventoryHolder, Cloneable {
 
                     if (!menuItem.getSourceInventories().contains(inventory)) {
                         continue;
+                    }
+
+                    if (menuItem.getViewRequirements().stream().anyMatch(requirement -> !requirement.canView(inventory, menuItem, this))) {
+                        menuItem.getSlots().forEach(slot -> inventory.setItem(slot, null));
+                        return;
                     }
 
                     List<Integer> slots = menuItem.getSlots();
@@ -135,6 +224,13 @@ public class Menu implements InventoryHolder, Cloneable {
 
                     ItemStack item = menuItem.getItem().clone();
                     updateItemMeta(item);
+
+                    if (slots.isEmpty()) {
+                        int availableSlot = validSlots.get(0);
+                        slots.add(availableSlot);
+                        validSlots.remove(availableSlot);
+                        menuItem.setSlots(slots);
+                    }
 
                     slots.forEach(slot -> {
                         if (inventory.getItem(slot) == null) {
@@ -189,6 +285,122 @@ public class Menu implements InventoryHolder, Cloneable {
         return this;
     }
 
+    public void addItemStack(ItemStack item) {
+        if (inventories.isEmpty()) {
+            getInventory();
+        }
+
+        HashMap<MenuInventory, Integer> itemDistribution = new HashMap<>();
+
+        ItemStack clonedItem = item.clone();
+        int amountLeft = item.getAmount();
+
+        for (MenuInventory menuInventory : inventories) {
+            Inventory inventory = menuInventory.getInventory();
+            int availableSpace = InventoryUtil.getAvailableSpace(inventory, item, data.getValidSlots());
+
+            if (availableSpace >= amountLeft) {
+                amountLeft = 0;
+                InventoryUtil.addItem(inventory, clonedItem, data.getValidSlots());
+                break;
+            }
+
+            itemDistribution.put(menuInventory, availableSpace);
+            amountLeft -= availableSpace;
+            clonedItem.setAmount(amountLeft);
+        }
+
+        while (amountLeft > 0) {
+            Optional<MenuInventory> generatedOptional = generateNewInventory();
+
+            if (!generatedOptional.isPresent() || (data.getMaxInventories() != -1 && inventories.size() >= data.getMaxInventories())) {
+                break;
+            }
+
+            MenuInventory menuInventory = generatedOptional.get();
+            inventories.add(menuInventory);
+
+            Inventory inventory = menuInventory.getInventory();
+            int availableSpace = InventoryUtil.getAvailableSpace(inventory, item, data.getValidSlots());
+
+            if (availableSpace >= amountLeft) {
+                amountLeft = 0;
+                InventoryUtil.addItem(inventory, clonedItem, data.getValidSlots());
+                break;
+            }
+
+            itemDistribution.put(menuInventory, availableSpace);
+            amountLeft -= availableSpace;
+            clonedItem.setAmount(amountLeft);
+        }
+
+        itemDistribution.forEach((menuInventory, amount) -> {
+            Inventory inventory = menuInventory.getInventory();
+
+            ItemStack distributionItem = item.clone();
+            distributionItem.setAmount(amount);
+            InventoryUtil.addItem(inventory, distributionItem, data.getValidSlots());
+        });
+
+        for (Map.Entry<UUID, List<MenuInventory>> entry : userMenus.entrySet()) {
+            UUID player = entry.getKey();
+            List<MenuInventory> userInventories = entry.getValue();
+
+            itemDistribution.clear();
+            clonedItem = item.clone();
+            amountLeft = item.getAmount();
+
+            for (MenuInventory menuInventory : userInventories) {
+                Inventory inventory = menuInventory.getInventory();
+                int availableSpace = InventoryUtil.getAvailableSpace(inventory, item, data.getValidSlots());
+
+                if (availableSpace >= amountLeft) {
+                    amountLeft = 0;
+                    InventoryUtil.addItem(inventory, clonedItem, data.getValidSlots());
+                    break;
+                }
+
+                itemDistribution.put(menuInventory, availableSpace);
+                amountLeft -= availableSpace;
+                clonedItem.setAmount(amountLeft);
+            }
+
+            while (amountLeft > 0) {
+                Optional<MenuInventory> generatedOptional = generateNewInventory();
+
+                if (!generatedOptional.isPresent() || (data.getMaxInventories() != -1 && inventories.size() >= data.getMaxInventories())) {
+                    break;
+                }
+
+                MenuInventory menuInventory = generatedOptional.get();
+                userInventories.add(menuInventory);
+
+                Inventory inventory = menuInventory.getInventory();
+                int availableSpace = InventoryUtil.getAvailableSpace(inventory, item, data.getValidSlots());
+
+                if (availableSpace >= amountLeft) {
+                    amountLeft = 0;
+                    InventoryUtil.addItem(inventory, clonedItem, data.getValidSlots());
+                    break;
+                }
+
+                itemDistribution.put(menuInventory, availableSpace);
+                amountLeft -= availableSpace;
+                clonedItem.setAmount(amountLeft);
+            }
+
+            itemDistribution.forEach((menuInventory, amount) -> {
+                Inventory inventory = menuInventory.getInventory();
+
+                ItemStack distributionItem = item.clone();
+                distributionItem.setAmount(amount);
+                InventoryUtil.addItem(inventory, distributionItem, data.getValidSlots());
+            });
+
+            userMenus.put(player, userInventories);
+        }
+    }
+
     /**
      * Set an item in the Menu.
      *
@@ -212,6 +424,10 @@ public class Menu implements InventoryHolder, Cloneable {
         return items.stream().filter(item -> item.getIdentifier() != null && item.getIdentifier().equalsIgnoreCase(identifier)).findFirst();
     }
 
+    public List<MenuItem> getItems(Inventory inventory, int slot) {
+        return items.stream().filter(item -> item.getSlots().contains(slot) && item.getSourceInventories().contains(inventory)).collect(Collectors.toList());
+    }
+
     /**
      * Get a MenuItem instance by its slot.
      *
@@ -219,12 +435,16 @@ public class Menu implements InventoryHolder, Cloneable {
      * @return The optional MenuItem instance.
      */
     public Optional<MenuItem> getItem(Inventory inventory, int slot) {
-        return items.stream().filter(item -> item.getSlots().contains(slot) && (item.getSourceInventories().contains(inventory))).findFirst();
+        List<MenuItem> items = getItems(inventory, slot);
+        return items.isEmpty() ? Optional.empty() : Optional.of(items.get(0));
     }
 
-    private List<Inventory> generateInventories() {
-        List<Inventory> generatedInventories = new ArrayList<>();
-        List<Integer> validSlots = data.getValidSlots();
+    private Optional<MenuInventory> generateNewInventory() {
+        if (data.getMaxInventories() != -1 && inventories.size() >= data.getMaxInventories()) {
+            return Optional.empty();
+        }
+
+        List<Integer> validSlots = new ArrayList<>(data.getValidSlots());
 
         if (validSlots.isEmpty()) {
             for (int i = 0; i < (items.size() > size - 1 ? size - 9 : size); i++) {
@@ -232,77 +452,51 @@ public class Menu implements InventoryHolder, Cloneable {
             }
         }
 
-        int pages = items.size() / (size - 9.0d) % 1 == 0 ? items.size() / (size - 9) : items.size() / (size - 9) + 1;
-
         AtomicReference<List<Integer>> availableSlots = new AtomicReference<>(new ArrayList<>(validSlots));
-        AtomicReference<Inventory> inventory = new AtomicReference<>(Bukkit.createInventory(this, size, title.replace("%page%", "1").replace("%pages%", pages + "")));
-        generatedInventories.add(inventory.get());
+        Inventory inventory = Bukkit.createInventory(this, size, ChatColor.RED.toString());
 
         List<MenuItem> itemCache = new ArrayList<>();
 
-        items.forEach(item -> {
-            if (data.hasFlag(MenuFlag.PAGE_ITEMS)) {
-                Inventory currentInventory = inventory.get();
-                MenuItem nextPageItem = getData().getItemFromStorage("Next-Page-Item").clone();
-                MenuItem previousPageItem = getData().getItemFromStorage("Previous-Page-Item").clone();
-                nextPageItem.addSourceInventory(currentInventory);
+        getData().getItemFromStorage("Next-Page-Item").ifPresent(nextPageItem -> {
+            nextPageItem.addSourceInventory(inventory);
+            nextPageItem.addViewRequirement(new NextPageViewRequirement());
+            nextPageItem.addAction(event -> {
+                Inventory currentInventory = event.getClickedInventory();
+                event.getWhoClicked().openInventory(getInventories().get(getInventoryIndex(currentInventory) + 1).getInventory());
+            });
+            nextPageItem.setSlots((List<Integer>) getData().getMetaData().getOrDefault("Next-Page-Slots", new ArrayList<>()));
 
-                nextPageItem.setSlots((List<Integer>) getData().getMetaData().get("Next-Page-Slots"));
-                nextPageItem.getSlots().forEach(slot -> currentInventory.setItem(slot, nextPageItem.getItem().clone()));
+            nextPageItem.getSlots().forEach(slot -> availableSlots.get().remove(slot));
+            itemCache.add(nextPageItem);
+        });
 
-                previousPageItem.addSourceInventory(currentInventory);
-                previousPageItem.setSlots((List<Integer>) getData().getMetaData().get("Previous-Page-Slots"));
+        getData().getItemFromStorage("Previous-Page-Item").ifPresent(previousPageItem -> {
+            previousPageItem.addSourceInventory(inventory);
+            previousPageItem.addViewRequirement(new PreviousPageViewRequirement());
+            previousPageItem.addAction(event -> {
+                Inventory currentInventory = event.getClickedInventory();
+                event.getWhoClicked().openInventory(getInventories().get(getInventoryIndex(currentInventory) - 1).getInventory());
+            });
+            previousPageItem.setSlots((List<Integer>) getData().getMetaData().getOrDefault("Previous-Page-Slots", new ArrayList<>()));
 
-                previousPageItem.getSlots().forEach(slot -> currentInventory.setItem(slot, previousPageItem.getItem().clone()));
+            previousPageItem.getSlots().forEach(slot -> availableSlots.get().remove(slot));
+            itemCache.add(previousPageItem);
+        });
 
-                nextPageItem.getSlots().forEach(slot -> availableSlots.get().remove(slot));
-                previousPageItem.getSlots().forEach(slot -> availableSlots.get().remove(slot));
+        items.forEach(menuItem -> {
+            ItemStack item = menuItem.getItemUpdateProvider() == null ? menuItem.getItem().clone() : menuItem.getItemUpdateProvider().requestItem(menuItem);
+            updateItemMeta(item);
 
-                itemCache.add(nextPageItem);
-                itemCache.add(previousPageItem);
-            }
-
-            if (availableSlots.get().isEmpty()) {
-                Inventory currentInventory = inventory.get();
-
-                MenuItem nextPageItem = getData().getItemFromStorage("Next-Page-Item").clone();
-                MenuItem previousPageItem = getData().getItemFromStorage("Previous-Page-Item").clone();
-                nextPageItem.addSourceInventory(currentInventory);
-
-                previousPageItem.addAction((event) -> event.getWhoClicked().openInventory(currentInventory));
-
-                nextPageItem.setSlots((List<Integer>) getData().getMetaData().get("Next-Page-Slots"));
-                nextPageItem.getSlots().forEach(slot -> currentInventory.setItem(slot, nextPageItem.getItem().clone()));
-
-                generatedInventories.add(currentInventory);
-
-                Inventory newInventory = Bukkit.createInventory(this, size, title.replace("%page%", generatedInventories.size() + "").replace("%pages%", pages + ""));
-                inventory.set(newInventory);
-                previousPageItem.addSourceInventory(newInventory);
-                previousPageItem.setSlots((List<Integer>) getData().getMetaData().get("Previous-Page-Slots"));
-
-                nextPageItem.addAction((event) -> event.getWhoClicked().openInventory(newInventory));
-
-                previousPageItem.getSlots().forEach(slot -> newInventory.setItem(slot, previousPageItem.getItem().clone()));
-                availableSlots.set(new ArrayList<>(validSlots));
-
-                nextPageItem.getSlots().forEach(slot -> availableSlots.get().remove(slot));
-                previousPageItem.getSlots().forEach(slot -> availableSlots.get().remove(slot));
-
-                itemCache.add(nextPageItem);
-                itemCache.add(previousPageItem);
-            }
-
-            Inventory targetInventory = inventory.get();
-
-            ItemStack itemStack = item.getItemUpdateProvider() == null ? item.getItem().clone() : item.getItemUpdateProvider().requestItem(item);
-            updateItemMeta(itemStack);
-
-            if (!item.getSlots().isEmpty()) {
-                item.addSourceInventory(targetInventory);
-                item.getSlots().forEach(slot -> {
+            if (!menuItem.getSlots().isEmpty()) {
+                menuItem.addSourceInventory(inventory);
+                menuItem.getSlots().forEach(slot -> {
                     availableSlots.get().removeAll(Collections.singletonList(slot));
-                    targetInventory.setItem(slot, itemStack);
+
+                    if (menuItem.getViewRequirements().stream().anyMatch(requirement -> !requirement.canView(inventory, menuItem, this))) {
+                        return;
+                    }
+
+                    inventory.setItem(slot, item);
                 });
 
                 return;
@@ -311,26 +505,28 @@ public class Menu implements InventoryHolder, Cloneable {
             int slot = availableSlots.get().get(0);
             availableSlots.get().removeAll(Collections.singletonList(slot));
 
-            item.addSourceInventory(targetInventory);
-            item.getSlots().add(slot);
+            menuItem.addSourceInventory(inventory);
+            menuItem.getSlots().add(slot);
 
-            targetInventory.setItem(slot, itemStack);
+            if (menuItem.getViewRequirements().stream().anyMatch(requirement -> !requirement.canView(inventory, menuItem, this))) {
+                return;
+            }
+
+            inventory.setItem(slot, item);
         });
 
         items.addAll(itemCache);
 
         if (data.getFillerItem() != null && data.getFillerItem().getItem().getType() != Material.AIR) {
-            generatedInventories.forEach(targetInventory -> {
-                MenuItem fillerItem = data.getFillerItem();
+            MenuItem fillerItem = data.getFillerItem();
 
-                while (targetInventory.firstEmpty() != -1) {
-                    int slot = targetInventory.firstEmpty();
-                    targetInventory.setItem(slot, fillerItem.getItem());
-                }
-            });
+            while (inventory.firstEmpty() != -1) {
+                int slot = inventory.firstEmpty();
+                inventory.setItem(slot, fillerItem.getItem());
+            }
         }
 
-        return generatedInventories;
+        return Optional.of(new MenuInventory(inventory, title));
     }
 
     /**
@@ -341,11 +537,11 @@ public class Menu implements InventoryHolder, Cloneable {
     @Override
     public Inventory getInventory() {
         if (!inventories.isEmpty()) {
-            return inventories.get(0);
+            return inventories.get(0).getInventory();
         }
 
-        inventories.addAll(generateInventories());
-        return inventories.get(0);
+        generateNewInventory().ifPresent(inventories::add);
+        return inventories.get(0).getInventory();
     }
 
     /**
@@ -359,13 +555,12 @@ public class Menu implements InventoryHolder, Cloneable {
      */
     public Inventory getUserMenu(Player player) {
         if (userMenus.containsKey(player.getUniqueId())) {
-            userMenus.get(player.getUniqueId()).forEach(inv -> new ArrayList<>(inv.getViewers()).forEach(HumanEntity::closeInventory));
+            userMenus.get(player.getUniqueId()).forEach(inv -> new ArrayList<>(inv.getInventory().getViewers()).forEach(HumanEntity::closeInventory));
             userMenus.remove(player.getUniqueId());
         }
 
-        List<Inventory> newInventories = generateInventories();
-        userMenus.put(player.getUniqueId(), newInventories);
-        return newInventories.get(0);
+        generateNewInventory().ifPresent(inventory -> userMenus.put(player.getUniqueId(), inventories));
+        return userMenus.get(player.getUniqueId()).get(0).getInventory();
     }
 
     public Inventory getGlobalMenu() {
@@ -373,7 +568,47 @@ public class Menu implements InventoryHolder, Cloneable {
             getInventory();
         }
 
-        return inventories.get(0);
+        return inventories.get(0).getInventory();
+    }
+
+    public MenuInventory getMenuInventory(Inventory inventory) {
+        return inventories.stream().filter(mInventory -> mInventory.getInventory().equals(inventory)).findFirst().orElse(null);
+    }
+
+    public int getInventoryIndex(Inventory inventory) {
+        MenuInventory menuInventory = getMenuInventory(inventory);
+
+        if (menuInventory == null) {
+            return -1;
+        }
+
+        return inventories.indexOf(menuInventory);
+    }
+
+    public long getTotalCapacity() {
+        if (data.getMaxInventories() == -1) {
+            return -1;
+        }
+
+        return data.getValidSlots().size() * 64L * data.getMaxInventories();
+    }
+
+    public long getCurrentCapacity() {
+        long currentCapacity = 0;
+
+        for (MenuInventory menuInventory : inventories) {
+            Inventory inventory = menuInventory.getInventory();
+
+            for (Integer validSlot : data.getValidSlots()) {
+                if (inventory.getItem(validSlot) == null || inventory.getItem(validSlot).getType() == Material.AIR) {
+                    continue;
+                }
+
+                currentCapacity += inventory.getItem(validSlot).getAmount();
+            }
+        }
+
+        return currentCapacity;
     }
 
     @Override

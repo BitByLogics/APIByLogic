@@ -5,10 +5,10 @@ import net.justugh.japi.JustAPIPlugin;
 import net.justugh.japi.menu.Menu;
 import net.justugh.japi.menu.MenuAction;
 import net.justugh.japi.menu.action.MenuClickRequirement;
+import net.justugh.japi.menu.inventory.MenuInventory;
 import net.justugh.japi.menu.listener.MenuListener;
 import net.justugh.japi.util.StringModifier;
 import org.bukkit.Bukkit;
-import org.bukkit.event.EventHandler;
 import org.bukkit.inventory.Inventory;
 
 import java.util.*;
@@ -70,15 +70,17 @@ public class MenuManager {
     private void startMenuTask() {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             activeMenus.forEach(menu -> {
-                Iterator<Map.Entry<UUID, List<Inventory>>> entryIterator = menu.getUserMenus().entrySet().iterator();
+                Iterator<Map.Entry<UUID, List<MenuInventory>>> entryIterator = menu.getUserMenus().entrySet().iterator();
 
                 while (entryIterator.hasNext()) {
-                    Map.Entry<UUID, List<Inventory>> entry = entryIterator.next();
+                    Map.Entry<UUID, List<MenuInventory>> entry = entryIterator.next();
 
-                    if (entry.getValue().stream().anyMatch(inventory -> inventory.getViewers().isEmpty())) {
+                    if (entry.getValue().stream().anyMatch(inventory -> inventory.getInventory().getViewers().isEmpty())) {
                         continue;
                     }
 
+                    menu.getUpdateTask().cancel();
+                    menu.setUpdateTask(null);
                     entryIterator.remove();
                 }
             });

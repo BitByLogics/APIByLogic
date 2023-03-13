@@ -12,6 +12,7 @@ import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.craftbukkit.v1_19_R2.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
@@ -24,6 +25,8 @@ import java.util.List;
 import java.util.Set;
 
 public class ItemStackUtil {
+
+    private static final NamespacedKey SPAWNER_KEY = new NamespacedKey(JustAPIPlugin.getInstance(), "justapi_spawner");
 
     /**
      * Create an ItemStack object from a configuration
@@ -234,6 +237,10 @@ public class ItemStackUtil {
      * @return Whether the ItemStacks are similar.
      */
     public static boolean isSimilar(ItemStack item, ItemStack otherItem, boolean compareFlags, boolean compareName, boolean compareLore) {
+        if (item == null || otherItem == null) {
+            return false;
+        }
+
         if (item.getType() != otherItem.getType()) {
             return false;
         }
@@ -357,6 +364,37 @@ public class ItemStackUtil {
         }
 
         return ((CreatureSpawner) meta.getBlockState()).getSpawnedType() != ((CreatureSpawner) otherMeta.getBlockState()).getSpawnedType();
+    }
+
+    public static ItemStack getSpawner(EntityType entityType, String name) {
+        ItemStack item = new ItemStack(Material.SPAWNER);
+        ItemMeta meta = item.getItemMeta();
+
+        meta.setDisplayName(Format.format(name));
+        meta.getPersistentDataContainer().set(SPAWNER_KEY, PersistentDataType.STRING, entityType.name());
+
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    public static ItemStack setSpawner(ItemStack item, EntityType entityType) {
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(SPAWNER_KEY, PersistentDataType.STRING, entityType.name());
+
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    public static boolean isSpawner(ItemStack item) {
+        return item.getItemMeta().getPersistentDataContainer().has(SPAWNER_KEY, PersistentDataType.STRING);
+    }
+
+    public static EntityType getSpawnerEntity(ItemStack item) {
+        if (!isSpawner(item)) {
+            return null;
+        }
+
+        return EntityType.valueOf(item.getItemMeta().getPersistentDataContainer().get(SPAWNER_KEY, PersistentDataType.STRING));
     }
 
     public static boolean hasPersistentData(ItemStack itemStack, String key) {

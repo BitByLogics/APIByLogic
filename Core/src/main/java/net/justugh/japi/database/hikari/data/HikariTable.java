@@ -12,6 +12,7 @@ import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -113,6 +114,7 @@ public abstract class HikariTable<O extends HikariObject> {
             try {
                 while (result.next()) {
                     data.add(loadObject(result));
+                    result.close();
                 }
             } catch (SQLException exception) {
                 exception.printStackTrace();
@@ -146,12 +148,12 @@ public abstract class HikariTable<O extends HikariObject> {
                 if (result != null) {
                     result.accept(rs);
                 }
-            });
 
-            if (redisClient != null) {
-                redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
-                        .addData("updateType", HikariRedisUpdateType.SAVE).addData("objectId", object.getDataId().toString()));
-            }
+                if (redisClient != null) {
+                    redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
+                            .addData("updateType", HikariRedisUpdateType.SAVE).addData("objectId", object.getDataId().toString()));
+                }
+            });
             return;
         }
 
@@ -189,8 +191,14 @@ public abstract class HikariTable<O extends HikariObject> {
     }
 
     public O getDataFromDB(Object id, boolean checkCache) {
-        if(checkCache && getDataById(id) != null) {
-            return getDataById(id);
+        if (checkCache) {
+            for (Iterator<O> iterator = new ArrayList<>(data).iterator(); iterator.hasNext(); ) {
+                O next = iterator.next();
+
+                if (next.getDataId().equals(id)) {
+                    return next;
+                }
+            }
         }
 
         if (idFieldName == null) {

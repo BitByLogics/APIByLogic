@@ -29,11 +29,12 @@ public class MenuBuilder {
 
     private Menu menu;
 
-    public MenuBuilder(String title, Rows rows) {
-        this(title, rows.getSize());
+    public MenuBuilder(String id, String title, Rows rows) {
+        this(id, title, rows.getSize());
     }
 
-    public MenuBuilder(String title, int size) {
+    public MenuBuilder(String id, String title, int size) {
+        this.id = id;
         this.title = title;
         this.size = size;
 
@@ -74,7 +75,10 @@ public class MenuBuilder {
         Preconditions.checkNotNull(title, "Invalid/Missing Title");
         Preconditions.checkState(size % 9 == 0, "Size must be multiple of 9");
 
-        menu = new Menu(title, size);
+        if (menu == null) {
+            menu = new Menu(title, size);
+        }
+
         menu.setData(data);
         menu.setId(id);
 
@@ -153,7 +157,7 @@ public class MenuBuilder {
 
             if (!section.getStringList(identifier + ".Requirements").isEmpty()) {
                 section.getStringList(identifier + ".Requirements").forEach(requirement -> {
-                    menuItem.addRequirement(JustAPIPlugin.getInstance().getMenuManager().getGlobalRequirement(requirement));
+                    menuItem.addClickRequirement(JustAPIPlugin.getInstance().getMenuManager().getGlobalRequirement(requirement));
                 });
             }
 

@@ -6,6 +6,7 @@ import net.justugh.japi.action.PlayerInteractAction;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -118,6 +119,13 @@ public class ItemBuilder {
     public <T, Z> ItemBuilder addPersistentData(String key, PersistentDataType<T, Z> type, Z value) {
         ItemMeta meta = itemStack.getItemMeta();
         meta.getPersistentDataContainer().set(new NamespacedKey(JustAPIPlugin.getInstance(), key), type, value);
+        itemStack.setItemMeta(meta);
+        return this;
+    }
+
+    public ItemBuilder spawnerType(EntityType entityType) {
+        ItemMeta meta = itemStack.getItemMeta();
+        meta.getPersistentDataContainer().set(new NamespacedKey(JustAPIPlugin.getInstance(), "justapi_spawner"), PersistentDataType.STRING, entityType.name());
         itemStack.setItemMeta(meta);
         return this;
     }

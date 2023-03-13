@@ -115,4 +115,8 @@ public class MessageProvider {
         return (String) messages.get(key);
     }
 
+    public String applyPlaceholders(String text) {
+        return Format.format(text, placeholders.toArray(new StringModifier[]{}));
+    }
+
 }

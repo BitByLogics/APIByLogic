@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.justugh.japi.menu.action.MenuClickActionType;
 import net.justugh.japi.menu.action.MenuClickRequirement;
+import net.justugh.japi.menu.view.MenuViewRequirement;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
@@ -29,7 +30,8 @@ public class MenuItem implements Cloneable {
     private boolean updatable;
     private List<MenuAction> actions;
     private HashMap<MenuClickActionType, String> internalActions;
-    private List<MenuClickRequirement> requirements;
+    private List<MenuClickRequirement> clickRequirements;
+    private List<MenuViewRequirement> viewRequirements;
 
     public MenuItem(String identifier, ItemStack item, List<Integer> slots, boolean updatable, MenuAction action, HashMap<MenuClickActionType, String> internalActions) {
         this(identifier, item, slots, updatable);
@@ -57,7 +59,8 @@ public class MenuItem implements Cloneable {
         this.actions = new ArrayList<>();
         this.internalActions = new HashMap<>();
         this.metaData = new HashMap<>();
-        this.requirements = new ArrayList<>();
+        this.clickRequirements = new ArrayList<>();
+        this.viewRequirements = new ArrayList<>();
     }
 
     public MenuItem addSlot(int slot) {
@@ -70,8 +73,13 @@ public class MenuItem implements Cloneable {
         return this;
     }
 
-    public MenuItem addRequirement(MenuClickRequirement requirement) {
-        requirements.add(requirement);
+    public MenuItem addClickRequirement(MenuClickRequirement requirement) {
+        clickRequirements.add(requirement);
+        return this;
+    }
+
+    public MenuItem addViewRequirement(MenuViewRequirement requirement) {
+        viewRequirements.add(requirement);
         return this;
     }
 
@@ -84,7 +92,7 @@ public class MenuItem implements Cloneable {
     }
 
     public void onClick(InventoryClickEvent event) {
-        if (!requirements.isEmpty() && requirements.stream().anyMatch(requirement -> !requirement.canClick((Player) event.getWhoClicked()))) {
+        if (!clickRequirements.isEmpty() && clickRequirements.stream().anyMatch(requirement -> !requirement.canClick((Player) event.getWhoClicked()))) {
             return;
         }
 

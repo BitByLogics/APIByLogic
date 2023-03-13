@@ -5,43 +5,202 @@ import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class InventoryUtil {
 
     /**
+     * Check whether an inventory has space.
+     *
+     * @param inventory The inventory to check.
+     * @return Whether the inventory has space.
+     */
+    public static boolean hasSpace(Inventory inventory) {
+        return hasSpace(inventory, null, new ArrayList<>());
+    }
+
+    /**
      * Check whether an inventory has space for
      * an ItemStack.
      *
      * @param inventory The inventory to check.
-     * @param itemStack The ItemStack to try to add.
+     * @param itemStack The ItemStack to check space for, nullable.
      * @return Whether the inventory has space.
      */
-    public static boolean hasSpace(Inventory inventory, ItemStack itemStack) {
-        if (itemStack == null) {
-            return false;
-        }
+    public static boolean hasSpace(Inventory inventory, @Nullable ItemStack itemStack) {
+        return hasSpace(inventory, itemStack, new ArrayList<>());
+    }
 
-        ItemStack item = new ItemStack(itemStack.clone());
+    /**
+     * Check whether an inventory has space for
+     * an ItemStack.
+     *
+     * @param inventory  The inventory to check.
+     * @param itemStack  The ItemStack to check space for, nullable.
+     * @param validSlots The slots that are valid to check, nullable.
+     * @return Whether the inventory has space.
+     */
+    public static boolean hasSpace(Inventory inventory, @Nullable ItemStack itemStack, @Nullable List<Integer> validSlots) {
+        int maxStackSize = itemStack == null ? -1 : itemStack.getMaxStackSize();
         int availableSpace = 0;
 
-        for (ItemStack content : inventory.getContents()) {
-            if (content == null || content.getType() == Material.AIR) {
-                availableSpace += item.getMaxStackSize();
+        for (int i = 0; i < inventory.getSize(); i++) {
+            if (validSlots != null && !validSlots.isEmpty() && !validSlots.contains(i)) {
                 continue;
             }
 
-            if (!ItemStackUtil.isSimilar(item, content, true, true, true)) {
+            ItemStack content = inventory.getItem(i);
+
+            if (content == null || content.getType() == Material.AIR) {
+                availableSpace += (maxStackSize == -1 ? 64 : maxStackSize);
+                continue;
+            }
+
+            if (maxStackSize == -1 || !ItemStackUtil.isSimilar(itemStack, content, true, true, true)) {
+                continue;
+            }
+
+            if (content.getAmount() >= maxStackSize) {
                 continue;
             }
 
             availableSpace += content.getMaxStackSize() - content.getAmount();
         }
 
+        if (itemStack != null) {
+            return availableSpace > 0 && availableSpace >= itemStack.getAmount();
+        }
+
         return availableSpace > 0;
+    }
+
+    /**
+     * Get the amount of space an inventory has left.
+     *
+     * @param inventory The inventory to check.
+     * @return Whether the inventory has space.
+     */
+    public static int getAvailableSpace(Inventory inventory) {
+        return getAvailableSpace(inventory, null, new ArrayList<>());
+    }
+
+    /**
+     * Get the amount of space an inventory has left.
+     *
+     * @param inventory The inventory to check.
+     * @param itemStack The ItemStack to check space for, nullable.
+     * @return Whether the inventory has space.
+     */
+    public static int getAvailableSpace(Inventory inventory, @Nullable ItemStack itemStack) {
+        return getAvailableSpace(inventory, itemStack, new ArrayList<>());
+    }
+
+    /**
+     * Get the amount of space an inventory has left.
+     *
+     * @param inventory  The inventory to check.
+     * @param itemStack  The ItemStack to check space for, nullable.
+     * @param validSlots The slots that are valid to check, nullable.
+     * @return Whether the inventory has space.
+     */
+    public static int getAvailableSpace(Inventory inventory, @Nullable ItemStack itemStack, @Nullable List<Integer> validSlots) {
+        int maxStackSize = itemStack == null ? -1 : itemStack.getMaxStackSize();
+        int availableSpace = 0;
+
+        for (int i = 0; i < inventory.getSize(); i++) {
+            if (validSlots != null && !validSlots.isEmpty() && !validSlots.contains(i)) {
+                continue;
+            }
+
+            ItemStack content = inventory.getItem(i);
+
+            if (content == null || content.getType() == Material.AIR) {
+                availableSpace += (maxStackSize == -1 ? 64 : maxStackSize);
+                continue;
+            }
+
+            if (maxStackSize == -1 || !ItemStackUtil.isSimilar(itemStack, content, true, true, true)) {
+                continue;
+            }
+
+            if (content.getAmount() >= maxStackSize) {
+                continue;
+            }
+
+            availableSpace += content.getMaxStackSize() - content.getAmount();
+        }
+
+        return availableSpace;
+    }
+
+    /**
+     * Get next valid slot for an Inventory.
+     * Returns -1 for no available slots.
+     *
+     * @param inventory The inventory to check.
+     * @return The next available slot.
+     */
+    public static int getNextAvailableSlot(Inventory inventory) {
+        return getNextAvailableSlot(inventory, null, null);
+    }
+
+    /**
+     * Get next valid slot for an ItemStack, or in general.
+     * Returns -1 for no available slots.
+     *
+     * @param inventory The inventory to check.
+     * @param itemStack The ItemStack to check space for, nullable.
+     * @return The next available slot.
+     */
+    public static int getNextAvailableSlot(Inventory inventory, @Nullable ItemStack itemStack) {
+        return getNextAvailableSlot(inventory, itemStack, null);
+    }
+
+    /**
+     * Get next valid slot for an ItemStack, or in general.
+     * Returns -1 for no available slots.
+     *
+     * @param inventory  The inventory to check.
+     * @param itemStack  The ItemStack to check space for, nullable.
+     * @param validSlots The slots to check for, nullable.
+     * @return The next available slot.
+     */
+    public static int getNextAvailableSlot(Inventory inventory, @Nullable ItemStack itemStack, @Nullable List<Integer> validSlots) {
+        if (!hasSpace(inventory, itemStack, validSlots)) {
+            return -1;
+        }
+
+        int maxStackSize = itemStack == null ? -1 : itemStack.getMaxStackSize();
+
+        for (int i = 0; i < inventory.getSize(); i++) {
+            if (validSlots != null && !validSlots.isEmpty() && !validSlots.contains(i)) {
+                continue;
+            }
+
+            ItemStack content = inventory.getItem(i);
+
+            if (content == null || content.getType() == Material.AIR) {
+                return i;
+            }
+
+            if (maxStackSize == -1 || !ItemStackUtil.isSimilar(itemStack, content, true, true, true)) {
+                continue;
+            }
+
+            if (content.getAmount() >= maxStackSize) {
+                continue;
+            }
+
+            return i;
+        }
+
+        return -1;
     }
 
     /**
@@ -196,6 +355,78 @@ public class InventoryUtil {
      */
     public static int getItems(Inventory inventory, ItemStack itemStack) {
         return getItems(inventory, itemStack, false, false, false, false);
+    }
+
+    /**
+     * Add an ItemStack to an Inventory if space is available.
+     *
+     * @param inventory The inventory to add to.
+     * @param itemStack The ItemStack to add.
+     */
+    public static void addItem(Inventory inventory, ItemStack itemStack) {
+        addItem(inventory, itemStack, null);
+    }
+
+    /**
+     * Add an ItemStack to an Inventory if space is available.
+     *
+     * @param inventory  The inventory to add to.
+     * @param itemStack  The ItemStack to add.
+     * @param validSlots The valid slots to check, nullable.
+     */
+    public static void addItem(Inventory inventory, ItemStack itemStack, @Nullable List<Integer> validSlots) {
+        if (!hasSpace(inventory, itemStack, validSlots)) {
+            return;
+        }
+
+        ItemStack clonedStack = itemStack.clone();
+        int maxStackSize = itemStack.getMaxStackSize();
+
+        for (int i = 0; i < inventory.getSize(); i++) {
+            if (validSlots != null && !validSlots.isEmpty() && !validSlots.contains(i)) {
+                continue;
+            }
+
+            if (clonedStack == null) {
+                break;
+            }
+
+            ItemStack content = inventory.getItem(i);
+
+            if (content == null || content.getType() == Material.AIR) {
+                ItemStack newItem;
+
+                if (clonedStack.getAmount() > maxStackSize) {
+                    newItem = clonedStack.clone();
+                    newItem.setAmount(maxStackSize);
+                    clonedStack.setAmount(clonedStack.getAmount() - maxStackSize);
+                } else {
+                    newItem = clonedStack.clone();
+                    clonedStack = null;
+                }
+
+                inventory.setItem(i, newItem);
+                continue;
+            }
+
+            if (maxStackSize == -1 || !ItemStackUtil.isSimilar(itemStack, content, true, true, true)) {
+                continue;
+            }
+
+            if (content.getAmount() >= maxStackSize) {
+                continue;
+            }
+
+            int maxAvailable = maxStackSize - content.getAmount();
+            int newAmount = Math.min(maxAvailable, clonedStack.getAmount());
+            content.setAmount(content.getAmount() + newAmount);
+
+            if (clonedStack.getAmount() - newAmount <= 0) {
+                clonedStack = null;
+            } else {
+                clonedStack.setAmount(clonedStack.getAmount() - newAmount);
+            }
+        }
     }
 
 }

@@ -71,10 +71,13 @@ public class RedisClient {
             try {
                 ListenerComponent component = redisManager.getGson().fromJson(msg, ListenerComponent.class);
 
+                if (redisManager.isDebug()) {
+                    Logger.getGlobal().info(String.format("[INCOMING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
+                }
                 if (component.getTarget() == null || component.getTarget().isEmpty()) {
                     listeners.stream().filter(l -> l.getChannelName().equalsIgnoreCase(component.getChannel()))
                             .forEach(l -> {
-                                if (component.getSource().getID().equalsIgnoreCase(l.getClient().getID()) && !l.isSelfActivation()) {
+                                if (component.getSource().getServerId().equalsIgnoreCase(l.getClient().getServerId()) && !l.isSelfActivation()) {
                                     return;
                                 }
 

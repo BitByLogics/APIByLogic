@@ -4,6 +4,8 @@ import net.md_5.bungee.api.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,6 +47,30 @@ public class Format {
      */
     public static void sendConfigMessage(CommandSender target, FileConfiguration config, String path, StringModifier... modifiers) {
         target.sendMessage(Format.format(config.getString(path), modifiers));
+    }
+
+    public static String[] getPagedList(String header, List<String> data, int page) {
+        List<String> text = new ArrayList<>();
+
+        int pages = data.size() / 10.0d % 1 == 0 ? data.size() / 10 : data.size() / 10 + 1;
+        int lastPossibleItem = data.size();
+
+        if (page == 0 || page > pages) {
+            text.add(format("&cInvalid page!"));
+            return text.toArray(new String[]{});
+        }
+
+        int startingItem = (page * 10) - 10;
+        int lastItem = Math.min(startingItem + 10, lastPossibleItem);
+        text.add(format(header));
+
+        for (int i = startingItem; i < lastItem; i++) {
+            String item = data.get(i);
+            text.add(format("&8| &8» &e" + item));
+        }
+
+        text.add(format(String.format("⤷ &7(Page: %s/%s)", page, pages)));
+        return text.toArray(new String[]{});
     }
 
 }

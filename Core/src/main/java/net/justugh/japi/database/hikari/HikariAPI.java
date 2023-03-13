@@ -1,11 +1,13 @@
 package net.justugh.japi.database.hikari;
 
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.function.Consumer;
 
 public class HikariAPI {
@@ -13,14 +15,21 @@ public class HikariAPI {
     private final HikariDataSource hikari;
 
     public HikariAPI(String address, String database, String port, String username, String password) {
-        hikari = new HikariDataSource();
-        hikari.setMaximumPoolSize(10);
-        hikari.setDataSourceClassName("com.mysql.cj.jdbc.MysqlDataSource");
-        hikari.addDataSourceProperty("serverName", address);
-        hikari.addDataSourceProperty("port", port);
-        hikari.addDataSourceProperty("databaseName", database);
-        hikari.addDataSourceProperty("user", username);
-        hikari.addDataSourceProperty("password", password);
+        HikariConfig config = new HikariConfig();
+        config.setMaximumPoolSize(3);
+        config.setConnectionTimeout(Duration.ofSeconds(30).toMillis());
+        config.setIdleTimeout(Duration.ofMinutes(2).toMillis());
+        config.setDataSourceClassName("com.mysql.cj.jdbc.MysqlDataSource");
+        config.addDataSourceProperty("cachePrepStmts", "true");
+        config.addDataSourceProperty("prepStmtCacheSize", "250");
+        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        config.addDataSourceProperty("serverName", address);
+        config.addDataSourceProperty("port", port);
+        config.addDataSourceProperty("databaseName", database);
+        config.addDataSourceProperty("user", username);
+        config.addDataSourceProperty("password", password);
+
+        hikari = new HikariDataSource(config);
     }
 
     public void executeStatement(String query, Object... arguments) {
@@ -45,9 +54,6 @@ public class HikariAPI {
                         consumer.accept(result);
                     }
                 }
-
-                statement.close();
-                connection.close();
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -67,9 +73,6 @@ public class HikariAPI {
                         consumer.accept(result);
                     }
                 }
-
-                statement.close();
-                connection.close();
             }
         } catch (SQLException e) {
             e.printStackTrace();

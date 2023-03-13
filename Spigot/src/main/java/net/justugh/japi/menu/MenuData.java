@@ -7,10 +7,7 @@ import net.justugh.japi.menu.placeholder.PlaceholderProvider;
 import net.justugh.japi.menu.placeholder.UserPlaceholderProvider;
 import net.justugh.japi.util.StringModifier;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Getter
 @Setter
@@ -20,8 +17,8 @@ public class MenuData implements Cloneable {
     private final List<MenuItem> itemStorage;
 
     private MenuItem fillerItem;
-    private MenuAction externalClickAction;
     private MenuCloseAction closeAction;
+    private int maxInventories = -1;
 
     private final List<MenuFlag> flags;
     private final Map<String, Object> metaData;
@@ -40,8 +37,8 @@ public class MenuData implements Cloneable {
         this.modifiers = new ArrayList<>();
     }
 
-    public MenuItem getItemFromStorage(String identifier) {
-        return itemStorage.stream().filter(item -> item.getIdentifier() != null && item.getIdentifier().equalsIgnoreCase(identifier)).findFirst().orElse(null);
+    public Optional<MenuItem> getItemFromStorage(String identifier) {
+        return itemStorage.stream().filter(item -> item.getIdentifier() != null && item.getIdentifier().equalsIgnoreCase(identifier)).findFirst();
     }
 
     public void addFlag(MenuFlag flag) {
@@ -60,7 +57,7 @@ public class MenuData implements Cloneable {
     public MenuData clone() {
         List<MenuItem> itemStorage = new ArrayList<>();
         this.itemStorage.forEach(item -> itemStorage.add(item.clone()));
-        return new MenuData(itemStorage, fillerItem, externalClickAction, closeAction,
+        return new MenuData(itemStorage, fillerItem, closeAction, maxInventories,
                 flags, metaData, validSlots, placeholderProviders,
                 userPlaceholderProviders, modifiers);
     }
