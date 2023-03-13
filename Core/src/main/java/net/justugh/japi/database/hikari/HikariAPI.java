@@ -16,7 +16,7 @@ public class HikariAPI {
 
     public HikariAPI(String address, String database, String port, String username, String password) {
         HikariConfig config = new HikariConfig();
-        config.setMaximumPoolSize(3);
+        config.setMaximumPoolSize(10);
         config.setConnectionTimeout(Duration.ofSeconds(30).toMillis());
         config.setIdleTimeout(Duration.ofMinutes(2).toMillis());
         config.setDataSourceClassName("com.mysql.cj.jdbc.MysqlDataSource");
