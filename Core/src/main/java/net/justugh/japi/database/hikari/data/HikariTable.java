@@ -13,8 +13,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -24,7 +25,7 @@ public abstract class HikariTable<O extends HikariObject> {
     private final HikariAPI hikariAPI;
     private final String table;
     private final HikariTableStatements statements;
-    private final List<O> data;
+    private final ConcurrentHashMap<Object, O> dataMap;
     private String idFieldName;
 
     private RedisClient redisClient;
@@ -33,13 +34,11 @@ public abstract class HikariTable<O extends HikariObject> {
         this.hikariAPI = hikariAPI;
         this.table = table;
         this.statements = null;
-        data = new ArrayList<>();
+        this.dataMap = new ConcurrentHashMap<>();
 
         try {
             O tempObject = objectClass.newInstance();
-            hikariAPI.executeStatement(tempObject.getTableCreateStatement(), rs -> {
-                loadData();
-            });
+            hikariAPI.executeStatement(tempObject.getTableCreateStatement());
             Map.Entry<String, HikariStatementData> data = tempObject.getRawStatementData().entrySet().stream().filter(entry -> entry.getValue().primaryKey()).findFirst().orElse(null);
             idFieldName = data == null ? null : data.getKey();
         } catch (InstantiationException | IllegalAccessException e) {
@@ -58,7 +57,7 @@ public abstract class HikariTable<O extends HikariObject> {
         this.hikariAPI = hikariAPI;
         this.table = table;
         this.statements = null;
-        data = new ArrayList<>();
+        this.dataMap = new ConcurrentHashMap<>();
 
         try {
             O tempObject = objectClass.newInstance();
@@ -80,14 +79,14 @@ public abstract class HikariTable<O extends HikariObject> {
         this.hikariAPI = hikariAPI;
         this.table = null;
         this.statements = statements;
-        data = new ArrayList<>();
+        this.dataMap = new ConcurrentHashMap<>();
         hikariAPI.executeStatement(statements.getTableCreateStatement(), rs -> {
             loadData();
         });
     }
 
     private void loadData() {
-        data.clear();
+        this.dataMap.clear();
 
         if (statements == null) {
             hikariAPI.executeQuery(String.format("SELECT * FROM %s;", table), result -> {
@@ -97,7 +96,8 @@ public abstract class HikariTable<O extends HikariObject> {
 
                 try {
                     while (result.next()) {
-                        data.add(loadObject(result));
+                        O object = loadObject(result);
+                        this.dataMap.put(object.getDataId(), object);
                     }
                 } catch (SQLException exception) {
                     exception.printStackTrace();
@@ -113,13 +113,30 @@ public abstract class HikariTable<O extends HikariObject> {
 
             try {
                 while (result.next()) {
-                    data.add(loadObject(result));
+                    O object = loadObject(result);
+                    this.dataMap.put(object.getDataId(), object);
                     result.close();
                 }
             } catch (SQLException exception) {
                 exception.printStackTrace();
             }
         });
+    }
+
+    public void add(O object) {
+        add(object, true);
+    }
+
+    public void add(O object, boolean save) {
+        if (dataMap.containsKey(object.getDataId())) {
+            return;
+        }
+
+        dataMap.put(object.getDataId(), object);
+
+        if (save) {
+            CompletableFuture.runAsync(() -> save(object));
+        }
     }
 
     public void save(O object) {
@@ -165,6 +182,22 @@ public abstract class HikariTable<O extends HikariObject> {
         }
     }
 
+    public void remove(O object) {
+        remove(object, true);
+    }
+
+    public void remove(O object, boolean delete) {
+        if (!dataMap.containsKey(object.getDataId())) {
+            return;
+        }
+
+        dataMap.remove(object.getDataId());
+
+        if (delete) {
+            CompletableFuture.runAsync(() -> delete(object));
+        }
+    }
+
     public void delete(O object) {
         if (!object.getRawStatementData().isEmpty()) {
             hikariAPI.executeStatement(object.getDataDeleteStatement(), rs -> {
@@ -187,12 +220,12 @@ public abstract class HikariTable<O extends HikariObject> {
     public abstract O loadObject(ResultSet set) throws SQLException;
 
     public O getDataById(Object id) {
-        return data.stream().filter(o -> o.getDataId().equals(id)).findFirst().orElse(null);
+        return dataMap.get(id);
     }
 
     public O getDataFromDB(Object id, boolean checkCache) {
         if (checkCache) {
-            for (Iterator<O> iterator = new ArrayList<>(data).iterator(); iterator.hasNext(); ) {
+            for (Iterator<O> iterator = new ArrayList<>(dataMap.values()).iterator(); iterator.hasNext(); ) {
                 O next = iterator.next();
 
                 if (next.getDataId().equals(id)) {

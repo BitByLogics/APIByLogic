@@ -26,7 +26,11 @@ import java.util.Set;
 
 public class ItemStackUtil {
 
-    private static final NamespacedKey SPAWNER_KEY = new NamespacedKey(JustAPIPlugin.getInstance(), "justapi_spawner");
+    private static NamespacedKey SPAWNER_KEY;
+
+    public static void initialize() {
+        SPAWNER_KEY = new NamespacedKey(JustAPIPlugin.getInstance(), "justapi_spawner");
+    }
 
     /**
      * Create an ItemStack object from a configuration
@@ -113,7 +117,7 @@ public class ItemStackUtil {
         // Apply enchantments
         section.getStringList("Enchantments").forEach(enchant -> {
             String[] data = enchant.split(":");
-            NamespacedKey key = NamespacedKey.minecraft(data[0]);
+            NamespacedKey key = NamespacedKey.minecraft(data[0].trim());
             Enchantment enchantment = Enchantment.getByKey(key);
             int level = 0;
 

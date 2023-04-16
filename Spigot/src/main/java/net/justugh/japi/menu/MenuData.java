@@ -18,6 +18,7 @@ public class MenuData implements Cloneable {
 
     private MenuItem fillerItem;
     private MenuCloseAction closeAction;
+    private int minInventories = 1;
     private int maxInventories = -1;
 
     private final List<MenuFlag> flags;
@@ -57,7 +58,7 @@ public class MenuData implements Cloneable {
     public MenuData clone() {
         List<MenuItem> itemStorage = new ArrayList<>();
         this.itemStorage.forEach(item -> itemStorage.add(item.clone()));
-        return new MenuData(itemStorage, fillerItem, closeAction, maxInventories,
+        return new MenuData(itemStorage, fillerItem, closeAction, minInventories, maxInventories,
                 flags, metaData, validSlots, placeholderProviders,
                 userPlaceholderProviders, modifiers);
     }

@@ -82,6 +82,7 @@ public class MenuBuilder {
         menu.setData(data);
         menu.setId(id);
 
+        menu.getItems().clear();
         items.forEach(menuItem -> {
             if (menuItem.getSlots().isEmpty()) {
                 menu.getData().getItemStorage().add(menuItem);
@@ -144,6 +145,7 @@ public class MenuBuilder {
         for (String identifier : section.getKeys(false)) {
             ItemStack item = ItemStackUtil.getItemStackFromConfig(section.getConfigurationSection(identifier));
             MenuItem menuItem = new MenuItem(identifier, item, new ArrayList<>(), section.getBoolean(identifier + ".Update", false));
+            menuItem.setItemSection(section.getConfigurationSection(identifier));
 
             if (!section.getStringList(identifier + ".Actions").isEmpty()) {
                 HashMap<MenuClickActionType, String> internalActions = new HashMap<>();
@@ -186,14 +188,6 @@ public class MenuBuilder {
 
             items.add(menuItem);
         }
-
-        items.forEach(menuItem -> {
-            if (menuItem.getSlots().isEmpty()) {
-                menu.getData().getItemStorage().add(menuItem);
-            } else {
-                menu.addItem(menuItem);
-            }
-        });
 
         return this;
     }

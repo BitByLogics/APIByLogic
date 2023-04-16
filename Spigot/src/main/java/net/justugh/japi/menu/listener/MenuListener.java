@@ -31,6 +31,11 @@ public class MenuListener implements Listener {
 
         Menu menu = (Menu) topInventory.getHolder();
 
+        if (event.getClick() == ClickType.NUMBER_KEY && event.getClickedInventory() == topInventory) {
+            event.setCancelled(true);
+            return;
+        }
+
         if (event.isShiftClick() && event.getClickedInventory() != topInventory) {
             event.setCancelled(!menu.getData().hasFlag(MenuFlag.ALLOW_INPUT));
             return;
@@ -45,7 +50,7 @@ public class MenuListener implements Listener {
             return;
         }
 
-        if (!menu.getItem(topInventory, event.getSlot()).isPresent() && (event.getCursor() == null || event.getCursor().getType() == Material.AIR)) {
+        if (!menu.getItem(topInventory, event.getSlot()).isPresent() && (event.getCursor() == null || event.getCursor().getType() == Material.AIR) && menu.getData().hasFlag(MenuFlag.ALLOW_REMOVAL)) {
             return;
         }
 

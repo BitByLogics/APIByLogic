@@ -9,6 +9,7 @@ import net.justugh.japi.database.redis.RedisManager;
 import net.justugh.japi.listener.SpawnerListener;
 import net.justugh.japi.menu.manager.MenuManager;
 import net.justugh.japi.scoreboard.JustBoard;
+import net.justugh.japi.util.ItemStackUtil;
 import net.justugh.japi.util.event.armor.listener.ArmorListener;
 import net.justugh.japi.util.event.armor.listener.DispenserArmorListener;
 import org.bukkit.configuration.ConfigurationSection;
@@ -40,6 +41,7 @@ public class JustAPIPlugin extends JavaPlugin {
         instance = this;
         saveDefaultConfig();
 
+        ItemStackUtil.initialize();
         getCommand("justapi").setExecutor(new JustAPICommand());
 
         if (!getConfig().getString("Redis-Credentials.Host", "").isEmpty()) {

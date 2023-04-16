@@ -6,6 +6,7 @@ import lombok.Setter;
 import net.justugh.japi.menu.action.MenuClickActionType;
 import net.justugh.japi.menu.action.MenuClickRequirement;
 import net.justugh.japi.menu.view.MenuViewRequirement;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
@@ -24,6 +25,7 @@ public class MenuItem implements Cloneable {
     private ItemStack item;
     private MenuItemUpdateProvider itemUpdateProvider;
 
+    private ConfigurationSection itemSection;
     private List<Inventory> sourceInventories = new ArrayList<>();
     private List<Integer> slots;
     private HashMap<String, String> metaData;

@@ -540,7 +540,10 @@ public class Menu implements InventoryHolder, Cloneable {
             return inventories.get(0).getInventory();
         }
 
-        generateNewInventory().ifPresent(inventories::add);
+        for(int i = 0; i < data.getMinInventories(); i++) {
+            generateNewInventory().ifPresent(inventories::add);
+        }
+
         return inventories.get(0).getInventory();
     }
 
