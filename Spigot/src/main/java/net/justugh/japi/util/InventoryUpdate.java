@@ -35,6 +35,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
@@ -124,6 +125,23 @@ public final class InventoryUpdate {
         }
 
         try {
+            if (newTitle.length() > 32) {
+                newTitle = newTitle.substring(0, 32);
+            }
+
+            if (ReflectionUtils.supports(20)) {
+                InventoryView open = player.getOpenInventory();
+                if (UNOPENABLES.contains(open.getType().name())) {
+                    return;
+                }
+                Method method = open.getClass().getMethod("setTitle", String.class);
+                if (!method.canAccess(open)) {
+                    method.setAccessible(true);
+                }
+                method.invoke(open, newTitle);
+                return;
+            }
+
             // Get EntityPlayer from CraftPlayer.
             Object craftPlayer = CRAFT_PLAYER.cast(player);
             Object entityPlayer = getHandle.invoke(craftPlayer);

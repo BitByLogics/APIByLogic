@@ -29,15 +29,6 @@ public enum MenuClickActionType {
         for (String message : RichTextUtil.getRichText(args, 0)) {
             event.getWhoClicked().sendMessage(Format.format(message, new Placeholder("%player%", event.getWhoClicked().getName())));
         }
-    }),
-    INTERNAL_ACTION((event, args) -> {
-        MenuAction internalAction = JustAPIPlugin.getInstance().getMenuManager().getGlobalAction(args);
-
-        if (internalAction == null) {
-            return;
-        }
-
-        internalAction.onClick(event);
     });
 
     private final ClickTypeAction action;

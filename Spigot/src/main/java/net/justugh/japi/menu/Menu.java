@@ -2,9 +2,10 @@ package net.justugh.japi.menu;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.justugh.japi.JustAPIPlugin;
 import net.justugh.japi.menu.inventory.MenuInventory;
 import net.justugh.japi.menu.placeholder.PlaceholderProvider;
+import net.justugh.japi.menu.task.MenuUpdateTask;
+import net.justugh.japi.menu.task.TitleUpdateTask;
 import net.justugh.japi.menu.view.internal.NextPageViewRequirement;
 import net.justugh.japi.menu.view.internal.PreviousPageViewRequirement;
 import net.justugh.japi.util.*;
@@ -17,7 +18,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,7 +38,8 @@ public class Menu implements InventoryHolder, Cloneable {
     private final HashMap<UUID, List<MenuInventory>> userMenus;
     private final List<UUID> activePlayers;
 
-    private BukkitTask updateTask;
+    private MenuUpdateTask updateTask;
+    private TitleUpdateTask titleUpdateTask;
     private long lastUpdateCheck;
 
     public Menu(String title, Rows rows) {
@@ -46,19 +47,24 @@ public class Menu implements InventoryHolder, Cloneable {
     }
 
     public Menu(String title, int size) {
+        this(title, size, new MenuData());
+    }
+
+    public Menu(String title, int size, MenuData data) {
         this.title = title;
         this.size = size;
 
         this.items = new ArrayList<>();
-        this.data = new MenuData();
+        this.data = data;
         this.inventories = new ArrayList<>();
         this.userMenus = new HashMap<>();
         this.activePlayers = new ArrayList<>();
 
-        JustAPIPlugin.getInstance().getMenuManager().getActiveMenus().add(this);
+        if (!data.hasFlag(MenuFlag.DISABLE_TITLE_UPDATE)) {
+            titleUpdateTask = new TitleUpdateTask(this);
+        }
 
-        startTitleUpdateTask();
-        startUpdateTask();
+        updateTask = new MenuUpdateTask(this);
     }
 
     public Menu(String id, String title, int size, List<MenuItem> items, MenuData data, List<MenuInventory> inventories, HashMap<UUID, List<MenuInventory>> userMenus) {
@@ -71,200 +77,27 @@ public class Menu implements InventoryHolder, Cloneable {
         this.userMenus = userMenus;
         this.activePlayers = new ArrayList<>();
 
-        JustAPIPlugin.getInstance().getMenuManager().getActiveMenus().add(this);
+        if (!data.hasFlag(MenuFlag.DISABLE_TITLE_UPDATE)) {
+            titleUpdateTask = new TitleUpdateTask(this);
+        }
 
-        startTitleUpdateTask();
-        startUpdateTask();
+        updateTask = new MenuUpdateTask(this);
     }
 
-    public void startTitleUpdateTask() {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(JustAPIPlugin.getInstance(), () -> {
-            List<StringModifier> modifiers = new ArrayList<>();
-            modifiers.addAll(data.getModifiers());
-            modifiers.addAll(data.getPlaceholderProviders().stream().map(PlaceholderProvider::asPlaceholder).collect(Collectors.toList()));
-
-            Placeholder pagesPlaceholder = new Placeholder("%pages%", inventories.size() + "");
-            modifiers.add(pagesPlaceholder);
-
-            inventories.forEach(menuInventory -> {
-                Inventory inventory = menuInventory.getInventory();
-
-                Placeholder pagePlaceholder = new Placeholder("%page%", getInventoryIndex(inventory) + "");
-                modifiers.add(pagePlaceholder);
-
-                new ArrayList<>(inventory.getViewers()).forEach(viewer -> {
-                    InventoryUpdate.updateInventory(JustAPIPlugin.getInstance(), (Player) viewer, Format.format(menuInventory.getTitle(),
-                            modifiers.toArray(new StringModifier[]{})));
-                });
-            });
-
-            userMenus.values().forEach(menuInventoryList -> {
-                menuInventoryList.forEach(menuInventory -> {
-                    Inventory inventory = menuInventory.getInventory();
-
-                    Placeholder pagePlaceholder = new Placeholder("%page%", getInventoryIndex(inventory) + "");
-                    modifiers.add(pagePlaceholder);
-
-                    new ArrayList<>(inventory.getViewers()).forEach(viewer -> {
-                        InventoryUpdate.updateInventory(JustAPIPlugin.getInstance(), (Player) viewer, Format.format(menuInventory.getTitle(),
-                                modifiers.toArray(new StringModifier[]{})));
-                    });
-                });
-            });
-        }, 5, 1);
-    }
-
-    public void startUpdateTask() {
-        if (updateTask != null && !updateTask.isCancelled()) {
+    public void updateItemMeta(ItemStack item) {
+        if (data.getModifiers().isEmpty() && data.getPlaceholderProviders().isEmpty()) {
             return;
         }
 
-        updateTask = Bukkit.getScheduler().runTaskTimer(JustAPIPlugin.getInstance(), () -> {
-            if (activePlayers.isEmpty()) {
-                updateTask.cancel();
-                updateTask = null;
-                return;
-            }
-
-            pushUpdates();
-            pushUserUpdates();
-        }, 0, 5);
-    }
-
-    private void pushUpdates() {
-        if (data.getMaxInventories() != -1) {
-            Inventory finalInventory = inventories.get(inventories.size() - 1).getInventory();
-
-            if (!InventoryUtil.hasSpace(finalInventory, null, data.getValidSlots())) {
-                generateNewInventory().ifPresent(inventories::add);
-            }
-        }
-
-        for (MenuInventory menuInventory : inventories) {
-            Inventory inventory = menuInventory.getInventory();
-            Iterator<MenuItem> slotIterator = items.iterator();
-
-            while (slotIterator.hasNext()) {
-                MenuItem menuItem = slotIterator.next();
-
-                if (!menuItem.getSourceInventories().contains(inventory)) {
-                    menuItem.getSourceInventories().add(inventory);
-                }
-
-                if (menuItem.getViewRequirements().stream().anyMatch(requirement -> !requirement.canView(inventory, menuItem, this))) {
-                    menuItem.getSlots().forEach(slot -> inventory.setItem(slot, null));
-                    continue;
-                }
-
-                List<Integer> slots = menuItem.getSlots();
-
-                if (menuItem.getItem() == null) {
-                    slots.forEach(slot -> inventory.setItem(slot, null));
-                    continue;
-                }
-
-                ItemStack item = menuItem.getItem().clone();
-                updateItemMeta(item);
-
-                slots.forEach(slot -> {
-                    if (inventory.getItem(slot) == null) {
-                        inventory.setItem(slot, item);
-                    }
-
-                    if (inventory.getItem(slot).getType() != item.getType()) {
-                        inventory.setItem(slot, item);
-                    }
-                });
-
-                if (!menuItem.isUpdatable()) {
-                    continue;
-                }
-
-                ItemStack updatedItem = menuItem.getItemUpdateProvider() == null ? menuItem.getItem().clone() : menuItem.getItemUpdateProvider().requestItem(menuItem);
-                updateItemMeta(updatedItem);
-
-                slots.forEach(slot -> inventory.setItem(slot, updatedItem));
-            }
-        }
-    }
-
-    private void pushUserUpdates() {
-        userMenus.forEach((uuid, allInventories) -> {
-            if (data.getMaxInventories() != -1) {
-                Inventory finalInventory = allInventories.get(allInventories.size() - 1).getInventory();
-
-                if (!InventoryUtil.hasSpace(finalInventory, null, data.getValidSlots())) {
-                    generateNewInventory().ifPresent(allInventories::add);
-                }
-            }
-
-            for (MenuInventory menuInventory : allInventories) {
-                Inventory inventory = menuInventory.getInventory();
-                List<Integer> validSlots = new ArrayList<>(data.getValidSlots());
-                Iterator<MenuItem> slotIterator = items.iterator();
-
-                while (slotIterator.hasNext()) {
-                    MenuItem menuItem = slotIterator.next();
-
-                    if (!menuItem.getSourceInventories().contains(inventory)) {
-                        continue;
-                    }
-
-                    if (menuItem.getViewRequirements().stream().anyMatch(requirement -> !requirement.canView(inventory, menuItem, this))) {
-                        menuItem.getSlots().forEach(slot -> inventory.setItem(slot, null));
-                        return;
-                    }
-
-                    List<Integer> slots = menuItem.getSlots();
-
-                    if (menuItem.getItem() == null) {
-                        slots.forEach(slot -> inventory.setItem(slot, null));
-                        continue;
-                    }
-
-                    ItemStack item = menuItem.getItem().clone();
-                    updateItemMeta(item);
-
-                    if (slots.isEmpty()) {
-                        int availableSlot = validSlots.get(0);
-                        slots.add(availableSlot);
-                        validSlots.remove(availableSlot);
-                        menuItem.setSlots(slots);
-                    }
-
-                    slots.forEach(slot -> {
-                        if (inventory.getItem(slot) == null) {
-                            inventory.setItem(slot, item);
-                        }
-
-                        if (inventory.getItem(slot).getType() != item.getType()) {
-                            inventory.setItem(slot, item);
-                        }
-                    });
-
-                    if (!menuItem.isUpdatable()) {
-                        continue;
-                    }
-
-                    ItemStack updatedItem = menuItem.getItemUpdateProvider() == null ? menuItem.getItem().clone() : menuItem.getItemUpdateProvider().requestItem(menuItem);
-                    updateUserItemMeta(menuItem, Bukkit.getOfflinePlayer(uuid), updatedItem);
-
-                    slots.forEach(slot -> inventory.setItem(slot, updatedItem));
-                }
-            }
-        });
-    }
-
-    private void updateItemMeta(ItemStack item) {
         List<StringModifier> placeholders = new ArrayList<>();
 
         placeholders.addAll(data.getModifiers());
-        data.getPlaceholderProviders().forEach(placeholder -> placeholders.add(new Placeholder(placeholder.getIdentifier(), placeholder.getValue())));
+        data.getPlaceholderProviders().forEach(placeholder -> placeholders.add(placeholder.asPlaceholder()));
 
         ItemStackUtil.updateItem(item, placeholders.toArray(new StringModifier[]{}));
     }
 
-    private void updateUserItemMeta(MenuItem menuItem, OfflinePlayer player, ItemStack item) {
+    public void updateUserItemMeta(MenuItem menuItem, OfflinePlayer player, ItemStack item) {
         List<StringModifier> placeholders = new ArrayList<>();
 
         placeholders.addAll(data.getModifiers());
@@ -282,6 +115,29 @@ public class Menu implements InventoryHolder, Cloneable {
      */
     public Menu addItem(MenuItem item) {
         items.add(item);
+        return this;
+    }
+
+    /**
+     * Add an item to the Menu and set its
+     * slot to the next available slot
+     *
+     * @param item The item to add.
+     * @return The Menu instance.
+     */
+    public Menu addAndSetItem(MenuItem item) {
+        items.add(item);
+
+        Pair<Inventory, Integer> availableSlot = getNextAvailableSlot();
+
+        if (availableSlot == null) {
+            return this;
+        }
+
+        item.getSlots().clear();
+
+        item.addSlot(availableSlot.getValue());
+        item.addSourceInventory(availableSlot.getKey());
         return this;
     }
 
@@ -439,7 +295,7 @@ public class Menu implements InventoryHolder, Cloneable {
         return items.isEmpty() ? Optional.empty() : Optional.of(items.get(0));
     }
 
-    private Optional<MenuInventory> generateNewInventory() {
+    public Optional<MenuInventory> generateNewInventory() {
         if (data.getMaxInventories() != -1 && inventories.size() >= data.getMaxInventories()) {
             return Optional.empty();
         }
@@ -452,17 +308,36 @@ public class Menu implements InventoryHolder, Cloneable {
             }
         }
 
+        List<StringModifier> modifiers = new ArrayList<>();
+        modifiers.addAll(data.getModifiers());
+        modifiers.addAll(data.getPlaceholderProviders().stream().map(PlaceholderProvider::asPlaceholder).collect(Collectors.toList()));
+
+        Placeholder pagesPlaceholder = new Placeholder("%pages%", inventories.size() + 1 + "");
+        Placeholder pagePlaceholder = new Placeholder("%page%", inventories.size() + 1 + "");
+        modifiers.add(pagesPlaceholder);
+        modifiers.add(pagePlaceholder);
+
         AtomicReference<List<Integer>> availableSlots = new AtomicReference<>(new ArrayList<>(validSlots));
-        Inventory inventory = Bukkit.createInventory(this, size, ChatColor.RED.toString());
+        Inventory inventory = Bukkit.createInventory(this, size, data.hasFlag(MenuFlag.DISABLE_TITLE_UPDATE) ? Format.format(title, modifiers.toArray(new StringModifier[]{})) : ChatColor.RED.toString());
 
         List<MenuItem> itemCache = new ArrayList<>();
 
         getData().getItemFromStorage("Next-Page-Item").ifPresent(nextPageItem -> {
             nextPageItem.addSourceInventory(inventory);
-            nextPageItem.addViewRequirement(new NextPageViewRequirement());
+
+            if (!data.hasFlag(MenuFlag.ALWAYS_DISPLAY_NAV)) {
+                nextPageItem.addViewRequirement(new NextPageViewRequirement());
+            }
+
             nextPageItem.addAction(event -> {
                 Inventory currentInventory = event.getClickedInventory();
-                event.getWhoClicked().openInventory(getInventories().get(getInventoryIndex(currentInventory) + 1).getInventory());
+                int nextIndex = getInventoryIndex(currentInventory) + 1;
+
+                if (nextIndex > getInventories().size() - 1) {
+                    return;
+                }
+
+                event.getWhoClicked().openInventory(getInventories().get(nextIndex).getInventory());
             });
             nextPageItem.setSlots((List<Integer>) getData().getMetaData().getOrDefault("Next-Page-Slots", new ArrayList<>()));
 
@@ -472,10 +347,20 @@ public class Menu implements InventoryHolder, Cloneable {
 
         getData().getItemFromStorage("Previous-Page-Item").ifPresent(previousPageItem -> {
             previousPageItem.addSourceInventory(inventory);
-            previousPageItem.addViewRequirement(new PreviousPageViewRequirement());
+
+            if (!data.hasFlag(MenuFlag.ALWAYS_DISPLAY_NAV)) {
+                previousPageItem.addViewRequirement(new PreviousPageViewRequirement());
+            }
+
             previousPageItem.addAction(event -> {
                 Inventory currentInventory = event.getClickedInventory();
-                event.getWhoClicked().openInventory(getInventories().get(getInventoryIndex(currentInventory) - 1).getInventory());
+                int previousIndex = getInventoryIndex(currentInventory) - 1;
+
+                if (previousIndex <= -1) {
+                    return;
+                }
+
+                event.getWhoClicked().openInventory(getInventories().get(previousIndex).getInventory());
             });
             previousPageItem.setSlots((List<Integer>) getData().getMetaData().getOrDefault("Previous-Page-Slots", new ArrayList<>()));
 
@@ -483,6 +368,7 @@ public class Menu implements InventoryHolder, Cloneable {
             itemCache.add(previousPageItem);
         });
 
+        //TODO: Implement a check to prevent "global" menu items
         items.forEach(menuItem -> {
             ItemStack item = menuItem.getItemUpdateProvider() == null ? menuItem.getItem().clone() : menuItem.getItemUpdateProvider().requestItem(menuItem);
             updateItemMeta(item);
@@ -520,9 +406,12 @@ public class Menu implements InventoryHolder, Cloneable {
         if (data.getFillerItem() != null && data.getFillerItem().getItem().getType() != Material.AIR) {
             MenuItem fillerItem = data.getFillerItem();
 
-            while (inventory.firstEmpty() != -1) {
-                int slot = inventory.firstEmpty();
-                inventory.setItem(slot, fillerItem.getItem());
+            for (int i = 0; i < inventory.getSize(); i++) {
+                if (inventory.getItem(i) != null || getData().getValidSlots().contains(i)) {
+                    continue;
+                }
+
+                inventory.setItem(i, fillerItem.getItem());
             }
         }
 
@@ -540,7 +429,7 @@ public class Menu implements InventoryHolder, Cloneable {
             return inventories.get(0).getInventory();
         }
 
-        for(int i = 0; i < data.getMinInventories(); i++) {
+        for (int i = 0; i < data.getMinInventories(); i++) {
             generateNewInventory().ifPresent(inventories::add);
         }
 
@@ -562,7 +451,12 @@ public class Menu implements InventoryHolder, Cloneable {
             userMenus.remove(player.getUniqueId());
         }
 
-        generateNewInventory().ifPresent(inventory -> userMenus.put(player.getUniqueId(), inventories));
+        List<MenuInventory> userInventories = new ArrayList<>();
+        for (int i = 0; i < data.getMinInventories(); i++) {
+            generateNewInventory().ifPresent(userInventories::add);
+        }
+
+        userMenus.put(player.getUniqueId(), userInventories);
         return userMenus.get(player.getUniqueId()).get(0).getInventory();
     }
 
@@ -612,6 +506,32 @@ public class Menu implements InventoryHolder, Cloneable {
         }
 
         return currentCapacity;
+    }
+
+    public Pair<Inventory, Integer> getNextAvailableSlot() {
+        if (inventories.isEmpty()) {
+            getInventory();
+        }
+
+        for (MenuInventory inventory : inventories) {
+            if (data.getValidSlots().stream().noneMatch(slot -> inventory.getInventory().getItem(slot) == null)) {
+                continue;
+            }
+
+            for (int validSlot : data.getValidSlots()) {
+                if (inventory.getInventory().getItem(validSlot) != null) {
+                    continue;
+                }
+
+                if (getItem(inventory.getInventory(), validSlot).isPresent()) {
+                    continue;
+                }
+
+                return new Pair<>(inventory.getInventory(), validSlot);
+            }
+        }
+
+        return null;
     }
 
     @Override

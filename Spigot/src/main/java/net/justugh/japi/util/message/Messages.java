@@ -1,5 +1,7 @@
-package net.justugh.ju.message;
+package net.justugh.japi.util.message;
 
+import net.justugh.japi.JustAPIPlugin;
+import net.justugh.japi.database.redis.listener.ListenerComponent;
 import net.justugh.japi.util.Placeholder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -9,10 +11,11 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static net.justugh.ju.message.JustColors.*;
+import static net.justugh.japi.util.message.JustColors.*;
 
 public class Messages {
 
@@ -140,6 +143,12 @@ public class Messages {
         }
 
         player.sendMessage(format(formattedMessage));
+    }
+
+    public static void sendRedisMessage(UUID player, String message) {
+        JustAPIPlugin.getInstance().getRedisClient().sendListenerMessage(
+                new ListenerComponent(null, "j-message")
+                        .addData("uuid", player).addData("message", message));
     }
 
     public static void sendRawMessage(Player player, String message, Placeholder... placeholders) {

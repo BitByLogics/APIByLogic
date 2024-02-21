@@ -7,7 +7,7 @@
     <parent>
         <artifactId>JustAPI</artifactId>
         <groupId>net.justugh</groupId>
-        <version>2023.1</version>
+        <version>2024.2</version>
     </parent>
 
     <artifactId>JustAPI-Core</artifactId>
@@ -63,7 +63,7 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.10</version>
+            <version>2.10.1</version>
         </dependency>
 
         <!-- HikariCP -->
@@ -77,14 +77,14 @@
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson</artifactId>
-            <version>3.17.5</version>
+            <version>3.20.0</version>
         </dependency>
 
         <!-- MySQL Connector -->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.30</version>
+            <version>8.0.33</version>
         </dependency>
     </dependencies>
 

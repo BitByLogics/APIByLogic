@@ -7,7 +7,7 @@
     <parent>
         <groupId>net.justugh</groupId>
         <artifactId>JustAPI</artifactId>
-        <version>2022.1</version>
+        <version>2024.2</version>
     </parent>
 
     <artifactId>JustAPI-Utils</artifactId>
@@ -45,6 +45,16 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>co.aikar.commands</pattern>
+                                    <shadedPattern>net.justugh.ju.acf</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>co.aikar.locales</pattern>
+                                    <shadedPattern>net.justugh.ju.locales</shadedPattern>
+                                </relocation>
+                            </relocations>
                         </configuration>
                     </execution>
                 </executions>
@@ -82,7 +92,7 @@
         <dependency>
             <groupId>net.justugh</groupId>
             <artifactId>JustAPI-Spigot</artifactId>
-            <version>2022.1</version>
+            <version>2023.1</version>
             <scope>provided</scope>
         </dependency>
 

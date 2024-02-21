@@ -94,7 +94,7 @@ public class MenuItem implements Cloneable {
     }
 
     public void onClick(InventoryClickEvent event) {
-        if (!clickRequirements.isEmpty() && clickRequirements.stream().anyMatch(requirement -> !requirement.canClick((Player) event.getWhoClicked()))) {
+        if (clickRequirements.stream().anyMatch(requirement -> !requirement.canClick((Player) event.getWhoClicked()))) {
             return;
         }
 
@@ -107,6 +107,6 @@ public class MenuItem implements Cloneable {
     }
 
     public MenuItem clone(boolean cloneAction) {
-        return new MenuItem(identifier, item.clone(), new ArrayList<>(slots), updatable, cloneAction ? actions : Lists.newArrayList());
+        return new MenuItem(identifier, item.clone(), new ArrayList<>(slots), updatable, cloneAction ? new ArrayList<>(actions) : Lists.newArrayList());
     }
 }

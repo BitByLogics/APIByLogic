@@ -12,6 +12,7 @@ import net.justugh.ju.player.PlayerUtil;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -105,6 +106,25 @@ public class ItemModifyCommand extends BaseCommand {
         meta.getPersistentDataContainer().set(new NamespacedKey(JustUtils.getInstance(), key), PersistentDataType.STRING, value);
         item.setItemMeta(meta);
         player.sendMessage(Messages.success("Item Modify", "Successfully added persistent data with key %s and value %s to item!", key, value));
+    }
+
+    @Subcommand("enchant")
+    public void onEnchant(Player player, String enchantID, @Default("1") int level) {
+        NamespacedKey key = NamespacedKey.minecraft(enchantID);
+        Enchantment enchantment = Enchantment.getByKey(key);
+
+        if (enchantment == null) {
+            player.sendMessage(Messages.error("Item Modify", "Invalid enchant."));
+            return;
+        }
+
+        if (player.getInventory().getItemInMainHand().getType() == Material.AIR) {
+            player.sendMessage(Messages.error("Item Modify", "You must hold an item."));
+            return;
+        }
+
+        ItemStack item = player.getInventory().getItemInMainHand();
+        item.addUnsafeEnchantment(enchantment, level);
     }
 
 }

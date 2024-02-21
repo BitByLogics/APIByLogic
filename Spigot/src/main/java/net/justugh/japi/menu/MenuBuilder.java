@@ -103,13 +103,11 @@ public class MenuBuilder {
      */
     public MenuBuilder fromConfiguration(ConfigurationSection section, StringModifier... modifiers) {
         List<StringModifier> modifierList = new ArrayList<>(Arrays.asList(modifiers));
-        modifierList.addAll(JustAPIPlugin.getInstance().getMenuManager().getStringModifiers());
 
         id = section.getName();
         title = Format.format(Preconditions.checkNotNull(Format.format(section.getString("Title"), modifierList.toArray(new StringModifier[]{})), "Invalid/Missing Title"));
         size = section.getInt("Size");
 
-        menu = new Menu(title, size);
         data = new MenuData();
 
         data.getModifiers().addAll(modifierList);
@@ -122,6 +120,12 @@ public class MenuBuilder {
                 data.getMetaData().put(metaKey, metaDataSection.get(metaKey));
             }
         }
+
+        section.getStringList("Flags").forEach(flag -> {
+            data.addFlag(MenuFlag.valueOf(flag.toUpperCase()));
+        });
+
+        menu = new Menu(title, size, data);
 
         ConfigurationSection itemSection = section.getConfigurationSection("Items");
 
@@ -155,12 +159,6 @@ public class MenuBuilder {
                     internalActions.put(type, data[1]);
                 });
                 menuItem.setInternalActions(internalActions);
-            }
-
-            if (!section.getStringList(identifier + ".Requirements").isEmpty()) {
-                section.getStringList(identifier + ".Requirements").forEach(requirement -> {
-                    menuItem.addClickRequirement(JustAPIPlugin.getInstance().getMenuManager().getGlobalRequirement(requirement));
-                });
             }
 
             ConfigurationSection metaDataSection = section.getConfigurationSection(identifier + ".Metadata");

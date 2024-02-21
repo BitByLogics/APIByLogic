@@ -1,9 +1,13 @@
 package net.justugh.japi.util;
 
-public interface Pair<K, V> {
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-    K getKey();
+@Getter
+@AllArgsConstructor
+public class Pair<K, V> {
 
-    V getValue();
+    private final K key;
+    private final V value;
 
 }

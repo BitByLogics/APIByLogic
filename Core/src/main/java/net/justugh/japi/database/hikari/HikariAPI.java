@@ -18,7 +18,6 @@ public class HikariAPI {
         HikariConfig config = new HikariConfig();
         config.setMaximumPoolSize(10);
         config.setConnectionTimeout(Duration.ofSeconds(30).toMillis());
-        config.setIdleTimeout(Duration.ofMinutes(2).toMillis());
         config.setDataSourceClassName("com.mysql.cj.jdbc.MysqlDataSource");
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");

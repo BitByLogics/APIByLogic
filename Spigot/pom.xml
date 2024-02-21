@@ -7,7 +7,7 @@
     <parent>
         <groupId>net.justugh</groupId>
         <artifactId>JustAPI</artifactId>
-        <version>2023.1</version>
+        <version>2024.2</version>
     </parent>
 
     <artifactId>JustAPI-Spigot</artifactId>
@@ -15,7 +15,6 @@
 
     <name>JustAPI Spigot</name>
 
-    <description>TODO</description>
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -81,9 +80,9 @@
                         </goals>
                         <id>remap-obf</id>
                         <configuration>
-                            <srgIn>org.spigotmc:minecraft-server:1.19.3-R0.1-SNAPSHOT:txt:maps-mojang</srgIn>
+                            <srgIn>org.spigotmc:minecraft-server:1.20.4-R0.1-SNAPSHOT:txt:maps-mojang</srgIn>
                             <reverse>true</reverse>
-                            <remappedDependencies>org.spigotmc:spigot:1.19-R0.1-SNAPSHOT:jar:remapped-mojang
+                            <remappedDependencies>org.spigotmc:spigot:1.20.4-R0.1-SNAPSHOT:jar:remapped-mojang
                             </remappedDependencies>
                             <remappedArtifactAttached>true</remappedArtifactAttached>
                             <remappedClassifierName>remapped-obf</remappedClassifierName>
@@ -99,8 +98,8 @@
                             <inputFile>
                                 ${project.build.directory}/${project.artifactId}-${project.version}-remapped-obf.jar
                             </inputFile>
-                            <srgIn>org.spigotmc:minecraft-server:1.19.3-R0.1-SNAPSHOT:csrg:maps-spigot</srgIn>
-                            <remappedDependencies>org.spigotmc:spigot:1.19.3-R0.1-SNAPSHOT:jar:remapped-obf
+                            <srgIn>org.spigotmc:minecraft-server:1.20.4-R0.1-SNAPSHOT:csrg:maps-spigot</srgIn>
+                            <remappedDependencies>org.spigotmc:spigot:1.20.4-R0.1-SNAPSHOT:jar:remapped-obf
                             </remappedDependencies>
                         </configuration>
                     </execution>
@@ -120,14 +119,22 @@
             <id>spigotmc-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
+        <repository>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>aikar</id>
+            <url>https://repo.aikar.co/content/groups/aikar/</url>
+        </repository>
     </repositories>
 
     <dependencies>
-        <!-- Spigot API -->
+        <!-- Paper API -->
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.19.3-R0.1-SNAPSHOT</version>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>1.20.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
@@ -135,7 +142,7 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot</artifactId>
-            <version>1.19.3-R0.1-SNAPSHOT</version>
+            <version>1.20.4-R0.1-SNAPSHOT</version>
             <classifier>remapped-mojang</classifier>
             <scope>provided</scope>
         </dependency>

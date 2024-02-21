@@ -3,7 +3,11 @@ package net.justugh.japi.menu.listener;
 import net.justugh.japi.JustAPIPlugin;
 import net.justugh.japi.menu.Menu;
 import net.justugh.japi.menu.MenuFlag;
+import net.justugh.japi.menu.placeholder.PlaceholderProvider;
+import net.justugh.japi.util.Format;
 import net.justugh.japi.util.InventoryUpdate;
+import net.justugh.japi.util.Placeholder;
+import net.justugh.japi.util.StringModifier;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -12,6 +16,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class MenuListener implements Listener {
 
@@ -42,6 +50,10 @@ public class MenuListener implements Listener {
         }
 
         if (event.getClickedInventory() == bottomInventory) {
+            if (menu.getData().getExternalClickAction() != null) {
+                menu.getData().getExternalClickAction().onClick(event);
+            }
+
             event.setCancelled(!menu.getData().hasFlag(MenuFlag.LOWER_INTERACTION));
             return;
         }
@@ -111,13 +123,31 @@ public class MenuListener implements Listener {
 
         Menu menu = (Menu) inventory.getHolder();
 
+        List<StringModifier> modifiers = new ArrayList<>();
+        modifiers.addAll(menu.getData().getModifiers());
+        modifiers.addAll(menu.getData().getPlaceholderProviders().stream().map(PlaceholderProvider::asPlaceholder).collect(Collectors.toList()));
+
+        Placeholder pagesPlaceholder = new Placeholder("%pages%", menu.getInventories().size() + "");
+        Placeholder pagePlaceholder = new Placeholder("%page%", (menu.getInventoryIndex(inventory) + 1) + "");
+        modifiers.add(pagesPlaceholder);
+        modifiers.add(pagePlaceholder);
+
+        if (!menu.getData().hasFlag(MenuFlag.DISABLE_TITLE_UPDATE)) {
+            Bukkit.getScheduler().runTaskLater(JustAPIPlugin.getInstance(), () -> InventoryUpdate.updateInventory(JustAPIPlugin.getInstance(), (Player) event.getPlayer(),
+                    Format.format(menu.getMenuInventory(inventory).getTitle(), modifiers.toArray(new StringModifier[]{}))), 1);
+        }
+
         menu.getActivePlayers().add(event.getPlayer().getUniqueId());
 
-        if (menu.getUpdateTask() != null) {
+        if (menu.getTitleUpdateTask() != null && !menu.getTitleUpdateTask().isActive()) {
+            menu.getTitleUpdateTask().startTask();
+        }
+
+        if (menu.getUpdateTask() == null || menu.getUpdateTask().isActive()) {
             return;
         }
 
-        menu.startUpdateTask();
+        menu.getUpdateTask().startTask();
     }
 
     @EventHandler
@@ -132,6 +162,14 @@ public class MenuListener implements Listener {
         Menu menu = (Menu) inventory.getHolder();
 
         menu.getActivePlayers().remove(event.getPlayer().getUniqueId());
+
+        if (event.getViewers().stream().filter(p -> !p.getUniqueId().equals(event.getPlayer().getUniqueId())).count() == 0) {
+            menu.getUpdateTask().cancelTask();
+
+            if (menu.getTitleUpdateTask() != null) {
+                menu.getTitleUpdateTask().cancelTask();
+            }
+        }
 
         if (menu.getData().getCloseAction() == null) {
             return;

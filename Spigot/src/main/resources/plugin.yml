@@ -5,5 +5,6 @@ api-version: 1.17
 authors: [ Justugh ]
 description: An API with various features for making stuff easier.
 website: https://www.justugh.net
+softdepend: [ SilkSpawners ]
 commands:
   justapi:

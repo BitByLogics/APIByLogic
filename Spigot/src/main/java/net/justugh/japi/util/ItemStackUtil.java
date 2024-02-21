@@ -10,7 +10,6 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.craftbukkit.v1_19_R2.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemFlag;
@@ -18,9 +17,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.potion.PotionType;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -28,8 +31,8 @@ public class ItemStackUtil {
 
     private static NamespacedKey SPAWNER_KEY;
 
-    public static void initialize() {
-        SPAWNER_KEY = new NamespacedKey(JustAPIPlugin.getInstance(), "justapi_spawner");
+    public static void initialize(JustAPIPlugin plugin) {
+        SPAWNER_KEY = new NamespacedKey(plugin, "justapi_spawner");
     }
 
     /**
@@ -41,7 +44,7 @@ public class ItemStackUtil {
      * @return New ItemStack instance.
      */
     public static ItemStack getItemStackFromConfig(ConfigurationSection section, StringModifier... modifiers) {
-        int amount = section.getInt("Amount") == 0 ? 1 : section.getInt("Amount");
+        int amount = section.getInt("Amount", 1);
         ItemStack stack = new ItemStack(Material.valueOf(Format.format(section.getString("Material", "BARRIER"), modifiers)), amount);
         ItemMeta meta = stack.getItemMeta();
 
@@ -92,16 +95,25 @@ public class ItemStackUtil {
         // If the item is a potion, apply potion data
         if (stack.getType() == Material.SPLASH_POTION || stack.getType() == Material.POTION) {
             ConfigurationSection potionSection = section.getConfigurationSection("Potion-Data");
-            PotionMeta potionMeta = (PotionMeta) meta;
-            PotionEffectType type = PotionEffectType.getByName(potionSection.getString("Type"));
-            potionMeta.addCustomEffect(new PotionEffect(type, potionSection.getInt("Duration"), potionSection.getInt("Amplifier")), true);
-            stack.setItemMeta(meta);
+
+            if (potionSection != null) {
+                PotionMeta potionMeta = (PotionMeta) meta;
+                PotionEffectType type = PotionEffectType.getByName(potionSection.getString("Type", "POISON"));
+                potionMeta.addCustomEffect(new PotionEffect(type, potionSection.getInt("Duration", 20), potionSection.getInt("Amplifier", 1)), true);
+                stack.setItemMeta(meta);
+            }
+        }
+
+        if (stack.getType() == Material.TIPPED_ARROW) {
+            PotionMeta potionMeta = (PotionMeta) stack.getItemMeta();
+            potionMeta.setBasePotionData(new PotionData(PotionType.valueOf(section.getString("Arrow-Type", "POISON")), false, false));
+            stack.setItemMeta(potionMeta);
         }
 
         // If the item is a player head, apply skin
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
-            skullMeta.setOwner(Format.format(section.getString("Skull-Name"), modifiers));
+            skullMeta.setOwner(Format.format(section.getString("Skull-Name", "Notch"), modifiers));
             stack.setItemMeta(skullMeta);
         }
 
@@ -138,6 +150,38 @@ public class ItemStackUtil {
         return stack;
     }
 
+    public static void saveItemStackToConfiguration(ItemStack item, ConfigurationSection section) {
+        if (item == null || section == null) {
+            return;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        String path = "Item.";
+
+        section.set(path + "Material", item.getType().name());
+        section.set(path + "Amount", item.getAmount());
+
+        if (meta != null) {
+            if (meta.getDisplayName() != null) {
+                section.set(path + "Name", meta.getDisplayName());
+            }
+
+            if (meta.getLore() != null) {
+                section.set(path + "Lore", meta.getLore());
+            }
+
+            section.set(path + "Model-Data", meta.getCustomModelData());
+        }
+
+        List<String> enchantData = new ArrayList<>();
+
+        item.getEnchantments().forEach((enchantment, integer) -> {
+            enchantData.add(enchantment.getKey().getKey() + ":" + integer);
+        });
+
+        section.set(path + "Enchantments", enchantData);
+    }
+
     /**
      * Get an ItemStack's vanilla name.
      *
@@ -145,7 +189,17 @@ public class ItemStackUtil {
      * @return ItemStack's Vanilla Name.
      */
     public static String getVanillaName(ItemStack item) {
-        return Format.format("&f" + Language.getInstance().getOrDefault(CraftItemStack.asNMSCopy(item).getDescriptionId()));
+        String descriptionId = "";
+        Class<?> craftItemStack = ReflectionUtils.getCraftClass("inventory.CraftItemStack");
+
+        try {
+            Object nmsItem = craftItemStack.getMethod("asNMSCopy", ItemStack.class).invoke(craftItemStack, item);
+            descriptionId = (String) nmsItem.getClass().getMethod("getDescriptionId").invoke(nmsItem);
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+
+        return Format.format("&f" + Language.getInstance().getOrDefault(descriptionId));
     }
 
     /**
@@ -182,7 +236,7 @@ public class ItemStackUtil {
      * @param otherStacks The other ItemStacks.
      */
     public static void mergeLore(ItemStack main, ItemStack... otherStacks) {
-        if (main.getItemMeta() == null || main.getItemMeta().getLore() == null) {
+        if (main.getItemMeta() == null) {
             return;
         }
 
@@ -279,8 +333,8 @@ public class ItemStackUtil {
      * @return Whether the flags match.
      */
     public static boolean flagsMatch(ItemStack item, ItemStack otherItem) {
-        if (item.getItemMeta() == null || otherItem.getItemMeta() == null) {
-            return false;
+        if (item.getItemMeta() == null && otherItem.getItemMeta() == null) {
+            return true;
         }
 
         Set<ItemFlag> itemFlags = item.getItemMeta().getItemFlags();
@@ -408,6 +462,16 @@ public class ItemStackUtil {
     public static <T, Z> boolean persistentDataMatches(ItemStack itemStack, PersistentDataType<T, Z> type, Z value) {
         PersistentDataContainer dataContainer = itemStack.getItemMeta().getPersistentDataContainer();
         return dataContainer.getKeys().stream().filter(pKey -> dataContainer.has(pKey, type)).anyMatch(pKey -> dataContainer.get(pKey, type) == value);
+    }
+
+    public static void setSkullOwner(ItemStack stack, String owner) {
+        if (stack.getType() != Material.PLAYER_HEAD) {
+            return;
+        }
+
+        SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
+        skullMeta.setOwner(owner);
+        stack.setItemMeta(skullMeta);
     }
 
 }

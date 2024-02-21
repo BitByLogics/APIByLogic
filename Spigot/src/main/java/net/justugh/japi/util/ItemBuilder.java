@@ -112,7 +112,7 @@ public class ItemBuilder {
         meta.getPersistentDataContainer().set(new NamespacedKey(JustAPIPlugin.getInstance(), itemIdentifier), PersistentDataType.STRING, "");
         itemStack.setItemMeta(meta);
         action.setItemIdentifier(itemIdentifier);
-        JustAPIPlugin.getInstance().getActionManager().trackItemAction(null, action);
+        JustAPIPlugin.getInstance().getActionManager().trackAction(null, action);
         return this;
     }
 

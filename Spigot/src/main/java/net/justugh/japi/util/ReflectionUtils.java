@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Field;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -104,13 +105,10 @@ public final class ReflectionUtils {
         MethodHandle getHandle = null;
         MethodHandle connection = null;
         try {
-            connection = lookup.findGetter(entityPlayer,
-                    v(17, "b").orElse("playerConnection"), playerConnection);
+            connection = getField(playerConnection, entityPlayer, "b", "playerConnection", "ClientCommonPacketListenerImpl");
             getHandle = lookup.findVirtual(craftPlayer, "getHandle", MethodType.methodType(entityPlayer));
-            sendPacket = lookup.findVirtual(playerConnection,
-                    v(18, "a").orElse("sendPacket"),
-                    MethodType.methodType(void.class, getNMSClass("network.protocol", "Packet")));
-        } catch (NoSuchMethodException | NoSuchFieldException | IllegalAccessException ex) {
+            sendPacket = getMethod(playerConnection, "a", MethodType.methodType(void.class, getNMSClass("network.protocol", "Packet")), "sendPacket", "b");
+        } catch (NoSuchMethodException | IllegalAccessException ex) {
             ex.printStackTrace();
         }
 
@@ -119,7 +117,8 @@ public final class ReflectionUtils {
         GET_HANDLE = getHandle;
     }
 
-    private ReflectionUtils() {}
+    private ReflectionUtils() {
+    }
 
     /**
      * Gets the package version used for NMS. This method is preferred over
@@ -145,7 +144,8 @@ public final class ReflectionUtils {
             }
         }
 
-        if (found == null) throw new IllegalArgumentException("Failed to parse server version. Could not find any package starting with name: 'org.bukkit.craftbukkit.v'");
+        if (found == null)
+            throw new IllegalArgumentException("Failed to parse server version. Could not find any package starting with name: 'org.bukkit.craftbukkit.v'");
         return found;
     }
 
@@ -163,22 +163,84 @@ public final class ReflectionUtils {
         return new CallableVersionHandler<>(version, handle);
     }
 
+    private static MethodHandle getField(Class<?> refc, Class<?> instc, String name, String... extraNames) {
+        MethodHandle handle = getFieldHandle(refc, instc, name);
+        if (handle != null) return handle;
+
+        if (extraNames != null && extraNames.length > 0) {
+            if (extraNames.length == 1) return getField(refc, instc, extraNames[0]);
+            return getField(refc, instc, extraNames[0], removeFirst(extraNames));
+        }
+
+        return null;
+    }
+
+    private static MethodHandle getFieldHandle(Class<?> refc, Class<?> inscofc, String name) {
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+
+        try {
+            for (Field field : refc.getFields()) {
+                field.setAccessible(true);
+
+                if (!field.getName().equalsIgnoreCase(name)) continue;
+
+                if (field.getType().isInstance(inscofc) || field.getType().isAssignableFrom(inscofc)) {
+                    return lookup.unreflectGetter(field);
+                }
+            }
+            return null;
+        } catch (ReflectiveOperationException ignored) {
+            return null;
+        }
+    }
+
+    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, String... extraNames) {
+
+        if (extraNames != null && extraNames.length > 0) {
+            if (extraNames.length == 1) return getMethod(refc, extraNames[0], type, false);
+            return getMethod(refc, extraNames[0], type, removeFirst(extraNames));
+        }
+
+        return null;
+    }
+
+    private static MethodHandle getMethod(Class<?> refc, String name, MethodType type, boolean isStatic) {
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+
+        try {
+            if (isStatic) return lookup.findStatic(refc, name, type);
+            return lookup.findVirtual(refc, name, type);
+        } catch (ReflectiveOperationException exception) {
+            exception.printStackTrace();
+            return null;
+        }
+    }
+
+    private static String[] removeFirst(String[] array) {
+        int length = array.length;
+
+        String[] result = new String[length - 1];
+        System.arraycopy(array, 1, result, 0, length - 1);
+
+        return result;
+    }
+
     /**
      * Checks whether the server version is equal or greater than the given version.
      *
      * @param version the version to compare the server version with.
-     *
      * @return true if the version is equal or newer, otherwise false.
      * @since 4.0.0
      */
-    public static boolean supports(int version) { return VER >= version; }
+    public static boolean supports(int version) {
+        return VER >= version;
+    }
 
     /**
      * Get a NMS (net.minecraft.server) class which accepts a package for 1.17 compatibility.
      *
      * @param newPackage the 1.17 package name.
      * @param name       the name of the class.
-     *
      * @return the NMS class or null if not found.
      * @since 4.0.0
      */
@@ -192,7 +254,6 @@ public final class ReflectionUtils {
      * Get a NMS (net.minecraft.server) class.
      *
      * @param name the name of the class.
-     *
      * @return the NMS class or null if not found.
      * @since 1.0.0
      */
@@ -212,7 +273,6 @@ public final class ReflectionUtils {
      *
      * @param player  the player to send the packet to.
      * @param packets the packets to send.
-     *
      * @return the async thread handling the packet.
      * @see #sendPacketSync(Player, Object...)
      * @since 1.0.0
@@ -231,7 +291,6 @@ public final class ReflectionUtils {
      *
      * @param player  the player to send the packet to.
      * @param packets the packets to send.
-     *
      * @see #sendPacket(Player, Object...)
      * @since 2.0.0
      */
@@ -276,7 +335,6 @@ public final class ReflectionUtils {
      * Get a CraftBukkit (org.bukkit.craftbukkit) class.
      *
      * @param name the name of the class to load.
-     *
      * @return the CraftBukkit class or null if not found.
      * @since 1.0.0
      */
@@ -321,7 +379,8 @@ public final class ReflectionUtils {
         }
 
         public VersionHandler<T> v(int version, T handle) {
-            if (version == this.version) throw new IllegalArgumentException("Cannot have duplicate version handles for version: " + version);
+            if (version == this.version)
+                throw new IllegalArgumentException("Cannot have duplicate version handles for version: " + version);
             if (version > this.version && supports(version)) {
                 this.version = version;
                 this.handle = handle;
@@ -346,7 +405,8 @@ public final class ReflectionUtils {
         }
 
         public CallableVersionHandler<T> v(int version, Callable<T> handle) {
-            if (version == this.version) throw new IllegalArgumentException("Cannot have duplicate version handles for version: " + version);
+            if (version == this.version)
+                throw new IllegalArgumentException("Cannot have duplicate version handles for version: " + version);
             if (version > this.version && supports(version)) {
                 this.version = version;
                 this.handle = handle;

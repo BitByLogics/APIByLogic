@@ -6,6 +6,7 @@ import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import co.aikar.commands.annotation.Subcommand;
 import net.justugh.ju.message.Messages;
+import net.justugh.ju.util.PersistentDataUtil;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -60,7 +61,11 @@ public class ItemDebugComand extends BaseCommand {
         }
 
         if (!meta.getPersistentDataContainer().getKeys().isEmpty()) {
-            meta.getPersistentDataContainer().getKeys().forEach(key -> data.add(Messages.dottedMessage("Persistent Data", key.getKey())));
+            meta.getPersistentDataContainer().getKeys().forEach(key -> {
+                PersistentDataUtil.getValues(meta.getPersistentDataContainer(), key).forEach(o -> {
+                    data.add(Messages.dottedMessage("Persistent Data", key.getNamespace() + ", " + key.getKey() + ", " + o));
+                });
+            });
         }
 
         sender.sendMessage(Messages.getPagedList("Item Debug", data, page));

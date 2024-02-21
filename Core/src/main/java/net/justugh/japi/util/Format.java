@@ -13,7 +13,7 @@ public class Format {
         String formattedMessage = string;
 
         for (Placeholder placeholder : placeholders) {
-            formattedMessage = formattedMessage.replace(placeholder.getKey(), placeholder.getValue());
+            formattedMessage = placeholder.modify(formattedMessage);
         }
 
         return formattedMessage;

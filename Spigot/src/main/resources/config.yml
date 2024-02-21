@@ -13,7 +13,6 @@ Redis-Credentials:
 Hikari-Details:
   Address: ""
   Port: "3306"
-  Database: "test"
   Username: "test"
   Password: "password"
 
@@ -25,15 +24,15 @@ Confirmation-Menu:
   Size: 27
   Items:
     GreenPane:
-      Slots: [0, 1, 2, 9, 11, 18, 19, 20]
+      Slots: [ 0, 1, 2, 9, 11, 18, 19, 20 ]
       Material: "LIME_STAINED_GLASS_PANE"
       Name: "&aClick To Confirm"
     GrayPane:
-      Slots: [3, 4, 5, 12, 14, 21, 22, 23]
+      Slots: [ 3, 4, 5, 12, 14, 21, 22, 23 ]
       Material: "GRAY_STAINED_GLASS_PANE"
       Name: "&a"
     RedPane:
-      Slots: [6, 7, 8, 15, 17, 24, 25, 26]
+      Slots: [ 6, 7, 8, 15, 17, 24, 25, 26 ]
       Material: "RED_STAINED_GLASS_PANE"
       Name: "&cClick To Cancel"
     Confirm:
