@@ -7,7 +7,7 @@
     <parent>
         <groupId>net.justugh</groupId>
         <artifactId>JustAPI</artifactId>
-        <version>2022.1</version>
+        <version>2024.2</version>
     </parent>
 
     <artifactId>JustAPI-Proxy</artifactId>
@@ -72,14 +72,14 @@
         <dependency>
             <groupId>net.md-5</groupId>
             <artifactId>bungeecord-api</artifactId>
-            <version>1.19-R0.1-SNAPSHOT</version>
+            <version>1.20-R0.2</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>com.velocitypowered</groupId>
             <artifactId>velocity-api</artifactId>
-            <version>3.1.2-SNAPSHOT</version>
+            <version>4.0.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
@@ -95,7 +95,7 @@
         <dependency>
             <groupId>net.justugh</groupId>
             <artifactId>JustAPI-Core</artifactId>
-            <version>2023.1</version>
+            <version>2024.2</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
