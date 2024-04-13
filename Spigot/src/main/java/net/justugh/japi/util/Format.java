@@ -11,7 +11,8 @@ import java.util.regex.Pattern;
 
 public class Format {
 
-    private static final Pattern hexPattern = Pattern.compile("%hex_(#.+?)%");
+    private static final Pattern hexPattern = Pattern.compile("(#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3})");
+    private static final Pattern hexPlaceholderPattern = Pattern.compile("%hex_(#.+?)%");
 
     /**
      * Format a string with color & placeholders.
@@ -27,9 +28,14 @@ public class Format {
             formattedMessage = modifier.modify(formattedMessage);
         }
 
-        Matcher matcher = hexPattern.matcher(formattedMessage);
+        Matcher matcher = hexPlaceholderPattern.matcher(formattedMessage);
         while (matcher.find()) {
             formattedMessage = formattedMessage.replace(matcher.group(), ChatColor.of(matcher.group(1)).toString());
+        }
+
+        Matcher hexMatcher = hexPattern.matcher(formattedMessage);
+        while (hexMatcher.find()) {
+            formattedMessage = formattedMessage.replace(hexMatcher.group(), ChatColor.of(hexMatcher.group()).toString());
         }
 
         return ChatColor.translateAlternateColorCodes('&', formattedMessage);

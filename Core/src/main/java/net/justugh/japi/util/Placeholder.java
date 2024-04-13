@@ -13,6 +13,10 @@ public class Placeholder implements StringModifier {
         placeholderMap.put(key, value instanceof String ? (String) value : value.toString());
     }
 
+    public Placeholder(String key, String value) {
+        placeholderMap.put(key, value);
+    }
+
     public Placeholder(String... replacements) {
         for (int i = 0; i < replacements.length; i += 2) {
             if (i + 1 >= replacements.length) {

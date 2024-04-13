@@ -6,6 +6,8 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 public class LocationUtil {
 
@@ -152,6 +154,28 @@ public class LocationUtil {
         }
 
         return 0;
+    }
+
+    public static Set<Location> locationsBetweenTwoPoints(Location cornerA, Location cornerB) {
+        Set<Location> locations = new HashSet<>();
+
+        int topBlockX = Math.max(cornerA.getBlockX(), cornerB.getBlockX());
+        int topBlockY = Math.max(cornerA.getBlockY(), cornerB.getBlockY());
+        int topBlockZ = Math.max(cornerA.getBlockZ(), cornerB.getBlockZ());
+
+        int bottomBlockX = Math.min(cornerA.getBlockX(), cornerB.getBlockX());
+        int bottomBlockY = Math.min(cornerA.getBlockY(), cornerB.getBlockY());
+        int bottomBlockZ = Math.min(cornerA.getBlockZ(), cornerB.getBlockZ());
+
+        for (int x = bottomBlockX; x <= topBlockX; x++) {
+            for (int z = bottomBlockZ; z <= topBlockZ; z++) {
+                for (int y = bottomBlockY; y <= topBlockY; y++) {
+                    locations.add(new Location(cornerA.getWorld(), x, y, z));
+                }
+            }
+        }
+
+        return locations;
     }
 
 }

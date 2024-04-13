@@ -7,6 +7,7 @@ import net.justugh.japi.util.Format;
 import net.justugh.japi.util.StringModifier;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.DisplaySlot;
@@ -17,6 +18,7 @@ import org.bukkit.scoreboard.Team;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Getter
@@ -34,11 +36,11 @@ public class JustBoard {
 
     private BukkitTask updateTask;
 
-    public JustBoard(String id, String name) {
+    public JustBoard(String id, String title) {
         this.id = id;
 
         scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
-        objective = scoreboard.registerNewObjective(UUID.randomUUID().toString(), "dummy", Format.format(name));
+        objective = scoreboard.registerNewObjective(UUID.randomUUID().toString(), "dummy", Format.format(title));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         JustAPIPlugin.getInstance().getActiveBoards().add(this);
@@ -127,6 +129,20 @@ public class JustBoard {
         int B = (int) (Math.random() * 256);
 
         return ChatColor.of(new Color(R, G, B));
+    }
+
+    public static Optional<JustBoard> fromConfiguration(ConfigurationSection section) {
+        if (section == null) {
+            return Optional.empty();
+        }
+
+        String id = section.getName();
+        String title = section.getString("Title");
+
+        JustBoard justBoard = new JustBoard(id, title);
+        section.getStringList("Lines").forEach(line -> justBoard.addLine(UUID.randomUUID().toString(), line));
+
+        return Optional.of(justBoard);
     }
 
 }
