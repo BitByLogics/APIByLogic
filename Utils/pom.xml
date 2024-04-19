@@ -5,21 +5,20 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>net.justugh</groupId>
-        <artifactId>JustAPI</artifactId>
-        <version>2024.2</version>
+        <groupId>net.bitbylogic</groupId>
+        <artifactId>APIByLogic</artifactId>
+        <version>2024.4</version>
     </parent>
 
-    <artifactId>JustAPI-Utils</artifactId>
+    <artifactId>LogicUtils</artifactId>
     <packaging>jar</packaging>
 
-    <name>JustAPI Utils</name>
+    <name>LogicUtils</name>
 
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    <url>www.justugh.net</url>
 
     <build>
         <defaultGoal>clean package</defaultGoal>
@@ -48,11 +47,11 @@
                             <relocations>
                                 <relocation>
                                     <pattern>co.aikar.commands</pattern>
-                                    <shadedPattern>net.justugh.ju.acf</shadedPattern>
+                                    <shadedPattern>net.bitbylogic.logicutils.acf</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>co.aikar.locales</pattern>
-                                    <shadedPattern>net.justugh.ju.locales</shadedPattern>
+                                    <shadedPattern>net.bitbylogic.logicutils.locales</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
@@ -88,11 +87,11 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- JustAPI -->
+        <!-- APIByLogic -->
         <dependency>
-            <groupId>net.justugh</groupId>
-            <artifactId>JustAPI-Spigot</artifactId>
-            <version>2024.2</version>
+            <groupId>net.bitbylogic</groupId>
+            <artifactId>APIByLogic-Spigot</artifactId>
+            <version>2024.4</version>
             <scope>provided</scope>
         </dependency>
 

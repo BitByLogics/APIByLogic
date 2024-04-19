@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>JustAPI</artifactId>
-        <groupId>net.justugh</groupId>
-        <version>2024.2</version>
+        <artifactId>APIByLogic</artifactId>
+        <groupId>net.bitbylogic</groupId>
+        <version>2024.4</version>
     </parent>
 
-    <artifactId>JustAPI-Core</artifactId>
-    <name>JustAPI Core</name>
+    <artifactId>APIByLogic-Core</artifactId>
+    <name>APIByLogic Core</name>
 
     <properties>
         <java.version>1.8</java.version>

@@ -5,21 +5,20 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>net.justugh</groupId>
-        <artifactId>JustAPI</artifactId>
-        <version>2024.2</version>
+        <groupId>net.bitbylogic</groupId>
+        <artifactId>APIByLogic</artifactId>
+        <version>2024.4</version>
     </parent>
 
-    <artifactId>JustAPI-Spigot</artifactId>
+    <artifactId>APIByLogic-Spigot</artifactId>
     <packaging>jar</packaging>
 
-    <name>JustAPI Spigot</name>
+    <name>APIByLogic Spigot</name>
 
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    <url>https://www.justugh.net</url>
 
     <build>
         <plugins>
@@ -48,7 +47,7 @@
                             <minimizeJar>true</minimizeJar>
                             <filters>
                                 <filter>
-                                    <artifact>net.justugh:JustAPI-Core</artifact>
+                                    <artifact>net.bitbylogic:APIByLogic-Core</artifact>
                                     <includes>
                                         <include>**</include>
                                     </includes>
@@ -147,11 +146,11 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- JustAPI Core -->
+        <!-- APIByLogic Core -->
         <dependency>
-            <groupId>net.justugh</groupId>
-            <artifactId>JustAPI-Core</artifactId>
-            <version>2024.2</version>
+            <groupId>net.bitbylogic</groupId>
+            <artifactId>APIByLogic-Core</artifactId>
+            <version>2024.4</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

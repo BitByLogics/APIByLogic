@@ -1,24 +1,24 @@
-#######################
-# Redis Configuration #
-#######################
+# ───────────────────
+# Redis Configuration
+# ───────────────────
 Server-ID: "Server"
 Redis-Credentials:
   Host: ""
   Port: 6379
   Password: ""
 
-########################
-# Hikari Configuration #
-########################
+# ────────────────────
+# Hikari Configuration
+# ────────────────────
 Hikari-Details:
   Address: ""
   Port: "3306"
   Username: "test"
   Password: "password"
 
-######################
-# Menu Configuration #
-######################
+# ──────────────────
+# Menu Configuration
+# ──────────────────
 Confirmation-Menu:
   Title: "%question%"
   Size: 27

@@ -1,7 +1,6 @@
-name: JustUtils
+name: LogicUtils
 version: '${project.version}'
-main: net.justugh.ju.JustUtils
+main: net.bitbylogic.logicutils.LogicUtils
 api-version: 1.19
-depend: [ JustAPI ]
-authors: [ Justugh ]
-website: www.justugh.net
+depend: [ APIByLogic ]
+authors: [ BitByLogic ]

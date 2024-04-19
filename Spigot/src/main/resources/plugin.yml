@@ -1,10 +1,8 @@
-name: JustAPI
+name: APIByLogic
 version: ${project.version}
-main: net.justugh.japi.JustAPIPlugin
-api-version: 1.17
-authors: [ Justugh ]
-description: An API with various features for making stuff easier.
-website: https://www.justugh.net
-softdepend: [ SilkSpawners ]
+main: net.bitbylogic.apibylogic.APIByLogic
+api-version: 1.19
+authors: [ BitByLogic ]
 commands:
-  justapi:
+  apibylogic:
+    aliases: [abl]
