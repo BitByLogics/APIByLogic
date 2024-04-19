@@ -3,6 +3,7 @@ package net.justugh.japi.module;
 import lombok.Getter;
 import net.justugh.japi.dependency.DependencyManager;
 import net.justugh.japi.module.command.CommandManager;
+import net.justugh.japi.module.command.ModulesCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -26,6 +27,8 @@ public class ModuleManager {
         this.dependencyManager = dependencyManager;
         commandManager = new CommandManager();
         modules = new HashMap<>();
+
+        commandManager.registerCommand(new ModulesCommand(this));
     }
 
     /**
