@@ -1,4 +1,4 @@
-package net.justugh.japi.util.message;
+package net.bitbylogic.apibylogic.util.message;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,7 +8,7 @@ import java.util.Arrays;
 
 @Getter
 @AllArgsConstructor
-public enum JustColors {
+public enum LogicColors {
 
     PRIMARY(ChatColor.of("#F77E21")),
     SECONDARY(ChatColor.of("#D1D1D1")),
@@ -22,7 +22,7 @@ public enum JustColors {
 
     private final ChatColor color;
 
-    public static JustColors match(String string) {
+    public static LogicColors match(String string) {
         return Arrays.stream(values())
                 .filter(c -> c.name().equalsIgnoreCase(string))
                 .findFirst().orElse(null);
