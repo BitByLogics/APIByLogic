@@ -23,7 +23,7 @@ public class LogicColor {
 
     public static String getColor(String name) {
         String colorId = colors.keySet().stream().filter(color -> color.equalsIgnoreCase(name) ||
-                color.equalsIgnoreCase(name.replace("-", "_"))).findFirst().orElse(null);
+                color.replace("-", "_").equalsIgnoreCase(name)).findFirst().orElse(null);
         return colorId == null ? null : colors.get(colorId);
     }
 

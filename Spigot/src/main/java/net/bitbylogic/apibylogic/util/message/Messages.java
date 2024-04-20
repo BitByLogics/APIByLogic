@@ -68,7 +68,7 @@ public class Messages {
                         break;
                     }
 
-                    formattedMessage = formattedMessage.replace(matcher.group(), color.toString());
+                    formattedMessage = formattedMessage.replace(matcher.group(), color);
                     break;
                 case HEX:
                     formattedMessage = formattedMessage.replace(matcher.group(), ChatColor.of(matcher.group(2)).toString());
