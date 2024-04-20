@@ -1,3 +1,18 @@
+# ─────────────────────
+# General Configuration
+# ─────────────────────
+Colors:
+  Separator: "#555555"
+  Primary: "#F77E21"
+  Secondary: "#D1D1D1"
+  Highlight: "#548CFF"
+  Error-Primary: "#9B0000"
+  Error-Secondary: "#FF7272"
+  Error-Highlight: "#B22727"
+  Success-Primary: "#52cd00"
+  Success-Secondary: "#B8F1B0"
+  Success-Highlight: "#4E944F"
+
 # ───────────────────
 # Redis Configuration
 # ───────────────────

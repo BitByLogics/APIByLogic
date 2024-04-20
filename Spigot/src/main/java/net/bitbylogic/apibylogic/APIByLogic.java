@@ -3,6 +3,7 @@ package net.bitbylogic.apibylogic;
 import lombok.Getter;
 import lombok.Setter;
 import net.bitbylogic.apibylogic.action.ActionManager;
+import net.bitbylogic.apibylogic.command.APIByLogicCommand;
 import net.bitbylogic.apibylogic.database.hikari.HikariAPI;
 import net.bitbylogic.apibylogic.database.redis.RedisManager;
 import net.bitbylogic.apibylogic.database.redis.client.RedisClient;
@@ -10,13 +11,13 @@ import net.bitbylogic.apibylogic.listener.SpawnerListener;
 import net.bitbylogic.apibylogic.menu.listener.MenuListener;
 import net.bitbylogic.apibylogic.redis.PlayerMessageListener;
 import net.bitbylogic.apibylogic.redis.RedisStateChangeEvent;
+import net.bitbylogic.apibylogic.scoreboard.LogicScoreboard;
 import net.bitbylogic.apibylogic.util.Callback;
+import net.bitbylogic.apibylogic.util.ItemStackUtil;
 import net.bitbylogic.apibylogic.util.event.armor.listener.ArmorListener;
 import net.bitbylogic.apibylogic.util.event.armor.listener.DispenserArmorListener;
+import net.bitbylogic.apibylogic.util.message.LogicColor;
 import net.bitbylogic.apibylogic.util.request.LogicRequest;
-import net.bitbylogic.apibylogic.command.APIByLogicCommand;
-import net.bitbylogic.apibylogic.scoreboard.LogicScoreboard;
-import net.bitbylogic.apibylogic.util.ItemStackUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -51,6 +52,7 @@ public class APIByLogic extends JavaPlugin {
         instance = this;
         saveDefaultConfig();
 
+        LogicColor.loadColors(getConfig());
         ItemStackUtil.initialize(this);
         getCommand("apibylogic").setExecutor(new APIByLogicCommand());
 

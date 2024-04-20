@@ -15,8 +15,6 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static net.bitbylogic.apibylogic.util.message.LogicColors.*;
-
 public class Messages {
 
     private static final Pattern formatPattern = Pattern.compile("<([a-zA-Z]+?)#(.+?)>");
@@ -64,7 +62,7 @@ public class Messages {
 
             switch (code) {
                 case COLOR:
-                    LogicColors color = LogicColors.match(matcher.group(2));
+                    String color = LogicColor.getColor(matcher.group(2));
 
                     if (color == null) {
                         break;
@@ -74,8 +72,6 @@ public class Messages {
                     break;
                 case HEX:
                     formattedMessage = formattedMessage.replace(matcher.group(), ChatColor.of(matcher.group(2)).toString());
-                    break;
-                case CUSTOM_DATA:
                     break;
                 default:
                     break;
@@ -104,7 +100,7 @@ public class Messages {
     }
 
     public static String command(String command, String description) {
-        return replace(" <c#primary>/%s &8- <c#secondary>%s", command, description);
+        return replace(" <c#primary>/%s &8─ <c#secondary>%s", command, description);
     }
 
     public static Component richCommand(String command, String description) {
@@ -112,31 +108,32 @@ public class Messages {
     }
 
     public static String main(String prefix, String message, Object... replacements) {
-        return replace("<c#primary>&l%s &8%s <c#secondary>%s", prefix, DOT, replace(message, applyHighlightColor(SECONDARY.toString(), HIGHLIGHT.toString(), replacements)));
+        return replace("<c#primary>&l%s &8%s <c#secondary>%s", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("primary"),
+                LogicColor.getColor("highlight"), replacements)));
     }
 
     public static String error(String prefix, String message, Object... replacements) {
-        return replace("<c#error_primary>&l%s &8%s <c#error_secondary>%s", prefix, DOT, replace(message, applyHighlightColor(ERROR_SECONDARY.toString(), ERROR_HIGHLIGHT.toString(), replacements)));
+        return replace("<c#error_primary>&l%s &8%s <c#error_secondary>%s", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("error-secondary"), LogicColor.getColor("error-highlight"), replacements)));
     }
 
     public static String success(String prefix, String message, Object... replacements) {
-        return replace("<c#success_primary>&l%s &8%s <c#success_secondary>%s", prefix, DOT, replace(message, applyHighlightColor(SUCCESS_SECONDARY.toString(), SUCCESS_HIGHLIGHT.toString(), replacements)));
+        return replace("<c#success_primary>&l%s &8%s <c#success_secondary>%s", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("success-secondary"), LogicColor.getColor("success-highlight"), replacements)));
     }
 
     public static String listHeader(String prefix, String info, Object... replacements) {
-        return replace("<c#primary>&l%s &8%s <c#secondary>%s", prefix, DOT, replace(info, applyHighlightColor(SECONDARY.toString(), HIGHLIGHT.toString(), replacements)));
+        return replace("<c#primary>&l%s &8%s <c#secondary>%s", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("secondary"), LogicColor.getColor("highlight"), replacements)));
     }
 
     public static String listItem(String prefix, String info, Object... replacements) {
-        return replace("&8| &8» <c#success_primary>%s &8%s <c#success_secondary>%s", prefix, DOT, replace(info, applyHighlightColor(SUCCESS_PRIMARY.toString(), SUCCESS_SECONDARY.toString(), replacements)));
+        return replace("&8| &8» <c#success_primary>%s &8%s <c#success_secondary>%s", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements)));
     }
 
     public static String dottedMessage(String prefix, String info, Object... replacements) {
-        return replace("<c#success_primary>%s &8%s <c#success_secondary>%s", prefix, DOT, replace(info, applyHighlightColor(SUCCESS_PRIMARY.toString(), SUCCESS_SECONDARY.toString(), replacements)));
+        return replace("<c#success_primary>%s &8%s <c#success_secondary>%s", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements)));
     }
 
     public static void sendMessage(Player player, String prefix, String message, Placeholder... placeholders) {
-        String formattedMessage = SUCCESS_PRIMARY + "&l" + prefix + " &8• " + SUCCESS_SECONDARY + message;
+        String formattedMessage = LogicColor.getColor("primary") + "&l" + prefix + " &8• " + LogicColor.getColor("secondary") + message;
 
         for (Placeholder placeholder : placeholders) {
             formattedMessage = placeholder.modify(formattedMessage);
@@ -188,7 +185,7 @@ public class Messages {
 
         for (int i = startingItem; i < lastItem; i++) {
             String item = data.get(i);
-            text.add(format("&8| &8» " + HIGHLIGHT.toString() + item));
+            text.add(format(LogicColor.getColor("separator") + "| » " + LogicColor.getColor("highlight") + item));
         }
 
         text.add(color(replace("⤷ &7(Page: %s/%s)", page, pages)));
