@@ -5,7 +5,7 @@ import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import co.aikar.commands.annotation.Subcommand;
-import net.bitbylogic.logicutils.message.Messages;
+import net.bitbylogic.apibylogic.util.message.Messages;
 import net.bitbylogic.logicutils.util.PersistentDataUtil;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;

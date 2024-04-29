@@ -17,7 +17,7 @@ public class ModulesCommand extends ModuleCommand {
     private final ModuleManager moduleManager;
 
     public ModulesCommand(ModuleManager moduleManager) {
-        super("modules", new String[]{"mdls"}, "apibylogic.admin");
+        super("module", new String[]{"mdl", "modules", "mdls"}, "apibylogic.admin");
 
         this.moduleManager = moduleManager;
         setEnabled(true);
@@ -67,7 +67,7 @@ public class ModulesCommand extends ModuleCommand {
                 sender.sendMessage(Messages.error("Modules", "That module isn't enabled."));
             }
 
-            sender.sendMessage(Messages.success("Modules", String.format("Reloading module! &7&o(Name: %s, ID: %s)", module.getModuleData().getName(), module.getModuleData().getId())));
+            sender.sendMessage(Messages.success("Modules", String.format("Reloading module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId())));
             module.reloadConfig();
             module.onReload();
             return;
@@ -90,7 +90,7 @@ public class ModulesCommand extends ModuleCommand {
                 sender.sendMessage(Messages.error("Modules", "That module isn't disabled."));
             }
 
-            sender.sendMessage(Messages.success("Modules", String.format("Enabling module! &7&o(Name: %s, ID: %s)", module.getModuleData().getName(), module.getModuleData().getId())));
+            sender.sendMessage(Messages.success("Modules", "Enabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
             moduleManager.enableModule(module.getModuleData().getId());
             return;
         }
@@ -112,7 +112,7 @@ public class ModulesCommand extends ModuleCommand {
                 sender.sendMessage(Messages.error("Modules", "That module isn't enabled."));
             }
 
-            sender.sendMessage(Messages.success("Modules", String.format("Disabling module! &7&o(Name: %s, ID: %s)", module.getModuleData().getName(), module.getModuleData().getId())));
+            sender.sendMessage(Messages.success("Modules", "Disabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
             moduleManager.disableModule(module.getModuleData().getId());
         }
     }
@@ -130,20 +130,20 @@ public class ModulesCommand extends ModuleCommand {
         int startingModule = (page * 10) - 10;
         int lastModule = Math.min(startingModule + 10, lastPossibleModule);
 
-        sender.sendMessage(Messages.format("&8&m-----&r&8( &r&e&lMODULE LIST &8)&m-----"));
+        sender.sendMessage(Messages.format("<c#separator>&m     &r <c#separator>( <c#primary>&lMODULE LIST <c#separator>)&m     "));
 
         for (int i = startingModule; i < lastModule; i++) {
             Module module = modules.get(i);
 
             sender.sendMessage(
                     Messages.richFormat(
-                                    "&8- &e%s &7&o(ID: %s, Status: %s&7&o)",
+                                    "<c#separator>- <c#primary>%s <c#separator>(<c#secondary>ID<c#separator>: <c#highlight>%s<c#separator>, <c#secondary>Status<c#separator>: <c#highlight>%s<c#separator>)",
                                     module.getModuleData().getName(),
                                     module.getModuleData().getId(),
-                                    Format.format(module.isEnabled() ? "&a&oEnabled" : "&c&oDisabled"))
+                                    Format.format(module.isEnabled() ? "<c#success_highlight>Enabled" : "<c#error_highlight>Disabled"))
                             .hoverEvent(
                                     HoverEvent.showText(
-                                            Messages.richFormat("&f%s", module.getModuleData().getDescription())
+                                            Messages.richFormat("<c#highlight>%s", module.getModuleData().getDescription())
                                     )
                             )
                             .clickEvent(
@@ -154,7 +154,7 @@ public class ModulesCommand extends ModuleCommand {
             );
         }
 
-        sender.sendMessage(Messages.replace("&8&m--------&r&8( &r&ePage&8: &f%s &8)&m--------", page));
+        sender.sendMessage(Messages.replace("<c#separator>&m        &r <c#separator>( <c#secondary>Page<c#separator>: <c#highlight>%s <c#separator>)&m        ", page));
     }
 
 }

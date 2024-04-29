@@ -1,6 +1,6 @@
 package net.bitbylogic.logicutils.player;
 
-import net.bitbylogic.logicutils.message.Messages;
+import net.bitbylogic.apibylogic.util.message.Messages;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;

@@ -147,6 +147,10 @@ public class APIByLogic extends JavaPlugin {
         if (redisManager != null && redisManager.getRedissonClient() != null) {
             redisManager.getRedissonClient().shutdown();
         }
+
+        if (hikariAPI != null && !hikariAPI.getHikari().isClosed()) {
+            hikariAPI.getHikari().close();
+        }
     }
 
     /**

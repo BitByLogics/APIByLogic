@@ -2,6 +2,7 @@ package net.bitbylogic.apibylogic.database.hikari;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.Getter;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -10,6 +11,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.function.Consumer;
 
+@Getter
 public class HikariAPI {
 
     private final HikariDataSource hikari;
