@@ -26,7 +26,6 @@ public class APIByLogicCommand implements CommandExecutor {
                     Messages.command("abl reload", "Reload the configuration."),
                     Messages.command("abl debug", "Toggle debug logging."),
                     Messages.command("abl redislisteners", "View registered redis listeners."),
-                    Messages.command("abl menus", "View registered menus."),
                     Messages.command("abl boards", "View registered scoreboards.")
             );
             return true;
@@ -40,8 +39,8 @@ public class APIByLogicCommand implements CommandExecutor {
         }
 
         if (args[0].equalsIgnoreCase("debug")) {
-            APIByLogic.getInstance().toggleDebug();
-            sender.sendMessage(Messages.success("APIByLogic", "&cAPIByLogic &8- &9Debug has been %s.", APIByLogic.getInstance().isDebug() ? "&aEnabled" : "&cDisabled"));
+            APIByLogic.getInstance().toggleDebugMode();
+            sender.sendMessage(Messages.success("APIByLogic", "&cAPIByLogic &8- &9Debug has been %s.", APIByLogic.getInstance().isDebugMode() ? "&aEnabled" : "&cDisabled"));
             return true;
         }
 

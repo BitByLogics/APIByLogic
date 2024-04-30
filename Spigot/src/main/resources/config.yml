@@ -1,6 +1,9 @@
 # ─────────────────────
 # General Configuration
 # ─────────────────────
+# Whether to send anonymous metrics using bstats.
+Track-Metrics: true
+
 Colors:
   Separator: "#555555"
   Primary: "#F77E21"

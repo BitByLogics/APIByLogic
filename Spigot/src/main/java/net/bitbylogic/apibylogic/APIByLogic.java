@@ -9,6 +9,7 @@ import net.bitbylogic.apibylogic.database.redis.RedisManager;
 import net.bitbylogic.apibylogic.database.redis.client.RedisClient;
 import net.bitbylogic.apibylogic.listener.SpawnerListener;
 import net.bitbylogic.apibylogic.menu.listener.MenuListener;
+import net.bitbylogic.apibylogic.metrics.MetricsWrapper;
 import net.bitbylogic.apibylogic.redis.PlayerMessageListener;
 import net.bitbylogic.apibylogic.redis.RedisStateChangeEvent;
 import net.bitbylogic.apibylogic.scoreboard.LogicScoreboard;
@@ -20,6 +21,7 @@ import net.bitbylogic.apibylogic.util.message.LogicColor;
 import net.bitbylogic.apibylogic.util.request.LogicRequest;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -36,13 +38,14 @@ public class APIByLogic extends JavaPlugin {
     private static APIByLogic instance;
 
     @Setter
-    private boolean debug = false;
+    private boolean debugMode = false;
 
     private RedisManager redisManager;
     private RedisClient redisClient;
     private HikariAPI hikariAPI;
 
     private ActionManager actionManager;
+    private MetricsWrapper metricsWrapper;
 
     private final List<LogicScoreboard> activeBoards = new ArrayList<>();
     private final ConcurrentLinkedQueue<LogicRequest> pendingTasks = new ConcurrentLinkedQueue<>();
@@ -54,59 +57,22 @@ public class APIByLogic extends JavaPlugin {
 
         LogicColor.loadColors(getConfig());
         ItemStackUtil.initialize(this);
+
         getCommand("apibylogic").setExecutor(new APIByLogicCommand());
 
-        if (!getConfig().getString("Redis-Credentials.Host", "").isEmpty()) {
-            ConfigurationSection redisSection = getConfig().getConfigurationSection("Redis-Credentials");
-
-            CompletableFuture.supplyAsync(() -> new RedisManager(
-                            redisSection.getString("Host"), redisSection.getInt("Port"),
-                            redisSection.getString("Password"), getConfig().getString("Server-ID")))
-                    .thenAccept((redisManager) -> {
-                        if (redisManager == null) {
-                            getLogger().severe("Unable to load redis connection, disabling.");
-                            getServer().getPluginManager().disablePlugin(this);
-                            return;
-                        }
-
-                        this.redisManager = redisManager;
-                        this.redisClient = redisManager.registerClient("APIByLogic");
-
-                        Bukkit.getPluginManager().callEvent(new RedisStateChangeEvent(RedisStateChangeEvent.RedisState.CONNECTED, redisManager));
-
-                        redisClient.registerListener(new PlayerMessageListener());
-                    });
-        }
-
-        if (!getConfig().getString("Hikari-Details.Address", "").isEmpty() && !getConfig().getString("Hikari-Details.Database", "").isEmpty()) {
-            ConfigurationSection hikariSection = getConfig().getConfigurationSection("Hikari-Details");
-
-            CompletableFuture.supplyAsync(() ->
-                            new HikariAPI(hikariSection.getString("Address"), hikariSection.getString("Database"),
-                                    hikariSection.getString("Port"), hikariSection.getString("Username"), hikariSection.getString("Password")))
-                    .thenAccept((api) -> {
-                        if (api == null) {
-                            getLogger().severe("Unable to load hikari connection, disabling.");
-                            getServer().getPluginManager().disablePlugin(this);
-                            return;
-                        }
-
-                        hikariAPI = api;
-                    }).exceptionally(e -> {
-                        e.printStackTrace();
-                        return null;
-                    });
-        }
+        initializeRedis();
+        initializeHikari();
 
         actionManager = new ActionManager(this);
 
-        //UUIDUtil.initialize(getDataFolder());
+        PluginManager pluginManager = getServer().getPluginManager();
 
-        getServer().getPluginManager().registerEvents(new ArmorListener(getConfig().getStringList("Ignored-Materials")), this);
-        Bukkit.getPluginManager().registerEvents(new MenuListener(), this);
-        getServer().getPluginManager().registerEvents(new DispenserArmorListener(), this);
-        getServer().getPluginManager().registerEvents(new SpawnerListener(), this);
+        pluginManager.registerEvents(new ArmorListener(getConfig().getStringList("Ignored-Materials")), this);
+        pluginManager.registerEvents(new MenuListener(), this);
+        pluginManager.registerEvents(new DispenserArmorListener(), this);
+        pluginManager.registerEvents(new SpawnerListener(), this);
 
+        // Possibly remove this later? I forget why I added it
         getServer().getScheduler().runTaskTimer(this, () -> {
             if (pendingTasks.isEmpty()) {
                 return;
@@ -140,6 +106,11 @@ public class APIByLogic extends JavaPlugin {
                 }
             }
         }, 0, 5);
+
+        if (getConfig().getBoolean("Track-Metrics", true)) {
+            metricsWrapper = new MetricsWrapper(this);
+            getLogger().info("Thank you for allowing metric tracking!");
+        }
     }
 
     @Override
@@ -151,6 +122,67 @@ public class APIByLogic extends JavaPlugin {
         if (hikariAPI != null && !hikariAPI.getHikari().isClosed()) {
             hikariAPI.getHikari().close();
         }
+    }
+
+    private void initializeRedis() {
+        if (!getConfig().isSet("Redis-Credentials.Host")) {
+            return;
+        }
+
+        ConfigurationSection redisSection = getConfig().getConfigurationSection("Redis-Credentials");
+
+        if (redisSection == null) {
+            getLogger().severe("Redis credentials section missing, redis will not function.");
+            return;
+        }
+
+        CompletableFuture.supplyAsync(() -> new RedisManager(
+                        redisSection.getString("Host"), redisSection.getInt("Port"),
+                        redisSection.getString("Password"), getConfig().getString("Server-ID")))
+                .thenAccept((redisManager) -> {
+                    if (redisManager == null) {
+                        getLogger().severe("Unable to connect to redis, disabling.");
+                        getServer().getPluginManager().disablePlugin(this);
+                        return;
+                    }
+
+                    this.redisManager = redisManager;
+                    this.redisClient = redisManager.registerClient("APIByLogic");
+
+                    Bukkit.getPluginManager().callEvent(new RedisStateChangeEvent(RedisStateChangeEvent.RedisState.CONNECTED, redisManager));
+
+                    redisClient.registerListener(new PlayerMessageListener());
+                });
+    }
+
+    private void initializeHikari() {
+        if (!getConfig().isSet("Hikari-Details.Address") || !getConfig().isSet("Hikari-Details.Database")) {
+            return;
+        }
+
+        ConfigurationSection hikariSection = getConfig().getConfigurationSection("Hikari-Details");
+
+        if (hikariSection == null) {
+            return;
+        }
+
+        CompletableFuture.supplyAsync(() -> new HikariAPI(
+                        hikariSection.getString("Address"), hikariSection.getString("Database"),
+                        hikariSection.getString("Port"), hikariSection.getString("Username"),
+                        hikariSection.getString("Password")))
+                .thenAccept((hikariAPI) -> {
+                    if (hikariAPI == null) {
+                        getLogger().severe("Unable to connect to hikari, disabling.");
+                        getServer().getPluginManager().disablePlugin(this);
+                        return;
+                    }
+
+                    this.hikariAPI = hikariAPI;
+                }).exceptionally(e -> {
+                    getLogger().severe("Error connecting to hikari: " + e.getMessage());
+                    e.printStackTrace();
+                    return null;
+                });
     }
 
     /**
@@ -167,9 +199,10 @@ public class APIByLogic extends JavaPlugin {
 
         ConfigurationSection hikariSection = getConfig().getConfigurationSection("Hikari-Details");
 
-        CompletableFuture.supplyAsync(() ->
-                        new HikariAPI(hikariSection.getString("Address"), database,
-                                hikariSection.getString("Port"), hikariSection.getString("Username"), hikariSection.getString("Password")))
+        CompletableFuture.supplyAsync(() -> new HikariAPI(
+                        hikariSection.getString("Address"), database,
+                        hikariSection.getString("Port"), hikariSection.getString("Username"),
+                        hikariSection.getString("Password")))
                 .thenAccept((api) -> {
                     if (api == null) {
                         getLogger().severe("Unable to supply HikariAPI object, ensure configuration is correct.");
@@ -184,9 +217,9 @@ public class APIByLogic extends JavaPlugin {
                 });
     }
 
-    public void toggleDebug() {
-        debug = !debug;
-        redisManager.setDebug(debug);
+    public void toggleDebugMode() {
+        debugMode = !debugMode;
+        redisManager.setDebug(debugMode);
     }
 
 }

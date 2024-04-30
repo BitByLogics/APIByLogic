@@ -5,8 +5,8 @@ import com.google.gson.GsonBuilder;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import net.bitbylogic.apibylogic.database.redis.gson.TimedRequestSerializer;
 import net.bitbylogic.apibylogic.database.redis.client.RedisClient;
+import net.bitbylogic.apibylogic.database.redis.gson.TimedRequestSerializer;
 import net.bitbylogic.apibylogic.database.redis.timed.RedisTimedRequest;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -39,7 +39,7 @@ public class RedisManager {
         Config config = new Config();
         config.useSingleServer()
                 .setAddress(String.format("redis://%s:%s", host, port))
-                .setPassword(password.isEmpty() ? null : password)
+                .setPassword(password == null ? null : password.isEmpty() ? null : password)
                 .setPingConnectionInterval(50)
                 .setConnectTimeout(20_000)
                 .setTimeout(25_000_000)
