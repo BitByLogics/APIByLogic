@@ -1,8 +1,10 @@
 package net.bitbylogic.apibylogic.util.message;
 
+import lombok.Getter;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
 import net.bitbylogic.apibylogic.util.Placeholder;
+import net.bitbylogic.apibylogic.util.StringModifier;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -17,12 +19,19 @@ import java.util.regex.Pattern;
 
 public class Messages {
 
+    @Getter
+    private static final List<StringModifier> globalModifiers = new ArrayList<>();
+
     private static final Pattern formatPattern = Pattern.compile("<([a-zA-Z]+?)#(.+?)>");
     private static final Pattern richColorExtractor = Pattern.compile("§x(§[A-Z-a-z-\\d]){6}");
     private static final Pattern hexColorExtractor = Pattern.compile("#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})");
 
     public final static String RIGHT_ARROW = "»";
     public final static String DOT = "•";
+
+    public static void registerGlobalModifier(StringModifier modifier) {
+        globalModifiers.add(modifier);
+    }
 
     public static String color(String message) {
         String coloredMessage = ChatColor.translateAlternateColorCodes('&', message);
@@ -49,6 +58,10 @@ public class Messages {
 
         for (Placeholder placeholder : placeholders) {
             formattedMessage = placeholder.modify(formattedMessage);
+        }
+
+        for (StringModifier globalModifier : globalModifiers) {
+            formattedMessage = globalModifier.modify(formattedMessage);
         }
 
         Matcher matcher = formatPattern.matcher(formattedMessage);

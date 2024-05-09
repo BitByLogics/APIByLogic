@@ -53,7 +53,7 @@ public class StringUtil {
     public static long calculateReadingTime(String string, int readingSpeed) {
         double numberOfWords = string.split(" ").length;
         double readingTime = (numberOfWords / readingSpeed);
-        return (long) (readingTime * 60000);
+        return (long) (readingTime * 1000);
     }
 
 }

@@ -3,7 +3,7 @@ package net.bitbylogic.apibylogic.util;
 import com.google.common.collect.Lists;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.md_5.bungee.api.ChatColor;
-import net.minecraft.locale.Language;
+import net.minecraft.locale.LocaleLanguage;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -194,12 +194,12 @@ public class ItemStackUtil {
 
         try {
             Object nmsItem = craftItemStack.getMethod("asNMSCopy", ItemStack.class).invoke(craftItemStack, item);
-            descriptionId = (String) nmsItem.getClass().getMethod("getDescriptionId").invoke(nmsItem);
+            descriptionId = (String) nmsItem.getClass().getMethod("q").invoke(nmsItem);
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }
 
-        return Format.format("&f" + Language.getInstance().getOrDefault(descriptionId));
+        return Format.format("&f" + LocaleLanguage.a().a(descriptionId));
     }
 
     /**

@@ -3,6 +3,7 @@ version: ${project.version}
 main: net.bitbylogic.apibylogic.APIByLogic
 api-version: 1.19
 authors: [ BitByLogic ]
+softdepend: [ PlaceholderAPI ]
 commands:
   apibylogic:
-    aliases: [abl]
+    aliases: [ abl ]

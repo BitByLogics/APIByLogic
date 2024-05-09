@@ -9,6 +9,12 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Format strings with modifiers and placeholders.
+ *
+ * @deprecated use {@link net.bitbylogic.apibylogic.util.message.Messages#format(String, Placeholder...)}} instead
+ */
+@Deprecated(forRemoval = true)
 public class Format {
 
     private static final Pattern hexPattern = Pattern.compile("(#[a-fA-F0-9]{6}|#[a-fA-F0-9]{3})");

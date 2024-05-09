@@ -7,6 +7,7 @@ import net.bitbylogic.apibylogic.command.APIByLogicCommand;
 import net.bitbylogic.apibylogic.database.hikari.HikariAPI;
 import net.bitbylogic.apibylogic.database.redis.RedisManager;
 import net.bitbylogic.apibylogic.database.redis.client.RedisClient;
+import net.bitbylogic.apibylogic.hooks.PlaceholderAPIHook;
 import net.bitbylogic.apibylogic.listener.SpawnerListener;
 import net.bitbylogic.apibylogic.menu.listener.MenuListener;
 import net.bitbylogic.apibylogic.metrics.MetricsWrapper;
@@ -106,6 +107,10 @@ public class APIByLogic extends JavaPlugin {
                 }
             }
         }, 0, 5);
+
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            new PlaceholderAPIHook().register();
+        }
 
         if (getConfig().getBoolean("Track-Metrics", true)) {
             metricsWrapper = new MetricsWrapper(this);

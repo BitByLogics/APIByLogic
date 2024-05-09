@@ -1,9 +1,10 @@
 package net.bitbylogic.apibylogic.menu;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import net.bitbylogic.apibylogic.menu.placeholder.PlaceholderProvider;
 import net.bitbylogic.apibylogic.menu.inventory.MenuInventory;
+import net.bitbylogic.apibylogic.menu.placeholder.PlaceholderProvider;
 import net.bitbylogic.apibylogic.menu.task.MenuUpdateTask;
 import net.bitbylogic.apibylogic.menu.task.TitleUpdateTask;
 import net.bitbylogic.apibylogic.menu.view.internal.NextPageViewRequirement;
@@ -34,6 +35,7 @@ public class Menu implements InventoryHolder, Cloneable {
     private final List<MenuItem> items;
     private MenuData data;
 
+    @Getter(AccessLevel.NONE)
     private final List<MenuInventory> inventories;
     private final HashMap<UUID, List<MenuInventory>> userMenus;
     private final List<UUID> activePlayers;
@@ -126,6 +128,10 @@ public class Menu implements InventoryHolder, Cloneable {
      * @return The Menu instance.
      */
     public Menu addAndSetItem(MenuItem item) {
+        if (inventories.isEmpty()) {
+            generateInventories();
+        }
+
         items.add(item);
 
         Pair<Inventory, Integer> availableSlot = getNextAvailableSlot();
@@ -135,7 +141,6 @@ public class Menu implements InventoryHolder, Cloneable {
         }
 
         item.getSlots().clear();
-
         item.addSlot(availableSlot.getValue());
         item.addSourceInventory(availableSlot.getKey());
         return this;
@@ -143,7 +148,7 @@ public class Menu implements InventoryHolder, Cloneable {
 
     public void addItemStack(ItemStack item) {
         if (inventories.isEmpty()) {
-            getInventory();
+            generateInventories();
         }
 
         HashMap<MenuInventory, Integer> itemDistribution = new HashMap<>();
@@ -425,15 +430,25 @@ public class Menu implements InventoryHolder, Cloneable {
      */
     @Override
     public Inventory getInventory() {
-        if (!inventories.isEmpty()) {
-            return inventories.get(0).getInventory();
-        }
-
-        for (int i = 0; i < data.getMinInventories(); i++) {
-            generateNewInventory().ifPresent(inventories::add);
+        if (inventories.isEmpty()) {
+            generateInventories();
         }
 
         return inventories.get(0).getInventory();
+    }
+
+    public List<MenuInventory> getInventories() {
+        if (inventories.isEmpty()) {
+            generateInventories();
+        }
+
+        return inventories;
+    }
+
+    private void generateInventories() {
+        for (int i = 0; i < data.getMinInventories(); i++) {
+            generateNewInventory().ifPresent(inventories::add);
+        }
     }
 
     /**
@@ -462,7 +477,7 @@ public class Menu implements InventoryHolder, Cloneable {
 
     public Inventory getGlobalMenu() {
         if (inventories.isEmpty()) {
-            getInventory();
+            generateInventories();
         }
 
         return inventories.get(0).getInventory();
@@ -510,7 +525,7 @@ public class Menu implements InventoryHolder, Cloneable {
 
     public Pair<Inventory, Integer> getNextAvailableSlot() {
         if (inventories.isEmpty()) {
-            getInventory();
+            generateInventories();
         }
 
         for (MenuInventory inventory : inventories) {
