@@ -68,7 +68,85 @@ public class ItemModifyCommand extends BaseCommand {
     }
 
     @Subcommand("lore")
-    public void onLoreCommand(Player player, String lore) {
+    public void onLore(Player player, @Default("1") int page) {
+        ItemStack item = player.getInventory().getItemInMainHand();
+
+        if (item.getType() == Material.AIR) {
+            player.sendMessage(Messages.error("Item Modify", "You must hold a valid item."));
+            return;
+        }
+
+        List<String> data = new ArrayList<>();
+
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta == null || !meta.hasLore() || meta.getLore() == null) {
+            player.sendMessage(Messages.error("Item Modify", "This item has no lore."));
+            return;
+        }
+
+        int loreIndex = 0;
+        for (String loreLine : meta.getLore()) {
+            data.add(Messages.dottedMessage("Lore #" + loreIndex++, loreLine));
+        }
+
+        player.sendMessage(Messages.getPagedList("Item Lore", data, page));
+    }
+
+    @Subcommand("lore index")
+    public void onLoreIndex(Player player, int index, String loreLine) {
+        ItemStack item = player.getInventory().getItemInMainHand();
+
+        if (item.getType() == Material.AIR) {
+            player.sendMessage(Messages.error("Item Modify", "You must hold a valid item."));
+            return;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta == null || !meta.hasLore() || meta.getLore() == null) {
+            player.sendMessage(Messages.error("Item Modify", "This item has no lore."));
+            return;
+        }
+
+        List<String> lore = meta.getLore();
+
+        if (lore.size() - 1 < index) {
+            player.sendMessage(Messages.error("Item Modify", "That's an invalid index!"));
+            return;
+        }
+
+        lore.set(index, Messages.format(loreLine));
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        player.sendMessage(Messages.success("Item Modify", "Successfully updated lore index %s to %s!", index, loreLine));
+    }
+
+    @Subcommand("lore append")
+    public void onLoreAppend(Player player, String loreLine) {
+        ItemStack item = player.getInventory().getItemInMainHand();
+
+        if (item.getType() == Material.AIR) {
+            player.sendMessage(Messages.error("Item Modify", "You must hold a valid item."));
+            return;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+
+        if (meta == null || !meta.hasLore() || meta.getLore() == null) {
+            player.sendMessage(Messages.error("Item Modify", "This item has no lore."));
+            return;
+        }
+
+        List<String> lore = meta.getLore();
+
+        lore.add(Messages.format(loreLine));
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+    }
+
+    @Subcommand("lore set")
+    public void onSetLore(Player player, String lore) {
         ItemStack item = player.getInventory().getItemInMainHand();
 
         if (item.getType() == Material.AIR) {

@@ -48,8 +48,8 @@ public class ItemDebugComand extends BaseCommand {
             item.getEnchantments().forEach((enchantment, integer) -> data.add(Messages.dottedMessage("Enchantment", enchantment.getName() + ", " + integer)));
         }
 
-        if (!item.getItemFlags().isEmpty()) {
-            item.getItemFlags().forEach(flag -> data.add(Messages.dottedMessage("Flag", flag.name())));
+        if (!meta.getItemFlags().isEmpty()) {
+            meta.getItemFlags().forEach(flag -> data.add(Messages.dottedMessage("Flag", flag.name())));
         }
 
         if (meta.hasCustomModelData()) {

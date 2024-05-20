@@ -42,15 +42,6 @@
                         <configuration>
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <minimizeJar>true</minimizeJar>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>net.bytebuddy:byte-buddy:*</exclude>
-                                    <exclude>org.jodd:jodd-bean:*</exclude>
-                                    <exclude>javax.cache:cache-api:*</exclude>
-                                    <exclude>io.projectreactor:reactor-core:*</exclude>
-                                    <exclude>io.reactivex.rxjava3:rxjava:*</exclude>
-                                </excludes>
-                            </artifactSet>
                         </configuration>
                     </execution>
                 </executions>
@@ -81,6 +72,28 @@
             <artifactId>redisson</artifactId>
             <version>3.29.0</version>
             <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jodd</groupId>
+                    <artifactId>jodd-util</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.cache</groupId>
+                    <artifactId>cache-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.projectreactor</groupId>
+                    <artifactId>reactor-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.reactivex.rxjava3</groupId>
+                    <artifactId>rxjava</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- MySQL Connector -->

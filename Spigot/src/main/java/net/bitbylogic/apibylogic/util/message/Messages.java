@@ -49,15 +49,15 @@ public class Messages {
     /**
      * Format a string with color & placeholders.
      *
-     * @param message      The message.
-     * @param placeholders The placeholders being applied.
+     * @param message   The message.
+     * @param modifiers The placeholders being applied.
      * @return The formatted string.
      */
-    public static String format(String message, Placeholder... placeholders) {
+    public static String format(String message, StringModifier... modifiers) {
         String formattedMessage = message;
 
-        for (Placeholder placeholder : placeholders) {
-            formattedMessage = placeholder.modify(formattedMessage);
+        for (StringModifier modifier : modifiers) {
+            formattedMessage = modifier.modify(formattedMessage);
         }
 
         for (StringModifier globalModifier : globalModifiers) {

@@ -2,9 +2,9 @@ package net.bitbylogic.apibylogic.menu.action;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import net.bitbylogic.apibylogic.util.Format;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.RichTextUtil;
+import net.bitbylogic.apibylogic.util.message.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -14,17 +14,17 @@ public enum MenuClickActionType {
 
     RUN_CONSOLE_COMMAND((event, args) -> {
         for (String command : RichTextUtil.getRichText(args, 0)) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), Format.format(command, new Placeholder("%player%", event.getWhoClicked().getName())));
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), Messages.format(command, new Placeholder("%player%", event.getWhoClicked().getName())));
         }
     }),
     RUN_PLAYER_COMMAND((event, args) -> {
         for (String command : RichTextUtil.getRichText(args, 0)) {
-            ((Player) event.getWhoClicked()).performCommand(Format.format(command, new Placeholder("%player%", event.getWhoClicked().getName())));
+            ((Player) event.getWhoClicked()).performCommand(Messages.format(command, new Placeholder("%player%", event.getWhoClicked().getName())));
         }
     }),
     SEND_MESSAGE((event, args) -> {
         for (String message : RichTextUtil.getRichText(args, 0)) {
-            event.getWhoClicked().sendMessage(Format.format(message, new Placeholder("%player%", event.getWhoClicked().getName())));
+            event.getWhoClicked().sendMessage(Messages.format(message, new Placeholder("%player%", event.getWhoClicked().getName())));
         }
     });
 

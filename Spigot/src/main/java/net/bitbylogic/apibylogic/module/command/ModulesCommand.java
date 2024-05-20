@@ -1,9 +1,8 @@
 package net.bitbylogic.apibylogic.module.command;
 
-import net.bitbylogic.apibylogic.util.NumberUtil;
 import net.bitbylogic.apibylogic.module.Module;
 import net.bitbylogic.apibylogic.module.ModuleManager;
-import net.bitbylogic.apibylogic.util.Format;
+import net.bitbylogic.apibylogic.util.NumberUtil;
 import net.bitbylogic.apibylogic.util.message.Messages;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -140,7 +139,7 @@ public class ModulesCommand extends ModuleCommand {
                                     "<c#separator>- <c#primary>%s <c#separator>(<c#secondary>ID<c#separator>: <c#highlight>%s<c#separator>, <c#secondary>Status<c#separator>: <c#highlight>%s<c#separator>)",
                                     module.getModuleData().getName(),
                                     module.getModuleData().getId(),
-                                    Format.format(module.isEnabled() ? "<c#success_highlight>Enabled" : "<c#error_highlight>Disabled"))
+                                    Messages.format(module.isEnabled() ? "<c#success_highlight>Enabled" : "<c#error_highlight>Disabled"))
                             .hoverEvent(
                                     HoverEvent.showText(
                                             Messages.richFormat("<c#highlight>%s", module.getModuleData().getDescription())

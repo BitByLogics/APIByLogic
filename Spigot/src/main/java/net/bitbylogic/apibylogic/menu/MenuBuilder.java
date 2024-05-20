@@ -4,9 +4,9 @@ import com.google.common.base.Preconditions;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import net.bitbylogic.apibylogic.menu.action.MenuClickActionType;
-import net.bitbylogic.apibylogic.util.Format;
 import net.bitbylogic.apibylogic.util.ItemStackUtil;
 import net.bitbylogic.apibylogic.util.StringModifier;
+import net.bitbylogic.apibylogic.util.message.Messages;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 
@@ -104,7 +104,7 @@ public class MenuBuilder {
         List<StringModifier> modifierList = new ArrayList<>(Arrays.asList(modifiers));
 
         id = section.getName();
-        title = Format.format(Preconditions.checkNotNull(Format.format(section.getString("Title"), modifierList.toArray(new StringModifier[]{})), "Invalid/Missing Title"));
+        title = Messages.format(Preconditions.checkNotNull(Messages.format(section.getString("Title"), modifierList.toArray(new StringModifier[]{})), "Invalid/Missing Title"));
         size = section.getInt("Size");
 
         data = new MenuData();
