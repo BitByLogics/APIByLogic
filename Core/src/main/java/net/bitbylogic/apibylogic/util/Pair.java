@@ -2,12 +2,13 @@ package net.bitbylogic.apibylogic.util;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 
-@Getter
+@Getter @Setter
 @AllArgsConstructor
 public class Pair<K, V> {
 
-    private final K key;
-    private final V value;
+    private K key;
+    private V value;
 
 }

@@ -1,4 +1,4 @@
-package net.bitbylogic.apibylogic.util;
+package net.bitbylogic.apibylogic.util.item;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;

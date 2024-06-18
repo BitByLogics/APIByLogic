@@ -2,7 +2,7 @@ package net.bitbylogic.apibylogic.hooks;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import net.bitbylogic.apibylogic.util.Placeholder;
-import net.bitbylogic.apibylogic.util.message.Messages;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,7 +34,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
 
     @Override
     public @Nullable String onPlaceholderRequest(Player player, @NotNull String placeholder) {
-        for (Placeholder modifier : Messages.getGlobalModifiers().stream().filter(modifier -> modifier instanceof Placeholder)
+        for (Placeholder modifier : Formatter.getGlobalModifiers().stream().filter(modifier -> modifier instanceof Placeholder)
                 .map(modifier -> ((Placeholder) modifier)).collect(Collectors.toList())) {
             for (Map.Entry<String, String> entry : modifier.getPlaceholderMap().entrySet()) {
                 if (!placeholder.equalsIgnoreCase(entry.getKey().replace("%", ""))) {
@@ -45,6 +45,6 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
             }
         }
 
-        return Messages.format(placeholder);
+        return Formatter.format(placeholder);
     }
 }

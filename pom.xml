@@ -6,7 +6,7 @@
 
     <groupId>net.bitbylogic</groupId>
     <artifactId>APIByLogic</artifactId>
-    <version>2024.4</version>
+    <version>2024.6</version>
     <packaging>pom</packaging>
 
     <name>APIByLogic</name>

@@ -10,4 +10,6 @@ public interface ModuleInterface {
 
     void onDisable();
 
+    ModuleData getModuleData();
+
 }

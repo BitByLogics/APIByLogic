@@ -2,8 +2,7 @@ package net.bitbylogic.logicutils.commands;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
-import net.bitbylogic.apibylogic.util.Format;
-import net.bitbylogic.apibylogic.util.message.Messages;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import net.bitbylogic.logicutils.LogicUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -23,21 +22,21 @@ public class RawMessageCommand extends BaseCommand {
     @Syntax("<target> <message>")
     public void onCommand(CommandSender sender, String target, String message) {
         if (target.equals("*")) {
-            sender.sendMessage(Format.format("&e&lMessaging &8• &aSending raw message to everyone."));
-            Bukkit.getOnlinePlayers().forEach(player -> Messages.sendRawMessage(player, message));
+            sender.sendMessage(Formatter.format("&e&lMessaging &8• &aSending raw message to everyone."));
+            Bukkit.getOnlinePlayers().forEach(player -> Formatter.sendRawMessage(player, message));
             return;
         }
 
         Player targetPlayer = Bukkit.getPlayer(target);
 
         if (targetPlayer == null) {
-            sender.sendMessage(Format.format("&e&lMessaging &8• &cThat player isn't online!"));
+            sender.sendMessage(Formatter.format("&e&lMessaging &8• &cThat player isn't online!"));
             return;
         }
 
         List<String> messages = new ArrayList<>();
         for (String s : message.split("/\\+")) {
-            messages.add(Format.format(s));
+            messages.add(Formatter.format(s));
         }
 
         messages.forEach(targetPlayer::sendMessage);

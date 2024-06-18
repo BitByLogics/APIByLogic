@@ -1,7 +1,7 @@
 package net.bitbylogic.logicutils.player;
 
-import net.bitbylogic.apibylogic.util.message.Messages;
-import net.kyori.adventure.text.Component;
+import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -10,9 +10,9 @@ import java.util.HashMap;
 
 public class PlayerUtil {
 
-    public static void sendRichMessages(CommandSender sender, Component... component) {
-        for (Component c : component) {
-            sender.sendMessage(c);
+    public static void sendRichMessages(CommandSender sender, BaseComponent... component) {
+        for (BaseComponent c : component) {
+            sender.spigot().sendMessage(c);
         }
     }
 
@@ -26,7 +26,7 @@ public class PlayerUtil {
         droppedItems.values().forEach(item -> player.getWorld().dropItem(player.getLocation(), item));
 
         if (alert) {
-            player.sendMessage(Messages.error("Items", "Some of your items were dropped on the ground!"));
+            player.sendMessage(Formatter.error("Items", "Some of your items were dropped on the ground!"));
         }
     }
 

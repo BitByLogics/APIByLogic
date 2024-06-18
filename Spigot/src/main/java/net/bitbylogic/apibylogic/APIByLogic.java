@@ -1,5 +1,8 @@
 package net.bitbylogic.apibylogic;
 
+import com.jeff_media.updatechecker.UpdateCheckSource;
+import com.jeff_media.updatechecker.UpdateChecker;
+import com.jeff_media.updatechecker.UserAgentBuilder;
 import lombok.Getter;
 import lombok.Setter;
 import net.bitbylogic.apibylogic.action.ActionManager;
@@ -15,13 +18,15 @@ import net.bitbylogic.apibylogic.redis.PlayerMessageListener;
 import net.bitbylogic.apibylogic.redis.RedisStateChangeEvent;
 import net.bitbylogic.apibylogic.scoreboard.LogicScoreboard;
 import net.bitbylogic.apibylogic.util.Callback;
-import net.bitbylogic.apibylogic.util.ItemStackUtil;
 import net.bitbylogic.apibylogic.util.event.armor.listener.ArmorListener;
 import net.bitbylogic.apibylogic.util.event.armor.listener.DispenserArmorListener;
+import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import net.bitbylogic.apibylogic.util.message.LogicColor;
 import net.bitbylogic.apibylogic.util.request.LogicRequest;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.permissions.ServerOperator;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -37,6 +42,8 @@ public class APIByLogic extends JavaPlugin {
 
     @Getter
     private static APIByLogic instance;
+    private final List<LogicScoreboard> activeBoards = new ArrayList<>();
+    private final ConcurrentLinkedQueue<LogicRequest> pendingTasks = new ConcurrentLinkedQueue<>();
 
     @Setter
     private boolean debugMode = false;
@@ -44,12 +51,8 @@ public class APIByLogic extends JavaPlugin {
     private RedisManager redisManager;
     private RedisClient redisClient;
     private HikariAPI hikariAPI;
-
     private ActionManager actionManager;
     private MetricsWrapper metricsWrapper;
-
-    private final List<LogicScoreboard> activeBoards = new ArrayList<>();
-    private final ConcurrentLinkedQueue<LogicRequest> pendingTasks = new ConcurrentLinkedQueue<>();
 
     @Override
     public void onEnable() {
@@ -58,6 +61,36 @@ public class APIByLogic extends JavaPlugin {
 
         LogicColor.loadColors(getConfig());
         ItemStackUtil.initialize(this);
+
+        new UpdateChecker(this, UpdateCheckSource.GITHUB_RELEASE_TAG, "BitByLogics/APIByLogic")
+                .setNotifyRequesters(false)
+                .setNotifyOpsOnJoin(false)
+                .setUserAgent(new UserAgentBuilder())
+                .checkEveryXHours(12)
+                .onSuccess((commandSenders, latestVersion) -> {
+                    String messagePrefix = "&8[&9APIByLogic&8] ";
+                    String currentVersion = getDescription().getVersion();
+
+                    if (currentVersion.equalsIgnoreCase(latestVersion)) {
+                        String updateMessage = Formatter.format(messagePrefix + "&aYou are using the latest version of APIByLogic!");
+
+                        Bukkit.getConsoleSender().sendMessage(updateMessage);
+                        Bukkit.getOnlinePlayers().stream().filter(ServerOperator::isOp).forEach(player -> player.sendMessage(updateMessage));
+                        return;
+                    }
+
+                    List<String> updateMessages = List.of(
+                            Formatter.format(messagePrefix + "&cYour version of APIByLogic is outdated!"),
+                            Formatter.autoFormat(messagePrefix + "&cYou are using %cv%, latest is %lv%!", currentVersion, latestVersion),
+                            Formatter.format(messagePrefix + "&cDownload latest here:"),
+                            Formatter.format("&6https://github.com/BitByLogics/APIByLogic/releases/latest")
+                    );
+
+                    Bukkit.getConsoleSender().sendMessage(updateMessages.toArray(new String[]{}));
+                    Bukkit.getOnlinePlayers().stream().filter(ServerOperator::isOp).forEach(player -> player.sendMessage(updateMessages.toArray(new String[]{})));
+                })
+                .onFail((commandSenders, e) -> {
+                }).checkNow();
 
         getCommand("apibylogic").setExecutor(new APIByLogicCommand());
 
@@ -130,7 +163,7 @@ public class APIByLogic extends JavaPlugin {
     }
 
     private void initializeRedis() {
-        if (!getConfig().isSet("Redis-Credentials.Host")) {
+        if (!getConfig().isSet("Redis-Credentials.Host") || getConfig().getString("Redis-Credentials.Host").isEmpty()) {
             return;
         }
 
@@ -161,7 +194,8 @@ public class APIByLogic extends JavaPlugin {
     }
 
     private void initializeHikari() {
-        if (!getConfig().isSet("Hikari-Details.Address") || !getConfig().isSet("Hikari-Details.Database")) {
+        if (!getConfig().isSet("Hikari-Details.Address") || getConfig().getString("Hikari-Details.Address").isEmpty()
+                || !getConfig().isSet("Hikari-Details.Database") || getConfig().getString("Hikari-Details.Database").isEmpty()) {
             return;
         }
 

@@ -19,11 +19,12 @@
  * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package net.bitbylogic.apibylogic.util;
+package net.bitbylogic.apibylogic.util.inventory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import lombok.Getter;
+import net.bitbylogic.apibylogic.util.ReflectionUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;

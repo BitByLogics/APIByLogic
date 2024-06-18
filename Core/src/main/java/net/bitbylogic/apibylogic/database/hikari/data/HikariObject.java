@@ -20,11 +20,7 @@ public abstract class HikariObject {
         loadStatementData();
     }
 
-    public abstract Object getDataId();
-
-    public abstract String getTableId();
-
-    public abstract Object[] getDataObjects();
+    public abstract Object getId();
 
     public abstract void loadProcessors();
 
@@ -151,27 +147,23 @@ public abstract class HikariObject {
         return builder.toString();
     }
 
-    public String getTableCreateStatement() {
-        StringBuilder builder = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(getTableId()).append("(").append(getStatementDataBlock(true));
+    public String getTableCreateStatement(String table) {
+        StringBuilder builder = new StringBuilder(String.format("CREATE TABLE IF NOT EXISTS %s (%s", table, getStatementDataBlock(true)));
 
         if (statementData.containsKey("#primary-key")) {
-            builder.append(", PRIMARY KEY(").append(statementData.get("#primary-key")).append(")");
+            builder.append(String.format(", PRIMARY KEY(%s)", statementData.get("#primary-key")));
         }
 
-        builder.append(");");
-
-        return builder.toString();
+        return builder.append(");").toString();
     }
 
-    public String getDataCreateStatement() {
-        return "INSERT INTO " + getTableId() + "(" + getStatementDataBlock(false) + ") VALUES(" + getValuesDataBlock() + ");";
+    public String getDataCreateStatement(String table) {
+        return String.format("INSERT INTO %s (%s) VALUES(%S);", table, getStatementDataBlock(false), getValuesDataBlock());
     }
 
-    public String getDataSaveStatement(String... includedFields) {
-        StringBuilder builder = new StringBuilder("INSERT INTO ").append(getTableId())
-                .append("(").append(getStatementDataBlock(false, includedFields))
-                .append(") VALUES(").append(getValuesDataBlock(includedFields))
-                .append(") ON DUPLICATE KEY UPDATE ");
+    public String getDataSaveStatement(String table, String... includedFields) {
+        StringBuilder builder = new StringBuilder(String.format("INSERT INTO %s(%s) VALUES(%s) ON DUPLICATE KEY UPDATE",
+                table, getStatementDataBlock(false, includedFields), getValuesDataBlock(includedFields)));
 
         List<String> entries = new ArrayList<>();
 
@@ -193,13 +185,11 @@ public abstract class HikariObject {
             entries.add(key + "=VALUES(" + key + ")");
         }
 
-        builder.append(String.join(", ", entries)).append(";");
-        return builder.toString();
+        return builder.append(String.join(", ", entries)).append(";").toString();
     }
 
-    public String getUpdateStatement(String... includedFields) {
-        StringBuilder builder = new StringBuilder("UPDATE ").append(getTableId())
-                .append(" SET ");
+    public String getUpdateStatement(String table, String... includedFields) {
+        StringBuilder builder = new StringBuilder(String.format("UPDATE %s SET ", table));
 
         List<String> entries = new ArrayList<>();
 
@@ -256,15 +246,14 @@ public abstract class HikariObject {
         return builder.toString();
     }
 
-    public String getDataDeleteStatement() {
+    public String getDataDeleteStatement(String table) {
         if (!statementData.containsKey("#primary-key")) {
-            System.out.println(String.format("[APIByLogic] [HikariAPI] (%s) No primary key, aborting.", getTableId()));
+            System.out.printf("[APIByLogic] [HikariAPI] (%s) No primary key, aborting.%n", table);
             return null;
         }
 
         String primaryKey = statementData.get("#primary-key");
-        StringBuilder builder = new StringBuilder("DELETE FROM ").append(getTableId())
-                .append(" WHERE ").append(primaryKey).append("=");
+        StringBuilder builder = new StringBuilder(String.format("DELETE FROM %s WHERE %s=", table, primaryKey));
 
         try {
             HikariStatementData rawStatementData = getRawStatementData().get(primaryKey);

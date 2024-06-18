@@ -2,7 +2,7 @@ package net.bitbylogic.apibylogic.action;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.bitbylogic.apibylogic.util.ItemStackUtil;
+import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;

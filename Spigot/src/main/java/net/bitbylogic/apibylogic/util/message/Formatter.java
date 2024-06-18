@@ -5,10 +5,11 @@ import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringModifier;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -17,17 +18,15 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Messages {
-
-    @Getter
-    private static final List<StringModifier> globalModifiers = new ArrayList<>();
-
-    private static final Pattern formatPattern = Pattern.compile("<([a-zA-Z]+?)#(.+?)>");
-    private static final Pattern richColorExtractor = Pattern.compile("§x(§[A-Z-a-z-\\d]){6}");
-    private static final Pattern hexColorExtractor = Pattern.compile("#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})");
+public class Formatter {
 
     public final static String RIGHT_ARROW = "»";
     public final static String DOT = "•";
+    @Getter
+    private static final List<StringModifier> globalModifiers = new ArrayList<>();
+    private static final Pattern placeholderPattern = Pattern.compile("%.+?%");
+    private static final Pattern formatPattern = Pattern.compile("<([a-zA-Z]+?)#(.+?)>");
+    private static final Pattern hexColorExtractor = Pattern.compile("#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})");
 
     public static void registerGlobalModifier(StringModifier modifier) {
         globalModifiers.add(modifier);
@@ -94,8 +93,24 @@ public class Messages {
         return color(formattedMessage);
     }
 
-    public static Component richFormat(String message, Object... replacements) {
-        return LegacyComponentSerializer.builder().hexColors().build().deserialize(replace(message, replacements));
+    public static String autoFormat(String message, String... replacements) {
+        Matcher placeholderMatcher = placeholderPattern.matcher(message);
+
+        int currentIndex = 0;
+        while (placeholderMatcher.find()) {
+            if (currentIndex > replacements.length) {
+                break;
+            }
+
+            String placeholder = placeholderMatcher.group();
+            message = message.replace(placeholder, replacements[currentIndex++]);
+        }
+
+        return format(message);
+    }
+
+    public static BaseComponent richFormat(String message, Object... replacements) {
+        return TextComponent.fromLegacy(replace(message, replacements));
     }
 
     public static String replace(String message, Object... replacements) {
@@ -116,8 +131,11 @@ public class Messages {
         return replace(" <c#primary>/%s &8─ <c#secondary>%s", command, description);
     }
 
-    public static Component richCommand(String command, String description) {
-        return richFormat(" <c#primary>/%s", command).hoverEvent(HoverEvent.showText(richFormat("<c#secondary>%s", description)));
+    public static BaseComponent richCommand(String command, String description) {
+        BaseComponent component = richFormat(" <c#primary>/%s", command);
+        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(richFormat("<c#secondary>%s", description))));
+
+        return component;
     }
 
     public static String main(String prefix, String message, Object... replacements) {
@@ -188,7 +206,7 @@ public class Messages {
         int lastPossibleItem = data.size();
 
         if (page == 0 || page > pages) {
-            text.add(Messages.error(header, "Invalid page!"));
+            text.add(Formatter.error(header, "Invalid page!"));
             return text.toArray(new String[]{});
         }
 

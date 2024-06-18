@@ -2,6 +2,10 @@ package net.bitbylogic.apibylogic.util.location;
 
 import net.bitbylogic.apibylogic.APIByLogic;
 import org.bukkit.*;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 

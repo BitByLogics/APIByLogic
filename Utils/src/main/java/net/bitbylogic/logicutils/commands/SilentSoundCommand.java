@@ -5,7 +5,7 @@ import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import co.aikar.commands.annotation.Syntax;
-import net.bitbylogic.apibylogic.util.Format;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
@@ -21,7 +21,7 @@ public class SilentSoundCommand extends BaseCommand {
         Player targetPlayer = Bukkit.getPlayer(target);
 
         if (targetPlayer == null) {
-            sender.sendMessage(Format.format("&e&lMessaging &8• &cThat player isn't online!"));
+            sender.sendMessage(Formatter.format("&e&lMessaging &8• &cThat player isn't online!"));
             return;
         }
 

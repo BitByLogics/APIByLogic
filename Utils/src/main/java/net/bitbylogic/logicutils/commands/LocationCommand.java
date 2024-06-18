@@ -5,7 +5,7 @@ import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import co.aikar.commands.annotation.Subcommand;
-import net.bitbylogic.apibylogic.util.message.Messages;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import net.bitbylogic.logicutils.player.PlayerUtil;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -17,8 +17,8 @@ public class LocationCommand extends BaseCommand {
     @Default
     public void onDefault(CommandSender sender) {
         PlayerUtil.sendRichMessages(sender,
-                Messages.richFormat(Messages.listHeader("Location Debug", "Valid Commands")),
-                Messages.richCommand("ldbg listchunkperisstance", "View chunk persistence data.")
+                Formatter.richFormat(Formatter.listHeader("Location Debug", "Valid Commands")),
+                Formatter.richCommand("ldbg listchunkperisstance", "View chunk persistence data.")
         );
     }
 

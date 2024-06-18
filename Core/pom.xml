@@ -7,14 +7,14 @@
     <parent>
         <artifactId>APIByLogic</artifactId>
         <groupId>net.bitbylogic</groupId>
-        <version>2024.4</version>
+        <version>2024.6</version>
     </parent>
 
     <artifactId>APIByLogic-Core</artifactId>
     <name>APIByLogic Core</name>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -23,16 +23,16 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.13.0</version>
                 <configuration>
-                    <source>16</source>
-                    <target>16</target>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.5.3</version>
                 <executions>
                     <execution>
                         <phase>package</phase>

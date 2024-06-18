@@ -6,7 +6,7 @@ import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.menu.Menu;
 import net.bitbylogic.apibylogic.menu.MenuItem;
 import net.bitbylogic.apibylogic.menu.inventory.MenuInventory;
-import net.bitbylogic.apibylogic.util.InventoryUtil;
+import net.bitbylogic.apibylogic.util.inventory.InventoryUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;

@@ -1,7 +1,7 @@
 package net.bitbylogic.apibylogic.module.command;
 
 import lombok.Getter;
-import net.bitbylogic.apibylogic.util.message.Messages;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
@@ -98,7 +98,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 }
 
                 if (!caller.hasPermission(moduleCommand.getPermission())) {
-                    caller.sendMessage(Messages.main("Permissions", "&cYou cannot run this command!"));
+                    caller.sendMessage(Formatter.main("Permissions", "&cYou cannot run this command!"));
                     return true;
                 }
 

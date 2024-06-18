@@ -10,7 +10,9 @@ import net.bitbylogic.apibylogic.menu.task.TitleUpdateTask;
 import net.bitbylogic.apibylogic.menu.view.internal.NextPageViewRequirement;
 import net.bitbylogic.apibylogic.menu.view.internal.PreviousPageViewRequirement;
 import net.bitbylogic.apibylogic.util.*;
-import net.bitbylogic.apibylogic.util.message.Messages;
+import net.bitbylogic.apibylogic.util.inventory.InventoryUtil;
+import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -261,7 +263,7 @@ public class Menu implements InventoryHolder, Cloneable {
         modifiers.add(pagePlaceholder);
 
         AtomicReference<List<Integer>> availableSlots = new AtomicReference<>(new ArrayList<>(validSlots));
-        Inventory inventory = Bukkit.createInventory(this, size, data.hasFlag(MenuFlag.DISABLE_TITLE_UPDATE) ? Messages.format(title, modifiers.toArray(new StringModifier[]{})) : ChatColor.RED.toString());
+        Inventory inventory = Bukkit.createInventory(this, size, data.hasFlag(MenuFlag.DISABLE_TITLE_UPDATE) ? Formatter.format(title, modifiers.toArray(new StringModifier[]{})) : ChatColor.RED.toString());
 
         List<MenuItem> itemCache = new ArrayList<>();
 

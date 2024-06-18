@@ -27,7 +27,6 @@ public abstract class Module implements ModuleInterface, Listener {
     private final ModuleManager moduleManager;
 
     private boolean enabled;
-    private ModuleData moduleData;
 
     private File dataFolder;
     private File configFile;
@@ -36,23 +35,25 @@ public abstract class Module implements ModuleInterface, Listener {
     private List<Integer> tasks = Lists.newArrayList();
     private List<Listener> listeners = Lists.newArrayList();
 
-    public Module(JavaPlugin plugin, ModuleManager moduleManager, ModuleData moduleData) {
+    public Module(JavaPlugin plugin, ModuleManager moduleManager) {
         this.plugin = plugin;
         this.moduleManager = moduleManager;
-        this.moduleData = moduleData;
         this.commands = new ArrayList<>();
 
         loadConfiguration();
     }
 
     private void loadConfiguration() {
-        dataFolder = new File(plugin.getDataFolder() + File.separator + moduleData.getName().toLowerCase().replace(" ", "_"));
+        ModuleData moduleData = getModuleData();
+        String pathPrefix = moduleData.getId().toLowerCase().replace(" ", "_");
+
+        dataFolder = new File(plugin.getDataFolder() + File.separator + pathPrefix);
         configFile = new File(getDataFolder() + File.separator + "config.yml");
 
-        InputStream configStream = plugin.getResource(moduleData.getName().toLowerCase().replace(" ", "_") + "/config.yml");
+        InputStream configStream = plugin.getResource(pathPrefix + "/config.yml");
 
         if (!configFile.exists() && configStream != null) {
-            plugin.saveResource(moduleData.getName().toLowerCase().replace(" ", "_") + "/config.yml", false);
+            plugin.saveResource(pathPrefix + "/config.yml", false);
         }
 
         config = YamlConfiguration.loadConfiguration(configFile);
@@ -174,6 +175,6 @@ public abstract class Module implements ModuleInterface, Listener {
     }
 
     public void log(Level level, String message) {
-        Bukkit.getLogger().log(level, "(" + moduleData.getName() + ") " + message);
+        plugin.getLogger().log(level, "(" + getModuleData().getName() + ") " + message);
     }
 }

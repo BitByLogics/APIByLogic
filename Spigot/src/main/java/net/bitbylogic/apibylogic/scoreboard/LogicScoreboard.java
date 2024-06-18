@@ -2,8 +2,8 @@ package net.bitbylogic.apibylogic.scoreboard;
 
 import lombok.Getter;
 import net.bitbylogic.apibylogic.APIByLogic;
-import net.bitbylogic.apibylogic.message.MessageProvider;
-import net.bitbylogic.apibylogic.util.Format;
+import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.config.MessageProvider;
 import net.bitbylogic.apibylogic.util.StringModifier;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
@@ -40,7 +40,7 @@ public class LogicScoreboard {
         this.id = id;
 
         scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
-        objective = scoreboard.registerNewObjective(UUID.randomUUID().toString(), "dummy", Format.format(title));
+        objective = scoreboard.registerNewObjective(UUID.randomUUID().toString(), "dummy", Formatter.format(title));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         APIByLogic.getInstance().getActiveBoards().add(this);
@@ -54,7 +54,7 @@ public class LogicScoreboard {
         Team newLabel = scoreboard.registerNewTeam(id);
         ChatColor color = getAvailableColor();
         newLabel.addEntry(color.toString());
-        newLabel.setPrefix(Format.format(text));
+        newLabel.setPrefix(Formatter.format(text));
         int line = currentLine--;
         objective.getScore(color.toString()).setScore(line);
         lines.add(new LogicScoreboardLine(id, line, scoreboard, newLabel, color, text, update));
@@ -93,7 +93,7 @@ public class LogicScoreboard {
                     return;
                 }
 
-                String text = Format.format(line.getOriginalText());
+                String text = Formatter.format(line.getOriginalText());
 
                 for (StringModifier modifier : modifiers) {
                     text = modifier.modify(text);

@@ -2,8 +2,8 @@ package net.bitbylogic.apibylogic.module;
 
 import lombok.Getter;
 import net.bitbylogic.apibylogic.dependency.DependencyManager;
-import net.bitbylogic.apibylogic.module.command.ModulesCommand;
 import net.bitbylogic.apibylogic.module.command.CommandManager;
+import net.bitbylogic.apibylogic.module.command.ModulesCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -49,7 +49,7 @@ public class ModuleManager {
             Module module;
 
             try {
-                module = moduleClass.getDeclaredConstructor().newInstance();
+                module = moduleClass.getDeclaredConstructor(JavaPlugin.class, ModuleManager.class).newInstance(plugin, this);
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException |
                      InvocationTargetException e) {
                 Bukkit.getLogger().log(Level.SEVERE, "[Module Manager]: Couldn't create new instance of module class '" + moduleClass.getName() + "'");

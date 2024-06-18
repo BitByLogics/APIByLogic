@@ -1,15 +1,17 @@
-package net.bitbylogic.apibylogic.message;
+package net.bitbylogic.apibylogic.util.message.config;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import lombok.Getter;
-import net.bitbylogic.apibylogic.util.Format;
+import net.bitbylogic.apibylogic.util.Pair;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringModifier;
+import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.config.annotation.ConfigValue;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,21 +19,29 @@ import java.util.List;
 @Getter
 public class MessageProvider {
 
-    private final HashMap<String, Object> messages;
-    private final List<StringModifier> placeholders;
+    private final HashMap<String, Object> messages = new HashMap<>();
+    private final List<StringModifier> placeholders = new ArrayList<>();
 
-    public MessageProvider(ConfigurationSection section) {
-        messages = Maps.newHashMap();
-        placeholders = Lists.newArrayList();
-
-        section.getKeys(true).stream().filter(key -> !(section.get(key) instanceof MemorySection)).forEach(key -> messages.put(key, section.get(key)));
+    public MessageProvider(ConfigurationSection config) {
+        config.getKeys(true).stream().filter(key -> !(config.get(key) instanceof MemorySection)).forEach(key -> messages.put(key, config.get(key)));
     }
 
-    public MessageProvider(FileConfiguration config) {
-        messages = Maps.newHashMap();
-        placeholders = Lists.newArrayList();
+    public void loadMessages(FileConfiguration config, @Nullable String messagesPath) {
+        messages.clear();
 
-        config.getKeys(true).stream().filter(key -> !(config.get(key) instanceof MemorySection)).forEach(key -> messages.put(key, config.get(key)));
+        ConfigurationSection memorySection = config;
+
+        if (messagesPath != null) {
+            ConfigurationSection messageSection = config.getConfigurationSection(messagesPath);
+
+            if (messageSection != null) {
+                memorySection = messageSection;
+            }
+        }
+
+        for (String key : memorySection.getKeys(true)) {
+
+        }
     }
 
     public void reload(ConfigurationSection section) {
@@ -59,10 +69,10 @@ public class MessageProvider {
             return null;
         }
 
-        rawMessage = Format.format(rawMessage, externalPlaceholders);
+        rawMessage = Formatter.format(rawMessage, externalPlaceholders);
 
         if (applyPlaceholders) {
-            rawMessage = Format.format(rawMessage, placeholders.toArray(new StringModifier[]{}));
+            rawMessage = Formatter.format(rawMessage, placeholders.toArray(new StringModifier[]{}));
         }
 
         return rawMessage;
@@ -80,12 +90,12 @@ public class MessageProvider {
         }
 
         List<String> formattedMessages = new ArrayList<>();
-        rawList.forEach(string -> formattedMessages.add(Format.format(string, externalPlaceholders)));
+        rawList.forEach(string -> formattedMessages.add(Formatter.format(string, externalPlaceholders)));
 
         List<String> finalMessages = new ArrayList<>();
 
         if (applyPlaceholders) {
-            formattedMessages.forEach(string -> finalMessages.add(Format.format(string, placeholders.toArray(new StringModifier[]{}))));
+            formattedMessages.forEach(string -> finalMessages.add(Formatter.format(string, placeholders.toArray(new StringModifier[]{}))));
         }
 
         return finalMessages;
@@ -116,7 +126,7 @@ public class MessageProvider {
     }
 
     public String applyPlaceholders(String text) {
-        return Format.format(text, placeholders.toArray(new StringModifier[]{}));
+        return Formatter.format(text, placeholders.toArray(new StringModifier[]{}));
     }
 
 }

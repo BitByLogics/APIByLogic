@@ -1,6 +1,6 @@
 package net.bitbylogic.apibylogic.listener;
 
-import net.bitbylogic.apibylogic.util.ItemStackUtil;
+import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
 import org.bukkit.Material;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.EntityType;

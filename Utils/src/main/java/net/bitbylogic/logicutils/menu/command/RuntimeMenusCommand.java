@@ -3,7 +3,7 @@ package net.bitbylogic.logicutils.menu.command;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
 import net.bitbylogic.apibylogic.menu.Menu;
-import net.bitbylogic.apibylogic.util.message.Messages;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import net.bitbylogic.logicutils.LogicUtils;
 import net.bitbylogic.logicutils.menu.RuntimeMenusManager;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -27,16 +27,16 @@ public class RuntimeMenusCommand extends BaseCommand {
 
     @Default
     public void onDefault(CommandSender sender) {
-        sender.sendMessage(Messages.listHeader("Runtime Menus", ""));
-        sender.sendMessage(Messages.command("rmenus reload", "Reload all menus from configuration."));
-        sender.sendMessage(Messages.command("rmenus list <page>", "List all menus."));
-        sender.sendMessage(Messages.command("rmenus open <menu id> (player)", "Open a Menu for yourself or others."));
+        sender.sendMessage(Formatter.listHeader("Runtime Menus", ""));
+        sender.sendMessage(Formatter.command("rmenus reload", "Reload all menus from configuration."));
+        sender.sendMessage(Formatter.command("rmenus list <page>", "List all menus."));
+        sender.sendMessage(Formatter.command("rmenus open <menu id> (player)", "Open a Menu for yourself or others."));
     }
 
     @Subcommand("reload")
     public void onReload(CommandSender sender) {
         runtimeMenusManager.loadMenus();
-        sender.sendMessage(Messages.success("Runtime Menus", "Reloaded menus from configuration!"));
+        sender.sendMessage(Formatter.success("Runtime Menus", "Reloaded menus from configuration!"));
     }
 
     @Subcommand("list")
@@ -49,7 +49,7 @@ public class RuntimeMenusCommand extends BaseCommand {
         Menu menu = runtimeMenusManager.getLoadedMenus().get(menuId);
 
         if (menu == null) {
-            sender.sendMessage(Messages.error("Runtime Menus", "Invalid menu."));
+            sender.sendMessage(Formatter.error("Runtime Menus", "Invalid menu."));
             return;
         }
 
@@ -69,21 +69,21 @@ public class RuntimeMenusCommand extends BaseCommand {
         if (page != 0 && page <= pages) {
             int startingMenu = (page * 10) - 10;
             int lastMenu = Math.min(startingMenu + 10, lastPossibleMenu);
-            sender.sendMessage(Messages.color("&8&m-----(&r &eMenu List &8&m)-----"));
+            sender.sendMessage(Formatter.color("&8&m-----(&r &eMenu List &8&m)-----"));
             for (int i = startingMenu; i < lastMenu; i++) {
                 Menu menu = menus.get(i);
                 if (sender instanceof Player) {
-                    TextComponent message = new TextComponent(String.format(Messages.color("&8- &e%s"), menu.getId()));
-                    message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(Messages.color("&eClick to open!"))));
+                    TextComponent message = new TextComponent(String.format(Formatter.color("&8- &e%s"), menu.getId()));
+                    message.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(Formatter.color("&eClick to open!"))));
                     message.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/rmenus open " + menu.getId()));
                     ((Player) sender).spigot().sendMessage(message);
                 } else {
                     sender.sendMessage(String.format("&8- &e%s", menu.getId()));
                 }
             }
-            sender.sendMessage(String.format(Messages.color("&8&m--------(&r&ePage&8: &a%s&8&m)--------"), page));
+            sender.sendMessage(String.format(Formatter.color("&8&m--------(&r&ePage&8: &a%s&8&m)--------"), page));
         } else {
-            sender.sendMessage(Messages.error("Runtime Menus", "Invalid page&8: &a" + page));
+            sender.sendMessage(Formatter.error("Runtime Menus", "Invalid page&8: &a" + page));
         }
     }
 

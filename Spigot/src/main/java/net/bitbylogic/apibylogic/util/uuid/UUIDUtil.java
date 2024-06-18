@@ -1,9 +1,8 @@
-package net.bitbylogic.apibylogic.util;
+package net.bitbylogic.apibylogic.util.uuid;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import lombok.Setter;
-import net.bitbylogic.apibylogic.util.uuid.UUIDCache;
 import net.bitbylogic.apibylogic.APIByLogic;
 
 import java.io.*;

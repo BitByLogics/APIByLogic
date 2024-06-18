@@ -6,7 +6,7 @@ import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import co.aikar.commands.annotation.Subcommand;
 import net.bitbylogic.apibylogic.util.RichTextUtil;
-import net.bitbylogic.apibylogic.util.message.Messages;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import net.bitbylogic.logicutils.LogicUtils;
 import net.bitbylogic.logicutils.player.PlayerUtil;
 import org.bukkit.Material;
@@ -29,11 +29,11 @@ public class ItemModifyCommand extends BaseCommand {
     @Default
     public void onDefault(CommandSender sender) {
         PlayerUtil.sendRichMessages(sender,
-                Messages.richFormat(Messages.listHeader("Item Modify", "Valid Commands")),
-                Messages.richCommand("itemmodify name <name>", "Change the items name."),
-                Messages.richCommand("itemmodify lore <lore>", "Change the items lore."),
-                Messages.richCommand("itemmodify model <id>", "Change custom model data id."),
-                Messages.richCommand("itemmodify persistent <key> <value>", "Apply a persistent data value.")
+                Formatter.richFormat(Formatter.listHeader("Item Modify", "Valid Commands")),
+                Formatter.richCommand("itemmodify name <name>", "Change the items name."),
+                Formatter.richCommand("itemmodify lore <lore>", "Change the items lore."),
+                Formatter.richCommand("itemmodify model <id>", "Change custom model data id."),
+                Formatter.richCommand("itemmodify persistent <key> <value>", "Apply a persistent data value.")
         );
     }
 
@@ -42,14 +42,14 @@ public class ItemModifyCommand extends BaseCommand {
         ItemStack item = player.getInventory().getItemInMainHand();
 
         if (item.getType() == Material.AIR) {
-            player.sendMessage(Messages.error("Item Modify", "You must hold an item."));
+            player.sendMessage(Formatter.error("Item Modify", "You must hold an item."));
             return;
         }
 
         ItemMeta meta = item.getItemMeta();
         meta.setCustomModelData(id);
         item.setItemMeta(meta);
-        player.sendMessage(Messages.success("Item Modify", "Successfully set model id to %s!", id));
+        player.sendMessage(Formatter.success("Item Modify", "Successfully set model id to %s!", id));
     }
 
     @Subcommand("name")
@@ -57,14 +57,14 @@ public class ItemModifyCommand extends BaseCommand {
         ItemStack item = player.getInventory().getItemInMainHand();
 
         if (item.getType() == Material.AIR) {
-            player.sendMessage(Messages.error("Item Modify", "You must hold an item."));
+            player.sendMessage(Formatter.error("Item Modify", "You must hold an item."));
             return;
         }
 
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(Messages.format(name));
+        meta.setDisplayName(Formatter.format(name));
         item.setItemMeta(meta);
-        player.sendMessage(Messages.success("Item Modify", "Successfully set item name to %s!", name));
+        player.sendMessage(Formatter.success("Item Modify", "Successfully set item name to %s!", name));
     }
 
     @Subcommand("lore")
@@ -72,7 +72,7 @@ public class ItemModifyCommand extends BaseCommand {
         ItemStack item = player.getInventory().getItemInMainHand();
 
         if (item.getType() == Material.AIR) {
-            player.sendMessage(Messages.error("Item Modify", "You must hold a valid item."));
+            player.sendMessage(Formatter.error("Item Modify", "You must hold a valid item."));
             return;
         }
 
@@ -81,16 +81,16 @@ public class ItemModifyCommand extends BaseCommand {
         ItemMeta meta = item.getItemMeta();
 
         if (meta == null || !meta.hasLore() || meta.getLore() == null) {
-            player.sendMessage(Messages.error("Item Modify", "This item has no lore."));
+            player.sendMessage(Formatter.error("Item Modify", "This item has no lore."));
             return;
         }
 
         int loreIndex = 0;
         for (String loreLine : meta.getLore()) {
-            data.add(Messages.dottedMessage("Lore #" + loreIndex++, loreLine));
+            data.add(Formatter.dottedMessage("Lore #" + loreIndex++, loreLine));
         }
 
-        player.sendMessage(Messages.getPagedList("Item Lore", data, page));
+        player.sendMessage(Formatter.getPagedList("Item Lore", data, page));
     }
 
     @Subcommand("lore index")
@@ -98,28 +98,28 @@ public class ItemModifyCommand extends BaseCommand {
         ItemStack item = player.getInventory().getItemInMainHand();
 
         if (item.getType() == Material.AIR) {
-            player.sendMessage(Messages.error("Item Modify", "You must hold a valid item."));
+            player.sendMessage(Formatter.error("Item Modify", "You must hold a valid item."));
             return;
         }
 
         ItemMeta meta = item.getItemMeta();
 
         if (meta == null || !meta.hasLore() || meta.getLore() == null) {
-            player.sendMessage(Messages.error("Item Modify", "This item has no lore."));
+            player.sendMessage(Formatter.error("Item Modify", "This item has no lore."));
             return;
         }
 
         List<String> lore = meta.getLore();
 
         if (lore.size() - 1 < index) {
-            player.sendMessage(Messages.error("Item Modify", "That's an invalid index!"));
+            player.sendMessage(Formatter.error("Item Modify", "That's an invalid index!"));
             return;
         }
 
-        lore.set(index, Messages.format(loreLine));
+        lore.set(index, Formatter.format(loreLine));
         meta.setLore(lore);
         item.setItemMeta(meta);
-        player.sendMessage(Messages.success("Item Modify", "Successfully updated lore index %s to %s!", index, loreLine));
+        player.sendMessage(Formatter.success("Item Modify", "Successfully updated lore index %s to %s!", index, loreLine));
     }
 
     @Subcommand("lore append")
@@ -127,20 +127,20 @@ public class ItemModifyCommand extends BaseCommand {
         ItemStack item = player.getInventory().getItemInMainHand();
 
         if (item.getType() == Material.AIR) {
-            player.sendMessage(Messages.error("Item Modify", "You must hold a valid item."));
+            player.sendMessage(Formatter.error("Item Modify", "You must hold a valid item."));
             return;
         }
 
         ItemMeta meta = item.getItemMeta();
 
         if (meta == null || !meta.hasLore() || meta.getLore() == null) {
-            player.sendMessage(Messages.error("Item Modify", "This item has no lore."));
+            player.sendMessage(Formatter.error("Item Modify", "This item has no lore."));
             return;
         }
 
         List<String> lore = meta.getLore();
 
-        lore.add(Messages.format(loreLine));
+        lore.add(Formatter.format(loreLine));
         meta.setLore(lore);
         item.setItemMeta(meta);
     }
@@ -150,24 +150,24 @@ public class ItemModifyCommand extends BaseCommand {
         ItemStack item = player.getInventory().getItemInMainHand();
 
         if (item.getType() == Material.AIR) {
-            player.sendMessage(Messages.error("Item Modify", "You must hold an item."));
+            player.sendMessage(Formatter.error("Item Modify", "You must hold an item."));
             return;
         }
 
         List<String> actualLore = new ArrayList<>();
 
         for (String loreLine : RichTextUtil.getRichText(lore, 0)) {
-            actualLore.add(Messages.format(loreLine));
+            actualLore.add(Formatter.format(loreLine));
         }
 
         ItemMeta meta = item.getItemMeta();
         meta.setLore(actualLore);
         item.setItemMeta(meta);
 
-        player.sendMessage(Messages.richFormat(Messages.success("Item Modify", "Successfully set item lore to: ")));
+        player.spigot().sendMessage(Formatter.richFormat(Formatter.success("Item Modify", "Successfully set item lore to: ")));
         AtomicInteger position = new AtomicInteger();
         actualLore.forEach(loreLine -> {
-            player.sendMessage(Messages.richFormat(Messages.listItem("#" + position.incrementAndGet(), loreLine)));
+            player.spigot().sendMessage(Formatter.richFormat(Formatter.listItem("#" + position.incrementAndGet(), loreLine)));
         });
     }
 
@@ -176,14 +176,14 @@ public class ItemModifyCommand extends BaseCommand {
         ItemStack item = player.getInventory().getItemInMainHand();
 
         if (item.getType() == Material.AIR) {
-            player.sendMessage(Messages.error("Item Modify", "You must hold an item."));
+            player.sendMessage(Formatter.error("Item Modify", "You must hold an item."));
             return;
         }
 
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(new NamespacedKey(LogicUtils.getInstance(), key), PersistentDataType.STRING, value);
         item.setItemMeta(meta);
-        player.sendMessage(Messages.success("Item Modify", "Successfully added persistent data with key %s and value %s to item!", key, value));
+        player.sendMessage(Formatter.success("Item Modify", "Successfully added persistent data with key %s and value %s to item!", key, value));
     }
 
     @Subcommand("enchant")
@@ -192,12 +192,12 @@ public class ItemModifyCommand extends BaseCommand {
         Enchantment enchantment = Enchantment.getByKey(key);
 
         if (enchantment == null) {
-            player.sendMessage(Messages.error("Item Modify", "Invalid enchant."));
+            player.sendMessage(Formatter.error("Item Modify", "Invalid enchant."));
             return;
         }
 
         if (player.getInventory().getItemInMainHand().getType() == Material.AIR) {
-            player.sendMessage(Messages.error("Item Modify", "You must hold an item."));
+            player.sendMessage(Formatter.error("Item Modify", "You must hold an item."));
             return;
         }
 

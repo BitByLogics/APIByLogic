@@ -28,18 +28,18 @@ public class HikariUpdateRedisMessageListener<O extends HikariObject> extends Re
             switch (updateType) {
                 case SAVE:
                     if (object != null) {
-                        hikariTable.getDataMap().remove(object.getDataId());
+                        hikariTable.getDataMap().remove(object.getId());
                     }
 
                     Executors.newSingleThreadScheduledExecutor().execute(() -> {
                         hikariTable.getDataFromDB(objectId, o -> {
-                            hikariTable.getDataMap().put(o.getDataId(), o);
+                            hikariTable.getDataMap().put(o.getId(), o);
                         });
                     });
                     break;
                 case DELETE:
                     if (object != null) {
-                        hikariTable.getDataMap().remove(object.getDataId());
+                        hikariTable.getDataMap().remove(object.getId());
                     }
                     break;
                 default:

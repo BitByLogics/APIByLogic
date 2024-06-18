@@ -5,10 +5,10 @@ import lombok.RequiredArgsConstructor;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.menu.Menu;
 import net.bitbylogic.apibylogic.menu.placeholder.PlaceholderProvider;
-import net.bitbylogic.apibylogic.util.InventoryUpdate;
+import net.bitbylogic.apibylogic.util.inventory.InventoryUpdate;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringModifier;
-import net.bitbylogic.apibylogic.util.message.Messages;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -59,7 +59,7 @@ public class TitleUpdateTask {
             finalModifiers.add(pagePlaceholder);
 
             new ArrayList<>(inventory.getViewers()).forEach(viewer -> {
-                InventoryUpdate.updateInventory(APIByLogic.getInstance(), (Player) viewer, Messages.format(menuInventory.getTitle(),
+                InventoryUpdate.updateInventory(APIByLogic.getInstance(), (Player) viewer, Formatter.format(menuInventory.getTitle(),
                         finalModifiers.toArray(new StringModifier[]{})));
             });
         });

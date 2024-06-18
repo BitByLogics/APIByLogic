@@ -1,7 +1,12 @@
-package net.bitbylogic.apibylogic.util;
+package net.bitbylogic.apibylogic.util.item;
 
 import com.google.common.collect.Lists;
 import net.bitbylogic.apibylogic.APIByLogic;
+import net.bitbylogic.apibylogic.util.Format;
+import net.bitbylogic.apibylogic.util.NumberUtil;
+import net.bitbylogic.apibylogic.util.ReflectionUtils;
+import net.bitbylogic.apibylogic.util.StringModifier;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import net.md_5.bungee.api.ChatColor;
 import net.minecraft.locale.LocaleLanguage;
 import org.bukkit.Bukkit;
@@ -17,7 +22,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
@@ -45,7 +49,7 @@ public class ItemStackUtil {
      */
     public static ItemStack getItemStackFromConfig(ConfigurationSection section, StringModifier... modifiers) {
         int amount = section.getInt("Amount", 1);
-        ItemStack stack = new ItemStack(Material.valueOf(Format.format(section.getString("Material", "BARRIER"), modifiers)), amount);
+        ItemStack stack = new ItemStack(Material.valueOf(Formatter.format(section.getString("Material", "BARRIER"), modifiers)), amount);
         ItemMeta meta = stack.getItemMeta();
 
         if (meta == null) {
@@ -54,19 +58,21 @@ public class ItemStackUtil {
 
         // Define the items name
         if (section.getString("Name") != null) {
-            meta.setDisplayName(Format.format(section.getString("Name"), modifiers));
+            meta.setDisplayName(Formatter.format(section.getString("Name"), modifiers));
         }
 
         List<String> lore = Lists.newArrayList();
 
         // Define the items lore
         section.getStringList("Lore").forEach(string ->
-                lore.add(Format.format(string, modifiers)));
+                lore.add(Formatter.format(string, modifiers)));
 
         meta.setLore(lore);
 
         // Add flags to hide potion effects/attributes
-        meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_ATTRIBUTES);
+        section.getStringList("Flags").forEach(flag -> {
+            meta.addItemFlags(ItemFlag.valueOf(flag.toUpperCase()));
+        });
 
         // Add persistent data keys
         if (!section.getStringList("Custom-Data").isEmpty()) {
@@ -78,7 +84,7 @@ public class ItemStackUtil {
 
         // Make the item glow
         if (section.getBoolean("Glow")) {
-            meta.addEnchant(Enchantment.DURABILITY, 1, true);
+            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         }
 
@@ -97,23 +103,30 @@ public class ItemStackUtil {
             ConfigurationSection potionSection = section.getConfigurationSection("Potion-Data");
 
             if (potionSection != null) {
-                PotionMeta potionMeta = (PotionMeta) meta;
-                PotionEffectType type = PotionEffectType.getByName(potionSection.getString("Type", "POISON"));
-                potionMeta.addCustomEffect(new PotionEffect(type, potionSection.getInt("Duration", 20), potionSection.getInt("Amplifier", 1)), true);
-                stack.setItemMeta(meta);
+                boolean vanilla = potionSection.getBoolean("Vanilla", false);
+                PotionMeta potionMeta = (PotionMeta) stack.getItemMeta();
+                String potionType = potionSection.getString("Type", "POISON");
+
+                if (vanilla) {
+                    potionMeta.setBasePotionType(PotionType.valueOf(potionType));
+                } else {
+                    potionMeta.addCustomEffect(new PotionEffect(PotionEffectType.getByName(potionType), potionSection.getInt("Duration", 20), potionSection.getInt("Amplifier", 1) - 1), true);
+                }
+
+                stack.setItemMeta(potionMeta);
             }
         }
 
         if (stack.getType() == Material.TIPPED_ARROW) {
             PotionMeta potionMeta = (PotionMeta) stack.getItemMeta();
-            potionMeta.setBasePotionData(new PotionData(PotionType.valueOf(section.getString("Arrow-Type", "POISON")), false, false));
+            potionMeta.setBasePotionType(PotionType.valueOf(section.getString("Arrow-Type", "POISON")));
             stack.setItemMeta(potionMeta);
         }
 
         // If the item is a player head, apply skin
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
-            skullMeta.setOwner(Format.format(section.getString("Skull-Name", "Notch"), modifiers));
+            skullMeta.setOwner(Formatter.format(section.getString("Skull-Name", "Notch"), modifiers));
             stack.setItemMeta(skullMeta);
         }
 
@@ -215,13 +228,13 @@ public class ItemStackUtil {
         }
 
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(Format.format(meta.getDisplayName(), modifiers));
+        meta.setDisplayName(Formatter.format(meta.getDisplayName(), modifiers));
 
         if (meta.hasLore() && meta.getLore() != null) {
             List<String> lore = meta.getLore();
             List<String> updatedLore = Lists.newArrayList();
 
-            lore.forEach(string -> updatedLore.add(Format.format(string, modifiers)));
+            lore.forEach(string -> updatedLore.add(Formatter.format(string, modifiers)));
             meta.setLore(updatedLore);
         }
 

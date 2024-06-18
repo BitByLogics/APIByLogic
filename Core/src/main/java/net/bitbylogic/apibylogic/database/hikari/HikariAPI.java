@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 @Getter
@@ -38,46 +39,58 @@ public class HikariAPI {
     }
 
     public void executeStatement(String query, Consumer<ResultSet> consumer, Object... arguments) {
-        try (Connection connection = hikari.getConnection()) {
-            try (PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
-                int index = 1;
-                for (Object argument : arguments) {
-                    statement.setObject(index++, argument);
-                }
+        CompletableFuture.supplyAsync(() -> {
+            try (Connection connection = hikari.getConnection()) {
+                try (PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    int index = 1;
+                    for (Object argument : arguments) {
+                        statement.setObject(index++, argument);
+                    }
 
-                statement.executeUpdate();
-                try (ResultSet result = statement.getGeneratedKeys()) {
-                    if (consumer != null) {
-                        if (result != null) {
-                            result.next();
-                        }
-
-                        consumer.accept(result);
+                    statement.executeUpdate();
+                    try (ResultSet result = statement.getGeneratedKeys()) {
+                        return result;
                     }
                 }
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+
+            return null;
+        }).thenAccept((resultSet) -> {
+            if (consumer == null) {
+                return;
+            }
+
+            consumer.accept(resultSet);
+        });
     }
 
     public void executeQuery(String query, Consumer<ResultSet> consumer, Object... arguments) {
-        try (Connection connection = hikari.getConnection()) {
-            try (PreparedStatement statement = connection.prepareStatement(query, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                int index = 1;
-                for (Object argument : arguments) {
-                    statement.setObject(index++, argument);
-                }
+        CompletableFuture.supplyAsync(() -> {
+            try (Connection connection = hikari.getConnection()) {
+                try (PreparedStatement statement = connection.prepareStatement(query, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                    int index = 1;
+                    for (Object argument : arguments) {
+                        statement.setObject(index++, argument);
+                    }
 
-                try (ResultSet result = statement.executeQuery()) {
-                    if (consumer != null) {
-                        consumer.accept(result);
+                    try (ResultSet result = statement.executeQuery()) {
+                        return result;
                     }
                 }
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+
+            return null;
+        }).thenAccept((resultSet) -> {
+            if (consumer == null) {
+                return;
+            }
+
+            consumer.accept(resultSet);
+        });
     }
 
 }

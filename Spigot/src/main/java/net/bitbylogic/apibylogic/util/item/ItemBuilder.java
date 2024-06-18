@@ -1,7 +1,7 @@
-package net.bitbylogic.apibylogic.util;
+package net.bitbylogic.apibylogic.util.item;
 
-import net.bitbylogic.apibylogic.action.PlayerInteractAction;
 import net.bitbylogic.apibylogic.APIByLogic;
+import net.bitbylogic.apibylogic.action.PlayerInteractAction;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -82,7 +82,7 @@ public class ItemBuilder {
 
     public ItemBuilder removeAttributes() {
         ItemMeta meta = itemStack.getItemMeta();
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_POTION_EFFECTS);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
         itemStack.setItemMeta(meta);
         return this;
     }

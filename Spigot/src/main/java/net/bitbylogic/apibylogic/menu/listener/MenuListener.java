@@ -4,10 +4,10 @@ import net.bitbylogic.apibylogic.menu.Menu;
 import net.bitbylogic.apibylogic.menu.placeholder.PlaceholderProvider;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.menu.MenuFlag;
-import net.bitbylogic.apibylogic.util.InventoryUpdate;
+import net.bitbylogic.apibylogic.util.inventory.InventoryUpdate;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringModifier;
-import net.bitbylogic.apibylogic.util.message.Messages;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -134,7 +134,7 @@ public class MenuListener implements Listener {
 
         if (!menu.getData().hasFlag(MenuFlag.DISABLE_TITLE_UPDATE)) {
             Bukkit.getScheduler().runTaskLater(APIByLogic.getInstance(), () -> InventoryUpdate.updateInventory(APIByLogic.getInstance(), (Player) event.getPlayer(),
-                    Messages.format(menu.getMenuInventory(inventory).getTitle(), modifiers.toArray(new StringModifier[]{}))), 1);
+                    Formatter.format(menu.getMenuInventory(inventory).getTitle(), modifiers.toArray(new StringModifier[]{}))), 1);
         }
 
         menu.getActivePlayers().add(event.getPlayer().getUniqueId());

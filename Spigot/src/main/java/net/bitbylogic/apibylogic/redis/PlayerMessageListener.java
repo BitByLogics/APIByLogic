@@ -2,7 +2,7 @@ package net.bitbylogic.apibylogic.redis;
 
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
 import net.bitbylogic.apibylogic.database.redis.listener.RedisMessageListener;
-import net.bitbylogic.apibylogic.util.Format;
+import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -22,7 +22,7 @@ public class PlayerMessageListener extends RedisMessageListener {
             return;
         }
 
-        player.sendMessage(Format.format(component.getData("message", String.class)));
+        player.sendMessage(Formatter.format(component.getData("message", String.class)));
     }
 
 }

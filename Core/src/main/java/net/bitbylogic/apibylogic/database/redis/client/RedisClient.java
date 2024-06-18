@@ -5,9 +5,12 @@ import net.bitbylogic.apibylogic.database.redis.RedisManager;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
 import net.bitbylogic.apibylogic.database.redis.listener.RedisMessageListener;
 import net.bitbylogic.apibylogic.database.redis.timed.RedisTimedRequest;
+import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 @Getter
@@ -28,30 +31,32 @@ public class RedisClient {
         this.listeners = new ArrayList<>();
         this.timedRequests = new HashMap<>();
 
-        redisManager.getRedissonClient().getTopic(REQUEST_TOPIC_ID).addListener(String.class, ((channel, msg) -> {
-            ListenerComponent component = redisManager.getGson().fromJson(msg, ListenerComponent.class);
+        getTopic(REQUEST_TOPIC_ID).thenAcceptAsync(topic -> {
+            topic.addListener(String.class, (channel, msg) -> {
+                ListenerComponent component = redisManager.getGson().fromJson(msg, ListenerComponent.class);
 
-            if (redisManager.isDebug()) {
-                Logger.getGlobal().info(String.format("[INCOMING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
-            }
-
-            component.getTimedResponses().forEach(response -> {
-                if (component.getSource().getID().equalsIgnoreCase(redisManager.getSourceID()) && !component.isAllowRequestSelfActivation()) {
-                    return;
+                if (redisManager.isDebug()) {
+                    Logger.getGlobal().info(String.format("[INCOMING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
                 }
 
-                RedisTimedRequest timedRequest = timedRequests.keySet().stream().filter(request -> request.getUniqueId().equals(response.getUniqueId()))
-                        .findFirst().orElse(null);
+                component.getTimedResponses().forEach(response -> {
+                    if (component.getSource().getID().equalsIgnoreCase(redisManager.getSourceID()) && !component.isAllowRequestSelfActivation()) {
+                        return;
+                    }
 
-                if (timedRequest == null) {
-                    return;
-                }
+                    RedisTimedRequest timedRequest = timedRequests.keySet().stream().filter(request -> request.getUniqueId().equals(response.getUniqueId()))
+                            .findFirst().orElse(null);
 
-                timedRequests.get(timedRequest).cancel();
-                timedRequests.remove(timedRequest);
-                timedRequest.getSuccessCallback().call(component);
+                    if (timedRequest == null) {
+                        return;
+                    }
+
+                    timedRequests.get(timedRequest).cancel();
+                    timedRequests.remove(timedRequest);
+                    timedRequest.getSuccessCallback().call(component);
+                });
             });
-        }));
+        });
     }
 
     /**
@@ -67,13 +72,16 @@ public class RedisClient {
         }
 
         listener.setClient(this);
-        redisManager.getRedissonClient().getTopic(listener.getChannelName()).addListener(String.class, (channel, msg) -> {
+        Consumer<ListenerComponent> componentConsumer = listener::onReceive;
+
+        getTopic(listener.getChannelName()).thenAcceptAsync(rTopic -> rTopic.addListener(String.class, (channel, msg) -> {
             try {
                 ListenerComponent component = redisManager.getGson().fromJson(msg, ListenerComponent.class);
 
                 if (redisManager.isDebug()) {
                     Logger.getGlobal().info(String.format("[INCOMING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
                 }
+
                 if (component.getTarget() == null || component.getTarget().isEmpty()) {
                     listeners.stream().filter(l -> l.getChannelName().equalsIgnoreCase(component.getChannel()))
                             .forEach(l -> {
@@ -85,7 +93,7 @@ public class RedisClient {
                                     Logger.getGlobal().info(String.format("[INCOMING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
                                 }
 
-                                l.onReceive(component);
+                                componentConsumer.accept(component);
                             });
                     return;
                 }
@@ -99,12 +107,12 @@ public class RedisClient {
                         Logger.getGlobal().info(String.format("[INCOMING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), msg));
                     }
 
-                    l.onReceive(component);
+                    componentConsumer.accept(component);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        });
+        }));
     }
 
     /**
@@ -137,7 +145,7 @@ public class RedisClient {
             Logger.getGlobal().info(String.format("[OUTGOING]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), redisManager.getGson().toJson(component)));
         }
 
-        redisManager.getRedissonClient().getTopic(component.getChannel()).publish(redisManager.getGson().toJson(component));
+        getTopic(component.getChannel()).thenAcceptAsync(topic -> topic.publish(redisManager.getGson().toJson(component)));
     }
 
     public void sendTimedResponse(ListenerComponent component) {
@@ -152,7 +160,11 @@ public class RedisClient {
             Logger.getGlobal().info(String.format("[TIMED RESPONSE]: %s -> %s: %s", component.getSource().getID(), component.getTarget(), redisManager.getGson().toJson(component)));
         }
 
-        redisManager.getRedissonClient().getTopic(REQUEST_TOPIC_ID).publish(redisManager.getGson().toJson(component));
+        getTopic(REQUEST_TOPIC_ID).thenAcceptAsync(topic -> topic.publish(redisManager.getGson().toJson(component)));
+    }
+
+    private CompletableFuture<RTopic> getTopic(String topicName) {
+        return CompletableFuture.supplyAsync(() -> redisManager.getRedissonClient().getTopic(topicName));
     }
 
     public RedissonClient getRedisClient() {

@@ -1,5 +1,6 @@
-package net.bitbylogic.apibylogic.util;
+package net.bitbylogic.apibylogic.util.inventory;
 
+import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
