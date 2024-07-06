@@ -7,7 +7,9 @@ import java.lang.annotation.*;
 @Inherited
 public @interface HikariStatementData {
 
-    String dataType();
+    String dataType() default "";
+
+    String columnName() default "";
 
     boolean allowNull() default true;
 
@@ -16,6 +18,8 @@ public @interface HikariStatementData {
     boolean primaryKey() default false;
 
     boolean updateOnSave() default true;
+
+    boolean subClass() default false;
 
     String processorID() default "";
 

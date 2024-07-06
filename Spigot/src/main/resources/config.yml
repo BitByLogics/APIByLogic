@@ -30,6 +30,7 @@ Redis-Credentials:
 # ────────────────────
 Hikari-Details:
   Address: ""
+  Database: ""
   Port: "3306"
   Username: "test"
   Password: "password"

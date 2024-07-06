@@ -5,7 +5,9 @@ import net.bitbylogic.apibylogic.database.hikari.data.HikariTable;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
 import net.bitbylogic.apibylogic.database.redis.listener.RedisMessageListener;
 
+import java.util.Optional;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class HikariUpdateRedisMessageListener<O extends HikariObject> extends RedisMessageListener {
@@ -22,30 +24,38 @@ public class HikariUpdateRedisMessageListener<O extends HikariObject> extends Re
         HikariRedisUpdateType updateType = component.getData("updateType", HikariRedisUpdateType.class);
         String objectId = component.getData("objectId", String.class);
 
-        O object = hikariTable.getDataById(objectId);
+        Optional<O> optionalObject = hikariTable.getDataById(objectId);
 
-        Executors.newSingleThreadScheduledExecutor().schedule(() -> {
-            switch (updateType) {
-                case SAVE:
-                    if (object != null) {
-                        hikariTable.getDataMap().remove(object.getId());
-                    }
+        if (optionalObject.isEmpty()) {
+            return;
+        }
 
-                    Executors.newSingleThreadScheduledExecutor().execute(() -> {
-                        hikariTable.getDataFromDB(objectId, o -> {
-                            hikariTable.getDataMap().put(o.getId(), o);
-                        });
-                    });
-                    break;
-                case DELETE:
-                    if (object != null) {
+        O object = optionalObject.get();
+
+        try (ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor()) {
+            service.schedule(() -> {
+                switch (updateType) {
+                    case SAVE:
                         hikariTable.getDataMap().remove(object.getId());
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }, 1, TimeUnit.SECONDS);
+
+                        try (ScheduledExecutorService innerService = Executors.newSingleThreadScheduledExecutor()) {
+                            innerService.execute(() -> {
+                                hikariTable.getDataFromDB(objectId, o -> {
+                                    o.ifPresent(obj -> {
+                                        hikariTable.getDataMap().put(obj.getId(), obj);
+                                    });
+                                });
+                            });
+                        }
+                        break;
+                    case DELETE:
+                        hikariTable.getDataMap().remove(object.getId());
+                        break;
+                    default:
+                        break;
+                }
+            }, 1, TimeUnit.SECONDS);
+        }
     }
 
 }

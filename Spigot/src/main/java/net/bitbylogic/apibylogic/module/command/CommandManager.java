@@ -27,8 +27,16 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             commandMapField.setAccessible(true);
             commandMap = (CommandMap) commandMapField.get(Bukkit.getServer());
         } catch (Exception exception) {
-            Bukkit.getLogger().log(Level.SEVERE, "(Command Manager): Unable to load CommandMap class, commands are unavailable.");
-            exception.printStackTrace();
+            Bukkit.getLogger().log(Level.SEVERE, "(Command Manager): Couldn't find CommandMap, maybe we're on 1.21+? Trying...");
+
+            try {
+                Field commandMapField = Class.forName("org.bukkit.craftbukkit.v1_21_R1.CraftServer").getDeclaredField("commandMap");
+                commandMapField.setAccessible(true);
+                commandMap = (CommandMap) commandMapField.get(Bukkit.getServer());
+            } catch(Exception e) {
+                Bukkit.getLogger().log(Level.SEVERE, "(Command Manager): Still couldn't load CommandMap, commands won't work.");
+                e.printStackTrace();
+            }
         }
     }
 

@@ -39,35 +39,35 @@ public class HikariAPI {
     }
 
     public void executeStatement(String query, Consumer<ResultSet> consumer, Object... arguments) {
-        CompletableFuture.supplyAsync(() -> {
+        CompletableFuture.runAsync(() -> {
             try (Connection connection = hikari.getConnection()) {
-                try (PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
-                    int index = 1;
-                    for (Object argument : arguments) {
-                        statement.setObject(index++, argument);
-                    }
+                        try (PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                            int index = 1;
+                            for (Object argument : arguments) {
+                                statement.setObject(index++, argument);
+                            }
 
-                    statement.executeUpdate();
+                            statement.executeUpdate();
                     try (ResultSet result = statement.getGeneratedKeys()) {
-                        return result;
+                        consumer.accept(result);
                     }
                 }
             } catch (SQLException e) {
-                e.printStackTrace();
+                // Printed below
+            }
+        }).handle((unused, e) -> {
+            if (e == null) {
+                return null;
             }
 
+            System.out.println("(HikariAPI): Issue executing statement: " + query);
+            e.printStackTrace();
             return null;
-        }).thenAccept((resultSet) -> {
-            if (consumer == null) {
-                return;
-            }
-
-            consumer.accept(resultSet);
         });
     }
 
     public void executeQuery(String query, Consumer<ResultSet> consumer, Object... arguments) {
-        CompletableFuture.supplyAsync(() -> {
+        CompletableFuture.runAsync(() -> {
             try (Connection connection = hikari.getConnection()) {
                 try (PreparedStatement statement = connection.prepareStatement(query, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
                     int index = 1;
@@ -76,20 +76,24 @@ public class HikariAPI {
                     }
 
                     try (ResultSet result = statement.executeQuery()) {
-                        return result;
+                        if (consumer == null) {
+                            return;
+                        }
+
+                        consumer.accept(result);
                     }
                 }
             } catch (SQLException e) {
-                e.printStackTrace();
+                // Printed below
+            }
+        }).handle((unused, e) -> {
+            if (e == null) {
+                return null;
             }
 
+            System.out.println("(HikariAPI): Issue executing statement: " + query);
+            e.printStackTrace();
             return null;
-        }).thenAccept((resultSet) -> {
-            if (consumer == null) {
-                return;
-            }
-
-            consumer.accept(resultSet);
         });
     }
 

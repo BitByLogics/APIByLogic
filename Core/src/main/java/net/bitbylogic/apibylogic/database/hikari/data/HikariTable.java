@@ -2,7 +2,6 @@ package net.bitbylogic.apibylogic.database.hikari.data;
 
 import lombok.Getter;
 import net.bitbylogic.apibylogic.database.hikari.HikariAPI;
-import net.bitbylogic.apibylogic.database.hikari.annotation.HikariStatementData;
 import net.bitbylogic.apibylogic.database.hikari.redis.HikariRedisUpdateType;
 import net.bitbylogic.apibylogic.database.hikari.redis.HikariUpdateRedisMessageListener;
 import net.bitbylogic.apibylogic.database.redis.client.RedisClient;
@@ -12,8 +11,7 @@ import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,7 +23,7 @@ public abstract class HikariTable<O extends HikariObject> {
     private final HikariAPI hikariAPI;
     private final String table;
     private final ConcurrentHashMap<Object, O> dataMap;
-    private String idFieldName;
+    private String primaryKeyFieldName;
 
     private RedisClient redisClient;
 
@@ -36,19 +34,18 @@ public abstract class HikariTable<O extends HikariObject> {
 
         try {
             O tempObject = objectClass.newInstance();
-            hikariAPI.executeStatement(tempObject.getTableCreateStatement(table));
-            Map.Entry<String, HikariStatementData> data = tempObject.getRawStatementData().entrySet().stream().filter(entry -> entry.getValue().primaryKey()).findFirst().orElse(null);
-            idFieldName = data == null ? null : data.getKey();
+            hikariAPI.executeStatement(tempObject.getTableCreateStatement(table), resultSet -> {
+                if (!loadData) {
+                    return;
+                }
+
+                loadData();
+            });
+            primaryKeyFieldName = tempObject.getPrimaryKeyFieldName();
         } catch (InstantiationException | IllegalAccessException e) {
             System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table.");
             e.printStackTrace();
         }
-
-        if (!loadData) {
-            return;
-        }
-
-        loadData();
     }
 
     public HikariTable(HikariAPI hikariAPI, Class<O> objectClass, String table) {
@@ -62,14 +59,11 @@ public abstract class HikariTable<O extends HikariObject> {
             hikariAPI.executeStatement(tempObject.getTableCreateStatement(table), rs -> {
                 loadData();
             });
-            Map.Entry<String, HikariStatementData> data = tempObject.getRawStatementData().entrySet().stream().filter(entry -> entry.getValue().primaryKey()).findFirst().orElse(null);
-            idFieldName = data == null ? null : data.getKey();
+            primaryKeyFieldName = tempObject.getPrimaryKeyFieldName();
         } catch (InstantiationException | IllegalAccessException e) {
             System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table.");
             e.printStackTrace();
         }
-
-        loadData();
     }
 
     private void loadData() {
@@ -82,8 +76,8 @@ public abstract class HikariTable<O extends HikariObject> {
 
             try {
                 while (result.next()) {
-                    O object = loadObject(result);
-                    this.dataMap.put(object.getId(), object);
+                    Optional<O> object = loadObject(result);
+                    object.ifPresent(o -> dataMap.put(o.getId(), o));
                 }
             } catch (SQLException exception) {
                 exception.printStackTrace();
@@ -112,18 +106,16 @@ public abstract class HikariTable<O extends HikariObject> {
     }
 
     public void save(O object, Consumer<ResultSet> result) {
-        if (object.getRawStatementData().isEmpty()) {
-            return;
-        }
-
         hikariAPI.executeStatement(object.getDataSaveStatement(table), rs -> {
-            object.getRawStatementData().forEach((s, data) -> {
-                if (!data.autoIncrement()) {
+            object.getColumnData().forEach(columnData -> {
+                if (!columnData.getStatementData().autoIncrement()) {
                     return;
                 }
 
+                Object fieldObject = object.getFieldObject(columnData);
+
                 try {
-                    Field field = object.getClass().getDeclaredField(s);
+                    Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
                     boolean originalState = field.canAccess(this);
                     field.setAccessible(true);
                     field.setInt(object, rs.getInt(1));
@@ -145,7 +137,7 @@ public abstract class HikariTable<O extends HikariObject> {
     }
 
     public void remove(O object) {
-        remove(object, true);
+        remove(object, false);
     }
 
     public void remove(O object, boolean delete) {
@@ -156,15 +148,11 @@ public abstract class HikariTable<O extends HikariObject> {
         dataMap.remove(object.getId());
 
         if (delete) {
-            CompletableFuture.runAsync(() -> delete(object));
+            delete(object);
         }
     }
 
     public void delete(O object) {
-        if (object.getRawStatementData().isEmpty()) {
-            return;
-        }
-
         hikariAPI.executeStatement(object.getDataDeleteStatement(table), rs -> {
             if (redisClient != null) {
                 redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
@@ -173,38 +161,35 @@ public abstract class HikariTable<O extends HikariObject> {
         });
     }
 
-    public abstract O loadObject(ResultSet set) throws SQLException;
+    public abstract Optional<O> loadObject(ResultSet set) throws SQLException;
 
-    public O getDataById(Object id) {
-        return dataMap.get(id);
+    public Optional<O> getDataById(Object id) {
+        return Optional.ofNullable(dataMap.get(id));
     }
 
-    public O getDataFromDB(Object id, boolean checkCache) {
+    public Optional<O> getDataFromDB(Object id, boolean checkCache) {
         if (checkCache) {
-            for (Iterator<O> iterator = new ArrayList<>(dataMap.values()).iterator(); iterator.hasNext(); ) {
-                O next = iterator.next();
-
+            for (O next : new ArrayList<>(dataMap.values())) {
                 if (next.getId().equals(id)) {
-                    return next;
+                    return Optional.of(next);
                 }
             }
         }
 
-        if (idFieldName == null) {
-            return null;
+        if (primaryKeyFieldName == null) {
+            return Optional.empty();
         }
 
-        AtomicReference<O> databaseObject = new AtomicReference<>();
+        AtomicReference<Optional<O>> databaseObject = new AtomicReference<>();
 
-        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, idFieldName, id.toString()), result -> {
+        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, primaryKeyFieldName, id.toString()), result -> {
             if (result == null) {
                 return;
             }
 
             try {
-                while (result.next()) {
+                if (result.next()) {
                     databaseObject.set(loadObject(result));
-                    break;
                 }
             } catch (SQLException exception) {
                 exception.printStackTrace();
@@ -214,13 +199,13 @@ public abstract class HikariTable<O extends HikariObject> {
         return databaseObject.get();
     }
 
-    public void getDataFromDB(Object id, Consumer<O> consumer) {
-        if (idFieldName == null) {
+    public void getDataFromDB(Object id, Consumer<Optional<O>> consumer) {
+        if (primaryKeyFieldName == null) {
             consumer.accept(null);
             return;
         }
 
-        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, idFieldName, id.toString()), result -> {
+        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, primaryKeyFieldName, id.toString()), result -> {
             if (result == null) {
                 consumer.accept(null);
                 return;

@@ -1,10 +1,11 @@
 package net.bitbylogic.apibylogic.util.item;
 
+import com.cryptomorin.xseries.reflection.XReflection;
+import com.cryptomorin.xseries.reflection.minecraft.MinecraftPackage;
 import com.google.common.collect.Lists;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.util.Format;
 import net.bitbylogic.apibylogic.util.NumberUtil;
-import net.bitbylogic.apibylogic.util.ReflectionUtils;
 import net.bitbylogic.apibylogic.util.StringModifier;
 import net.bitbylogic.apibylogic.util.message.Formatter;
 import net.md_5.bungee.api.ChatColor;
@@ -203,7 +204,9 @@ public class ItemStackUtil {
      */
     public static String getVanillaName(ItemStack item) {
         String descriptionId = "";
-        Class<?> craftItemStack = ReflectionUtils.getCraftClass("inventory.CraftItemStack");
+        Class<?> craftItemStack = XReflection.ofMinecraft()
+                .inPackage(MinecraftPackage.CB, "inventory")
+                .named("CraftItemStack").unreflect();
 
         try {
             Object nmsItem = craftItemStack.getMethod("asNMSCopy", ItemStack.class).invoke(craftItemStack, item);

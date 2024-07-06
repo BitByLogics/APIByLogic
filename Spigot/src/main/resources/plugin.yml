@@ -1,7 +1,7 @@
 name: APIByLogic
 version: ${project.version}
 main: net.bitbylogic.apibylogic.APIByLogic
-api-version: 1.19
+api-version: 1.13
 authors: [ BitByLogic ]
 softdepend: [ PlaceholderAPI ]
 commands:

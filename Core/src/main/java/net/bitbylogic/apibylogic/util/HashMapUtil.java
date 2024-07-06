@@ -15,6 +15,7 @@ public class HashMapUtil {
         map.forEach((k, v) -> {
             if (parser != null) {
                 builder.append(entrySeparator).append(parser.wrapKey(k)).append(valueSeparator).append(parser.wrapValue(v));
+                return;
             }
 
             map.keySet().forEach(key -> builder.append(entrySeparator).append(key).append(valueSeparator).append(map.get(key)));
@@ -32,20 +33,7 @@ public class HashMapUtil {
     }
 
     public static <K, V> HashMap<K, V> mapFromString(ObjectWrapper<K, V> wrapper, String string) {
-        HashMap<K, V> map = new HashMap<>();
-
-        if (string.isEmpty()) {
-            return map;
-        }
-
-        String[] mapData = string.split(";");
-
-        for (String dataString : mapData) {
-            String[] data = dataString.split(":");
-            map.put(wrapper == null ? (K) data[0] : wrapper.wrapKey(data[0]), wrapper == null ? (V) data[1] : wrapper.wrapValue(data[1]));
-        }
-
-        return map;
+        return mapFromString(wrapper, ";", ":", string);
     }
 
     public static <K, V> HashMap<K, V> mapFromString(ObjectWrapper<K, V> wrapper, String entrySeparator, String valueSeparator, String string) {

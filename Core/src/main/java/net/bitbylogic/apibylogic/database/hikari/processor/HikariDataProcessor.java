@@ -1,7 +1,7 @@
 package net.bitbylogic.apibylogic.database.hikari.processor;
 
-public interface HikariDataProcessor {
+public interface HikariDataProcessor<O> {
 
-    String processObject(Object object);
+    String processObject(O object);
 
 }

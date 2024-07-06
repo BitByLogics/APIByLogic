@@ -1,12 +1,15 @@
 package net.bitbylogic.apibylogic.menu.listener;
 
-import net.bitbylogic.apibylogic.menu.Menu;
-import net.bitbylogic.apibylogic.menu.placeholder.PlaceholderProvider;
+import com.cryptomorin.xseries.reflection.XReflection;
+import com.cryptomorin.xseries.reflection.minecraft.MinecraftPackage;
 import net.bitbylogic.apibylogic.APIByLogic;
+import net.bitbylogic.apibylogic.menu.Menu;
 import net.bitbylogic.apibylogic.menu.MenuFlag;
-import net.bitbylogic.apibylogic.util.inventory.InventoryUpdate;
+import net.bitbylogic.apibylogic.menu.placeholder.PlaceholderProvider;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringModifier;
+import net.bitbylogic.apibylogic.util.inventory.InventoryUpdate;
+import net.bitbylogic.apibylogic.util.inventory.InventoryUtil;
 import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -15,7 +18,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,9 +27,8 @@ public class MenuListener implements Listener {
 
     @EventHandler
     public void onMenuClick(InventoryClickEvent event) {
-        InventoryView view = event.getView();
-        Inventory topInventory = view.getTopInventory();
-        Inventory bottomInventory = view.getBottomInventory();
+        Inventory topInventory = InventoryUtil.getViewInventory(event, "getTopInventory");
+        Inventory bottomInventory = InventoryUtil.getViewInventory(event, "getBottomInventory");
 
         if (!(event.getWhoClicked() instanceof Player)) {
             return;
@@ -96,9 +97,8 @@ public class MenuListener implements Listener {
 
     @EventHandler
     public void onDrag(InventoryDragEvent event) {
-        InventoryView view = event.getView();
         Inventory inventory = event.getInventory();
-        Inventory bottomInventory = view.getBottomInventory();
+        Inventory bottomInventory = InventoryUtil.getViewInventory(event, "getBottomInventory");
 
         if (!(inventory.getHolder() instanceof Menu)) {
             return;
@@ -133,8 +133,25 @@ public class MenuListener implements Listener {
         modifiers.add(pagePlaceholder);
 
         if (!menu.getData().hasFlag(MenuFlag.DISABLE_TITLE_UPDATE)) {
-            Bukkit.getScheduler().runTaskLater(APIByLogic.getInstance(), () -> InventoryUpdate.updateInventory(APIByLogic.getInstance(), (Player) event.getPlayer(),
-                    Formatter.format(menu.getMenuInventory(inventory).getTitle(), modifiers.toArray(new StringModifier[]{}))), 1);
+            Bukkit.getScheduler().runTaskLater(APIByLogic.getInstance(), () -> {
+                if (XReflection.MINOR_NUMBER >= 20) {
+                    try {
+                        XReflection.ofMinecraft()
+                                .inPackage(MinecraftPackage.BUKKIT, "inventory")
+                                .named("InventoryView")
+                                .method().named("setTitle")
+                                .parameters(String.class).returns(void.class)
+                                .reflect().invoke(event.getPlayer().getOpenInventory(), Formatter.format(menu.getTitle(),
+                                        modifiers.toArray(new StringModifier[]{})));
+                    } catch (Throwable e) {
+                        e.printStackTrace();
+                    }
+                    return;
+                }
+
+                InventoryUpdate.updateInventory(APIByLogic.getInstance(), (Player) event.getPlayer(),
+                        Formatter.format(menu.getMenuInventory(inventory).getTitle(), modifiers.toArray(new StringModifier[]{})));
+            }, 1);
         }
 
         menu.getActivePlayers().add(event.getPlayer().getUniqueId());
@@ -152,7 +169,10 @@ public class MenuListener implements Listener {
 
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
-        InventoryUpdate.getLastSentTitle().remove(event.getPlayer().getUniqueId());
+        if (XReflection.MINOR_NUMBER < 20) {
+            InventoryUpdate.getLastSentTitle().remove(event.getPlayer().getUniqueId());
+        }
+
         Inventory inventory = event.getInventory();
 
         if (!(inventory.getHolder() instanceof Menu)) {

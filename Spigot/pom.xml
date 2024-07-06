@@ -52,6 +52,11 @@
                                     <pattern>com.jeff_media.updatechecker</pattern>
                                     <shadedPattern>net.bitbylogic.apibylogic.updatechecker</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>com.cryptomorin.xseries</pattern>
+                                    <!-- Be sure to change the package below -->
+                                    <shadedPattern>net.bitbylogic.apibylogic.utils</shadedPattern>
+                                </relocation>
                             </relocations>
                             <filters>
                                 <filter>
@@ -101,6 +106,11 @@
             <id>jeff-media-public</id>
             <url>https://hub.jeff-media.com/nexus/repository/jeff-media-public/</url>
         </repository>
+        <repository>
+            <id>minecraft-libraries</id>
+            <name>Minecraft Libraries</name>
+            <url>https://libraries.minecraft.net/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -124,7 +134,7 @@
         <dependency>
             <groupId>net.bitbylogic</groupId>
             <artifactId>APIByLogic-Core</artifactId>
-            <version>2024.4</version>
+            <version>2024.6</version>
             <scope>compile</scope>
         </dependency>
 
@@ -134,6 +144,21 @@
             <artifactId>bstats-bukkit</artifactId>
             <version>3.0.2</version>
             <scope>compile</scope>
+        </dependency>
+
+        <!-- XSeries (Reflection) -->
+        <dependency>
+            <groupId>com.github.cryptomorin</groupId>
+            <artifactId>XSeries</artifactId>
+            <version>11.2.0</version>
+        </dependency>
+
+        <!-- XSeries XSkull -->
+        <dependency>
+            <groupId>com.mojang</groupId>
+            <artifactId>authlib</artifactId>
+            <version>6.0.54</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

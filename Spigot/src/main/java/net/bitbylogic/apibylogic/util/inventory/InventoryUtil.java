@@ -3,11 +3,14 @@ package net.bitbylogic.apibylogic.util.inventory;
 import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.event.inventory.InventoryEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,6 +18,17 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class InventoryUtil {
+
+    public static Inventory getViewInventory(InventoryEvent event, String methodName) {
+        try {
+            Object view = event.getView();
+            Method getTopInventory = view.getClass().getMethod(methodName);
+            getTopInventory.setAccessible(true);
+            return (Inventory) getTopInventory.invoke(view);
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
      * Check whether an inventory has space.

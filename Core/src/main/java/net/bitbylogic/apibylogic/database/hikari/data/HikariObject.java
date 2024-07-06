@@ -3,54 +3,61 @@ package net.bitbylogic.apibylogic.database.hikari.data;
 import lombok.Getter;
 import net.bitbylogic.apibylogic.database.hikari.annotation.HikariStatementData;
 import net.bitbylogic.apibylogic.database.hikari.processor.HikariDataProcessor;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 @Getter
 public abstract class HikariObject {
 
-    private final HashMap<String, String> statementData = new HashMap<>();
-    private final HashMap<String, HikariStatementData> rawStatementData = new HashMap<>();
-    private final HashMap<String, String> fieldNames = new HashMap<>();
-    private final HashMap<String, HikariDataProcessor> processorMap = new HashMap<>();
-
-    public HikariObject() {
-        loadProcessors();
-        loadStatementData();
-    }
-
-    public abstract Object getId();
+    private final List<HikariColumnData> columnData = new ArrayList<>();
+    private final HashMap<String, HikariDataProcessor<?>> processorMap = new HashMap<>();
 
     public abstract void loadProcessors();
 
-    private void loadStatementData() {
-        List<Field> fields = new ArrayList<>();
+    protected void loadStatementData() {
+        loadStatementData(null, new ArrayList<>());
+    }
 
-        fields.addAll(Arrays.asList(getClass().getFields()));
-        fields.addAll(Arrays.asList(getClass().getDeclaredFields()));
+    private void loadStatementData(@Nullable Object object, List<String> parentObjectFields) {
+        List<Field> fields = new ArrayList<>();
+        Object fieldObject = object == null ? this : object;
+
+        fields.addAll(Arrays.asList(fieldObject.getClass().getFields()));
+        fields.addAll(Arrays.asList(fieldObject.getClass().getDeclaredFields()));
+
+        List<String> originalFields = new ArrayList<>(parentObjectFields);
 
         fields.forEach(field -> {
-            if (field.isAnnotationPresent(HikariStatementData.class)) {
-                HikariStatementData data = field.getAnnotation(HikariStatementData.class);
-
-                if (data.primaryKey()) {
-                    statementData.put("#primary-key", field.getName().toLowerCase());
-                }
-
-                if (data.autoIncrement()) {
-                    if (statementData.containsKey("#auto-increment")) {
-                        System.out.println("(HikariObject): Error generating statement data, duplicate auto increment keys");
-                        return;
-                    }
-
-                    statementData.put("#auto-increment", field.getName().toLowerCase());
-                }
-
-                statementData.put(field.getName().toLowerCase(), getFormattedData(field.getName().toLowerCase(), data));
-                rawStatementData.put(field.getName().toLowerCase(), data);
-                fieldNames.put(field.getName().toLowerCase(), field.getName());
+            if (!field.isAnnotationPresent(HikariStatementData.class)) {
+                return;
             }
+
+            HikariStatementData data = field.getAnnotation(HikariStatementData.class);
+
+            if (data.subClass()) {
+                try {
+                    field.setAccessible(true);
+                    parentObjectFields.add(field.getName());
+                    loadStatementData(field.get(fieldObject), new ArrayList<>(parentObjectFields));
+                    parentObjectFields.clear();
+                    parentObjectFields.addAll(originalFields);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                return;
+            }
+
+            if (data.dataType().isEmpty()) {
+                System.out.println("(HikariObject): Skipped field " + field.getName() + ", you must provide a data type!");
+                return;
+            }
+
+            columnData.add(new HikariColumnData(field.getName(), fieldObject.getClass().getName(), data, parentObjectFields));
         });
     }
 
@@ -60,25 +67,23 @@ public abstract class HikariObject {
         List<String> keys = new ArrayList<>();
         List<String> values = new ArrayList<>();
 
-        if (statementData.containsKey("#primary-key")) {
-            keys.add(statementData.get("#primary-key"));
-            values.add(statementData.get(statementData.get("#primary-key")));
-        }
+        columnData.stream().filter(data -> data.getStatementData().primaryKey()).findFirst().ifPresent(columnData -> {
+            keys.add(columnData.getColumnName());
+            values.add(columnData.getFormattedData());
+        });
 
-        for (Map.Entry<String, String> entry : statementData.entrySet()) {
-            if (entry.getKey().equalsIgnoreCase("#primary-key")
-                    || entry.getKey().equalsIgnoreCase("#auto-increment")
-                    || statementData.getOrDefault("#primary-key", "").equalsIgnoreCase(entry.getKey())) {
-                continue;
+        columnData.forEach(columnData -> {
+            if (columnData.getStatementData().primaryKey() || columnData.getStatementData().autoIncrement()) {
+                return;
             }
 
-            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(entry.getKey()))) {
-                continue;
+            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getFieldName()))) {
+                return;
             }
 
-            keys.add(entry.getKey());
-            values.add(entry.getValue());
-        }
+            keys.add(columnData.getColumnName());
+            values.add(columnData.getFormattedData());
+        });
 
         if (includeMetadata) {
             builder.append(String.join(", ", values));
@@ -94,54 +99,67 @@ public abstract class HikariObject {
 
         List<String> data = new ArrayList<>();
 
-        if (statementData.containsKey("#primary-key")) {
-            String primaryKey = statementData.get("#primary-key");
-
+        columnData.stream().filter(columnData -> columnData.getStatementData().primaryKey()).findFirst().ifPresent(columnData -> {
             try {
-                HikariStatementData rawStatementData = getRawStatementData().get(primaryKey);
-                Field field = this.getClass().getDeclaredField(fieldNames.get(primaryKey));
+                Object fieldObject = getFieldObject(columnData);
+
+                HikariStatementData statementData = columnData.getStatementData();
+                Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
                 field.setAccessible(true);
-                Object fieldObject = field.get(this);
+                Object fieldValue = field.get(fieldObject);
 
-                if (!rawStatementData.processorID().isEmpty()) {
-                    HikariDataProcessor processor = processorMap.get(rawStatementData.processorID());
-                    data.add(String.format("'%s'", processor.processObject(fieldObject)));
-                } else {
-                    data.add(String.format("'%s'", fieldObject.toString()));
-                }
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        for (Map.Entry<String, String> entry : statementData.entrySet()) {
-            if (entry.getKey().equalsIgnoreCase("#primary-key")
-                    || entry.getKey().equalsIgnoreCase("#auto-increment")
-                    || statementData.getOrDefault("#primary-key", "").equalsIgnoreCase(entry.getKey())) {
-                continue;
-            }
-
-            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(entry.getKey()))) {
-                continue;
-            }
-
-            try {
-                HikariStatementData rawStatementData = getRawStatementData().get(entry.getKey());
-                Field field = this.getClass().getDeclaredField(fieldNames.get(entry.getKey()));
-                field.setAccessible(true);
-                Object fieldObject = field.get(this);
-
-                if (!rawStatementData.processorID().isEmpty()) {
-                    HikariDataProcessor processor = processorMap.get(rawStatementData.processorID());
-                    data.add(String.format("'%s'", processor.processObject(fieldObject)));
-                    continue;
+                if (statementData.processorID().isEmpty()) {
+                    data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + (fieldValue instanceof Boolean ? ((Boolean) fieldValue) ? 1 : 0 : fieldValue.toString()) + "'"));
+                    return;
                 }
 
-                data.add(String.format("'%s'", fieldObject == null ? null : fieldObject.toString()));
+                HikariDataProcessor processor = processorMap.get(statementData.processorID());
+
+                if (processor == null) {
+                    System.out.println("(HikariObject): Invalid processor: " + statementData.processorID());
+                    return;
+                }
+
+                data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + processor.processObject(fieldValue) + "'"));
             } catch (NoSuchFieldException | IllegalAccessException e) {
-                throw new RuntimeException(e);
+                e.printStackTrace();
             }
-        }
+        });
+
+        columnData.forEach(columnData -> {
+            if (columnData.getStatementData().primaryKey() || columnData.getStatementData().autoIncrement()) {
+                return;
+            }
+
+            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getFieldName()))) {
+                return;
+            }
+
+            try {
+                Object fieldObject = getFieldObject(columnData);
+
+                HikariStatementData statementData = columnData.getStatementData();
+                Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                field.setAccessible(true);
+                Object fieldValue = field.get(fieldObject);
+
+                if (statementData.processorID().isEmpty()) {
+                    data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + (fieldValue instanceof Boolean ? ((Boolean) fieldValue) ? 1 : 0 : fieldValue.toString()) + "'"));
+                    return;
+                }
+
+                HikariDataProcessor processor = processorMap.get(statementData.processorID());
+
+                if (processor == null) {
+                    System.out.println("(HikariObject): Invalid processor: " + statementData.processorID());
+                    return;
+                }
+
+                data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + processor.processObject(fieldValue) + "'"));
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        });
 
         builder.append(String.join(", ", data));
         return builder.toString();
@@ -150,9 +168,8 @@ public abstract class HikariObject {
     public String getTableCreateStatement(String table) {
         StringBuilder builder = new StringBuilder(String.format("CREATE TABLE IF NOT EXISTS %s (%s", table, getStatementDataBlock(true)));
 
-        if (statementData.containsKey("#primary-key")) {
-            builder.append(String.format(", PRIMARY KEY(%s)", statementData.get("#primary-key")));
-        }
+        columnData.stream().filter(columnData -> columnData.getStatementData().primaryKey()).findFirst()
+                .ifPresent(columnData -> builder.append(String.format(", PRIMARY KEY(%s)", columnData.getColumnName())));
 
         return builder.append(");").toString();
     }
@@ -162,28 +179,26 @@ public abstract class HikariObject {
     }
 
     public String getDataSaveStatement(String table, String... includedFields) {
-        StringBuilder builder = new StringBuilder(String.format("INSERT INTO %s(%s) VALUES(%s) ON DUPLICATE KEY UPDATE",
+        StringBuilder builder = new StringBuilder(String.format("INSERT INTO %s (%s) VALUES(%s) ON DUPLICATE KEY UPDATE ",
                 table, getStatementDataBlock(false, includedFields), getValuesDataBlock(includedFields)));
 
         List<String> entries = new ArrayList<>();
 
-        for (Map.Entry<String, String> entry : statementData.entrySet()) {
-            if (entry.getKey().equalsIgnoreCase("#primary-key") || entry.getKey().equalsIgnoreCase("#auto-increment")) {
-                continue;
+        columnData.forEach(columnData -> {
+            if (columnData.getStatementData().primaryKey() || columnData.getStatementData().autoIncrement()) {
+                return;
             }
 
-            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(entry.getKey()))) {
-                continue;
+            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getFieldName()))) {
+                return;
             }
 
-            String key = entry.getKey();
-
-            if (!rawStatementData.get(key).updateOnSave()) {
-                continue;
+            if (!columnData.getStatementData().updateOnSave()) {
+                return;
             }
 
-            entries.add(key + "=VALUES(" + key + ")");
-        }
+            entries.add(columnData.getColumnName() + "=VALUES(" + columnData.getColumnName() + ")");
+        });
 
         return builder.append(String.join(", ", entries)).append(";").toString();
     }
@@ -193,90 +208,158 @@ public abstract class HikariObject {
 
         List<String> entries = new ArrayList<>();
 
-        for (Map.Entry<String, String> entry : statementData.entrySet()) {
-            if (entry.getKey().equalsIgnoreCase("#primary-key") || entry.getKey().equalsIgnoreCase("#auto-increment")) {
-                continue;
+        columnData.forEach(columnData -> {
+            if (columnData.getStatementData().primaryKey() || columnData.getStatementData().autoIncrement()) {
+                return;
             }
 
-            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(entry.getKey()))) {
-                continue;
+            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getFieldName()))) {
+                return;
             }
-
-            String key = entry.getKey();
 
             try {
-                HikariStatementData rawStatementData = getRawStatementData().get(key);
-                Field field = this.getClass().getDeclaredField(fieldNames.get(key));
-                field.setAccessible(true);
-                Object fieldObject = field.get(this);
+                Object fieldObject = getFieldObject(columnData);
 
-                if (!rawStatementData.processorID().isEmpty()) {
-                    HikariDataProcessor processor = processorMap.get(rawStatementData.processorID());
-                    entries.add(String.format("key= '%s'", processor.processObject(fieldObject)));
-                    continue;
+                HikariStatementData statementData = columnData.getStatementData();
+                Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                field.setAccessible(true);
+                Object fieldValue = field.get(fieldObject);
+
+                if (statementData.processorID().isEmpty()) {
+                    entries.add(String.format("key= %s", fieldValue == null ? "NULL" : "'" + (fieldValue instanceof Boolean ? ((Boolean) fieldValue) ? 1 : 0 : fieldValue.toString()) + "'"));
+                    return;
                 }
 
-                entries.add(String.format("key= '%s'", fieldObject.toString()));
+                HikariDataProcessor processor = processorMap.get(statementData.processorID());
+
+                if (processor == null) {
+                    System.out.println("(HikariObject): Invalid processor: " + statementData.processorID());
+                    return;
+                }
+
+                entries.add(String.format("key= %s", fieldValue == null ? null : "'" + processor.processObject(fieldValue) + "'"));
             } catch (NoSuchFieldException | IllegalAccessException e) {
-                throw new RuntimeException(e);
+                e.printStackTrace();
             }
-        }
+        });
 
-        String primaryKey = statementData.get("#primary-key");
+        columnData.stream().filter(columnData -> columnData.getStatementData().primaryKey()).findFirst()
+                .ifPresent(columnData -> {
+                    try {
+                        Object fieldObject = getFieldObject(columnData);
 
-        try {
-            HikariStatementData rawStatementData = getRawStatementData().get(primaryKey);
-            Field field = this.getClass().getDeclaredField(fieldNames.get(primaryKey));
-            field.setAccessible(true);
-            Object fieldObject = field.get(this);
+                        HikariStatementData statementData = columnData.getStatementData();
+                        Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                        field.setAccessible(true);
+                        Object fieldValue = field.get(fieldObject);
 
-            builder.append(String.join(", ", entries)).append(" WHERE ").append(primaryKey).append(" = ");
+                        builder.append(String.join(", ", entries)).append(" WHERE ").append(columnData.getColumnName()).append(" = ");
 
-            if (!rawStatementData.processorID().isEmpty()) {
-                HikariDataProcessor processor = processorMap.get(rawStatementData.processorID());
-                builder.append(String.format("'%s';", processor.processObject(fieldObject)));
-                return builder.toString();
-            }
+                        if (statementData.processorID().isEmpty()) {
+                            builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + (fieldValue instanceof Boolean ? ((Boolean) fieldValue) ? 1 : 0 : fieldValue.toString()) + "'"));
+                            return;
+                        }
 
-            builder.append(String.format("'%s';", fieldObject.toString()));
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+                        HikariDataProcessor processor = processorMap.get(statementData.processorID());
+
+                        if (processor == null) {
+                            System.out.println("(HikariObject): Invalid processor: " + statementData.processorID());
+                            return;
+                        }
+
+                        builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + processor.processObject(fieldValue) + "'"));
+                    } catch (NoSuchFieldException | IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
 
         return builder.toString();
     }
 
     public String getDataDeleteStatement(String table) {
-        if (!statementData.containsKey("#primary-key")) {
+        if (columnData.stream().noneMatch(columnData -> columnData.getStatementData().primaryKey())) {
             System.out.printf("[APIByLogic] [HikariAPI] (%s) No primary key, aborting.%n", table);
             return null;
         }
 
-        String primaryKey = statementData.get("#primary-key");
-        StringBuilder builder = new StringBuilder(String.format("DELETE FROM %s WHERE %s=", table, primaryKey));
+        StringBuilder builder = new StringBuilder();
 
-        try {
-            HikariStatementData rawStatementData = getRawStatementData().get(primaryKey);
-            Field field = this.getClass().getDeclaredField(fieldNames.get(primaryKey));
-            field.setAccessible(true);
-            Object fieldObject = field.get(this);
+        columnData.stream().filter(columnData -> columnData.getStatementData().primaryKey()).findFirst()
+                .ifPresent(columnData -> {
+                    builder.append(String.format("DELETE FROM %s WHERE %s=", table, columnData.getColumnName()));
 
-            if (!rawStatementData.processorID().isEmpty()) {
-                HikariDataProcessor processor = processorMap.get(rawStatementData.processorID());
-                builder.append(String.format("'%s';", processor.processObject(fieldObject)));
-                return builder.toString();
-            }
+                    try {
+                        Object fieldObject = getFieldObject(columnData);
 
-            builder.append(String.format("'%s';", fieldObject.toString()));
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+                        HikariStatementData statementData = columnData.getStatementData();
+                        Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                        field.setAccessible(true);
+                        Object fieldValue = field.get(fieldObject);
+
+                        if (statementData.processorID().isEmpty()) {
+                            builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + (fieldValue instanceof Boolean ? ((Boolean) fieldValue) ? 1 : 0 : fieldValue.toString()) + "'"));
+                            return;
+                        }
+
+                        HikariDataProcessor processor = processorMap.get(statementData.processorID());
+
+                        if (processor == null) {
+                            System.out.println("(HikariObject): Invalid processor: " + statementData.processorID());
+                            return;
+                        }
+
+                        builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + processor.processObject(fieldValue) + "'"));
+                    } catch (NoSuchFieldException | IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
 
         return builder.toString();
     }
 
-    private String getFormattedData(String fieldName, HikariStatementData data) {
-        return fieldName + " " + data.dataType() + " " + (data.allowNull() ? "" : "NOT NULL") + (statementData.getOrDefault("#auto-increment", "").equalsIgnoreCase(fieldName) ? " AUTO_INCREMENT" : "");
+    public Object getFieldObject(HikariColumnData columnData) {
+        if (columnData.getParentObjectFields().isEmpty()) {
+            return this;
+        }
+
+        Object object = this;
+
+        for (int i = 0; i < columnData.getParentObjectFields().size(); i++) {
+            String parentFieldName = columnData.getParentObjectFields().get(i);
+
+            try {
+                Field parentField = object.getClass().getDeclaredField(parentFieldName);
+                parentField.setAccessible(true);
+                object = parentField.get(object);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return object;
+    }
+
+    public String getPrimaryKeyFieldName() {
+        return columnData.stream().filter(columnData -> columnData.getStatementData().primaryKey())
+                .findFirst().map(HikariColumnData::getFieldName).orElse(null);
+    }
+
+    public Object getId() {
+        String primaryKeyFieldName = getPrimaryKeyFieldName();
+
+        if (primaryKeyFieldName == null) {
+            return null;
+        }
+
+        try {
+            Field primaryKeyField = this.getClass().getDeclaredField(primaryKeyFieldName);
+            primaryKeyField.setAccessible(true);
+            return primaryKeyField.get(this);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
 }

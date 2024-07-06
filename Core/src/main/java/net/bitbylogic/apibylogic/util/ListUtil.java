@@ -6,34 +6,37 @@ import java.util.regex.Pattern;
 
 public class ListUtil {
 
-    public static String listToString(List<?> list, String separator) {
+    public static String listToString(List<?> list) {
+        return listToString(list, ":", null);
+    }
+
+    public static <O> String listToString(List<O> list, ListObjectWrapper<String, O> wrapper) {
+        return listToString(list, ":", wrapper);
+    }
+
+    public static <O> String listToString(List<O> list, String separator, ListObjectWrapper<String, O> wrapper) {
         if (list == null || list.isEmpty()) {
             return "";
         }
 
         StringBuilder builder = new StringBuilder();
 
-        for (Object o : list) {
-            builder.append(separator).append(o.toString());
+        for (O o : list) {
+            builder.append(separator).append(wrapper == null ? o.toString() : wrapper.wrapValue(o));
         }
 
         return builder.toString().replaceFirst(Pattern.quote(separator), "");
     }
 
-    public static String listToString(List<?> list) {
-        return listToString(list, ":");
-    }
-
-
-    public static <V> List<V> stringToList(String string, String separator) {
+    public static List<?> stringToList(String string, String separator) {
         return stringToList(string, separator, null);
     }
 
-    public static <V> List<V> stringToList(String string) {
+    public static List<?> stringToList(String string) {
         return stringToList(string, ":");
     }
 
-    public static <V> List<V> stringToList(String string, String separator, ListObjectWrapper<V> wrapper) {
+    public static <V> List<V> stringToList(String string, String separator, ListObjectWrapper<V, String> wrapper) {
         List<V> list = new ArrayList<>();
 
         if (string == null || string.isEmpty()) {
@@ -47,8 +50,8 @@ public class ListUtil {
         return list;
     }
 
-    public interface ListObjectWrapper<V> {
-        V wrapValue(String string);
+    public interface ListObjectWrapper<V, K> {
+        V wrapValue(K object);
     }
 
 }

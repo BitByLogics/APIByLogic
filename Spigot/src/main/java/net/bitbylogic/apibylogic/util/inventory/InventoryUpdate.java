@@ -21,10 +21,13 @@
  */
 package net.bitbylogic.apibylogic.util.inventory;
 
+import com.cryptomorin.xseries.reflection.XReflection;
+import com.cryptomorin.xseries.reflection.minecraft.MinecraftClassHandle;
+import com.cryptomorin.xseries.reflection.minecraft.MinecraftConnection;
+import com.cryptomorin.xseries.reflection.minecraft.MinecraftPackage;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import lombok.Getter;
-import net.bitbylogic.apibylogic.util.ReflectionUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
@@ -49,14 +52,14 @@ import java.util.UUID;
 public final class InventoryUpdate {
 
     // Classes.
-    private final static Class<?> CRAFT_PLAYER;
-    private final static Class<?> CHAT_MESSAGE;
-    private final static Class<?> PACKET_PLAY_OUT_OPEN_WINDOW;
-    private final static Class<?> I_CHAT_BASE_COMPONENT;
-    private final static Class<?> CONTAINER;
-    private final static Class<?> CONTAINERS;
-    private final static Class<?> ENTITY_PLAYER;
-    private final static Class<?> I_CHAT_MUTABLE_COMPONENT;
+    private final static MinecraftClassHandle CRAFT_PLAYER;
+    private final static MinecraftClassHandle CHAT_MESSAGE;
+    private final static MinecraftClassHandle PACKET_PLAY_OUT_OPEN_WINDOW;
+    private final static MinecraftClassHandle I_CHAT_BASE_COMPONENT;
+    private final static MinecraftClassHandle CONTAINER;
+    private final static MinecraftClassHandle CONTAINERS;
+    private final static MinecraftClassHandle ENTITY_PLAYER;
+    private final static MinecraftClassHandle I_CHAT_MUTABLE_COMPONENT;
 
     // Methods.
     private final static MethodHandle getHandle;
@@ -80,35 +83,63 @@ public final class InventoryUpdate {
     private final static HashMap<UUID, String> lastSentTitle = new HashMap<>();
 
     static {
-        boolean supports19 = ReflectionUtils.supports(19);
+        boolean supports19 = XReflection.supports(19);
 
         // Initialize classes.
-        CRAFT_PLAYER = ReflectionUtils.getCraftClass("entity.CraftPlayer");
-        CHAT_MESSAGE = supports19 ? null : ReflectionUtils.getNMSClass("network.chat", "ChatMessage");
-        PACKET_PLAY_OUT_OPEN_WINDOW = ReflectionUtils.getNMSClass("network.protocol.game", "PacketPlayOutOpenWindow");
-        I_CHAT_BASE_COMPONENT = ReflectionUtils.getNMSClass("network.chat", "IChatBaseComponent");
+        CRAFT_PLAYER = XReflection.ofMinecraft()
+                .inPackage(MinecraftPackage.CB, "entity")
+                .named("CraftPlayer");
+        CHAT_MESSAGE = XReflection.ofMinecraft()
+                .inPackage(MinecraftPackage.NMS, "network.chat")
+                .named("ChatMessage");
+        PACKET_PLAY_OUT_OPEN_WINDOW = XReflection.ofMinecraft()
+                .inPackage(MinecraftPackage.NMS, "network.protocol.game")
+                .named("PacketPlayOutOpenWindow");
+        I_CHAT_BASE_COMPONENT = XReflection.ofMinecraft()
+                .inPackage(MinecraftPackage.NMS, "network.chat")
+                .named("IChatBaseComponent");
         // Check if we use containers, otherwise, can throw errors on older versions.
-        CONTAINERS = useContainers() ? ReflectionUtils.getNMSClass("world.inventory", "Containers") : null;
-        ENTITY_PLAYER = ReflectionUtils.getNMSClass("server.level", "EntityPlayer");
-        CONTAINER = ReflectionUtils.getNMSClass("world.inventory", "Container");
-        I_CHAT_MUTABLE_COMPONENT = supports19 ? ReflectionUtils.getNMSClass("network.chat", "IChatMutableComponent") : null;
+        CONTAINERS = useContainers() ? XReflection.ofMinecraft()
+                .inPackage(MinecraftPackage.NMS, "world.inventory")
+                .named("Containers") : null;
+        ENTITY_PLAYER = XReflection.ofMinecraft()
+                .inPackage(MinecraftPackage.NMS, "server.level")
+                .named("EntityPlayer");
+        CONTAINER = XReflection.ofMinecraft()
+                .inPackage(MinecraftPackage.NMS, "world.inventory")
+                .named("Container");
+        I_CHAT_MUTABLE_COMPONENT = supports19 ? XReflection.ofMinecraft()
+                .inPackage(MinecraftPackage.NMS, "network.chat")
+                .named("IChatMutableComponent") : null;
 
         // Initialize methods.
-        getHandle = getMethod(CRAFT_PLAYER, "getHandle", MethodType.methodType(ENTITY_PLAYER));
-        getBukkitView = getMethod(CONTAINER, "getBukkitView", MethodType.methodType(InventoryView.class));
-        literal = supports19 ? getMethod(I_CHAT_BASE_COMPONENT, "b", MethodType.methodType(I_CHAT_MUTABLE_COMPONENT, String.class), true) : null;
+        getHandle = CRAFT_PLAYER.method().named("getHandle").returns(ENTITY_PLAYER).unreflect();
+        getBukkitView = CONTAINER.method().named("getBukkitView").returns(InventoryView.class).unreflect();
+        literal = supports19 ?
+                I_CHAT_BASE_COMPONENT.method().named("getTitle", "b")
+                        .returns(I_CHAT_MUTABLE_COMPONENT).unreflect() : null;
 
         // Initialize constructors.
-        chatMessage = supports19 ? null : getConstructor(CHAT_MESSAGE, String.class);
+        chatMessage = supports19 ? null : CHAT_MESSAGE.constructor(String.class).unreflect();
         packetPlayOutOpenWindow =
                 (useContainers()) ?
-                        getConstructor(PACKET_PLAY_OUT_OPEN_WINDOW, int.class, CONTAINERS, I_CHAT_BASE_COMPONENT) :
+                        PACKET_PLAY_OUT_OPEN_WINDOW
+                                .constructor(int.class, CONTAINERS.unreflect(), I_CHAT_BASE_COMPONENT.unreflect())
+                                .unreflect() :
                         // Older versions use String instead of Containers, and require an int for the inventory size.
-                        getConstructor(PACKET_PLAY_OUT_OPEN_WINDOW, int.class, String.class, I_CHAT_BASE_COMPONENT, int.class);
+                        PACKET_PLAY_OUT_OPEN_WINDOW
+                                .constructor(int.class, String.class, I_CHAT_BASE_COMPONENT.unreflect(), int.class)
+                                .unreflect();
+
+        for (Field field : ENTITY_PLAYER.unreflect().getFields()) {
+            System.out.println(field.getName() + ":" + field.getType().getName());
+        }
 
         // Initialize fields.
-        activeContainer = getField(ENTITY_PLAYER, CONTAINER, "activeContainer", "bV", "bW", "bU", "bP", "containerMenu");
-        windowId = getField(CONTAINER, int.class, "windowId", "j", "containerId");
+        activeContainer = ENTITY_PLAYER.field()
+                .named("containerMenu", "activeContainer", "bV", "bW", "bU", "bP", "cd")
+                .returns(CONTAINER).getter().unreflect();
+        windowId = CONTAINER.field().named("windowId", "j", "containerId").returns(int.class).getter().unreflect();
     }
 
     /**
@@ -130,7 +161,7 @@ public final class InventoryUpdate {
                 newTitle = newTitle.substring(0, 32);
             }
 
-            if (ReflectionUtils.supports(20)) {
+            if (XReflection.supports(20)) {
                 InventoryView open = player.getOpenInventory();
                 if (UNOPENABLES.contains(open.getType().name())) {
                     return;
@@ -144,7 +175,7 @@ public final class InventoryUpdate {
             }
 
             // Get EntityPlayer from CraftPlayer.
-            Object craftPlayer = CRAFT_PLAYER.cast(player);
+            Object craftPlayer = CRAFT_PLAYER.unreflect().cast(player);
             Object entityPlayer = getHandle.invoke(craftPlayer);
 
             if (newTitle != null && newTitle.length() > 32) {
@@ -153,7 +184,7 @@ public final class InventoryUpdate {
 
             // Create new title.
             Object title;
-            if (ReflectionUtils.supports(19)) {
+            if (XReflection.supports(19)) {
                 title = literal.invoke(newTitle);
             } else {
                 title = chatMessage.invoke(newTitle);
@@ -185,7 +216,7 @@ public final class InventoryUpdate {
             if (container == null) return;
 
             // If the container was added in a newer version than the current, return.
-            if (container.getContainerVersion() > ReflectionUtils.VER && useContainers()) {
+            if (container.getContainerVersion() > XReflection.MINOR_NUMBER && useContainers()) {
                 Bukkit.getLogger().warning(String.format(
                         "[%s] This container doesn't work on your current version.",
                         plugin.getDescription().getName()));
@@ -207,7 +238,7 @@ public final class InventoryUpdate {
                             packetPlayOutOpenWindow.invoke(windowId, object, title, size);
 
             // Send packet sync.
-            ReflectionUtils.sendPacketSync(player, packet);
+            MinecraftConnection.sendPacket(player, packet);
 
             // Update inventory.
             player.updateInventory();
@@ -286,7 +317,7 @@ public final class InventoryUpdate {
      * @return whether to use containers.
      */
     private static boolean useContainers() {
-        return ReflectionUtils.VER > 13;
+        return XReflection.MINOR_NUMBER > 13;
     }
 
     /**
@@ -324,11 +355,10 @@ public final class InventoryUpdate {
         // Added in 1.14, functional since 1.16.
         SMITHING(16, null, "SMITHING");
 
+        private final static char[] alphabet = "abcdefghijklmnopqrstuvwxyz".toCharArray();
         private final int containerVersion;
         private final String minecraftName;
         private final String[] inventoryTypesNames;
-
-        private final static char[] alphabet = "abcdefghijklmnopqrstuvwxyz".toCharArray();
 
         Containers(int containerVersion, String minecraftName, String... inventoryTypesNames) {
             this.containerVersion = containerVersion;
@@ -364,11 +394,11 @@ public final class InventoryUpdate {
         public Object getObject() {
             try {
                 if (!useContainers()) return getMinecraftName();
-                int version = ReflectionUtils.VER;
+                int version = XReflection.MINOR_NUMBER;
                 String name = (version == 14 && this == CARTOGRAPHY_TABLE) ? "CARTOGRAPHY" : name();
                 // Since 1.17, containers go from "a" to "x".
                 if (version > 16) name = String.valueOf(alphabet[ordinal()]);
-                Field field = CONTAINERS.getField(name);
+                Field field = CONTAINERS.unreflect().getField(name);
                 return field.get(null);
             } catch (ReflectiveOperationException exception) {
                 exception.printStackTrace();

@@ -1,13 +1,15 @@
 package net.bitbylogic.apibylogic.menu.task;
 
+import com.cryptomorin.xseries.reflection.XReflection;
+import com.cryptomorin.xseries.reflection.minecraft.MinecraftPackage;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.menu.Menu;
 import net.bitbylogic.apibylogic.menu.placeholder.PlaceholderProvider;
-import net.bitbylogic.apibylogic.util.inventory.InventoryUpdate;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringModifier;
+import net.bitbylogic.apibylogic.util.inventory.InventoryUpdate;
 import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -59,6 +61,21 @@ public class TitleUpdateTask {
             finalModifiers.add(pagePlaceholder);
 
             new ArrayList<>(inventory.getViewers()).forEach(viewer -> {
+                if (XReflection.MINOR_NUMBER >= 20) {
+                    try {
+                        XReflection.ofMinecraft()
+                                .inPackage(MinecraftPackage.BUKKIT, "inventory")
+                                .named("InventoryView")
+                                .method().named("setTitle")
+                                .parameters(String.class).returns(void.class)
+                                .reflect().invoke(viewer.getOpenInventory(), Formatter.format(menuInventory.getTitle(),
+                                        finalModifiers.toArray(new StringModifier[]{})));
+                    } catch (Throwable e) {
+                        e.printStackTrace();
+                    }
+                    return;
+                }
+
                 InventoryUpdate.updateInventory(APIByLogic.getInstance(), (Player) viewer, Formatter.format(menuInventory.getTitle(),
                         finalModifiers.toArray(new StringModifier[]{})));
             });

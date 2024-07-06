@@ -29,6 +29,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.permissions.ServerOperator;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -230,7 +231,7 @@ public class APIByLogic extends JavaPlugin {
      * @param database The database to use
      * @param callback The callback to call on object creation
      */
-    public void requestHikariAPI(String database, Callback<Optional<HikariAPI>> callback) {
+    public void requestHikariAPI(@Nullable String database, Callback<Optional<HikariAPI>> callback) {
         if (getConfig().getString("Hikari-Details.Address", "").isEmpty()) {
             callback.call(Optional.empty());
             return;
@@ -239,7 +240,7 @@ public class APIByLogic extends JavaPlugin {
         ConfigurationSection hikariSection = getConfig().getConfigurationSection("Hikari-Details");
 
         CompletableFuture.supplyAsync(() -> new HikariAPI(
-                        hikariSection.getString("Address"), database,
+                        hikariSection.getString("Address"), database == null ? hikariSection.getString("Database") : database,
                         hikariSection.getString("Port"), hikariSection.getString("Username"),
                         hikariSection.getString("Password")))
                 .thenAccept((api) -> {
