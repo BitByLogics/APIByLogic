@@ -12,13 +12,14 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 
 @Getter
 public class CommandManager implements CommandExecutor, TabCompleter {
 
-    public CommandMap commandMap;
     public final HashSet<ModuleCommand> commands = new HashSet<>();
+    public CommandMap commandMap;
 
     public CommandManager() {
         try {
@@ -33,7 +34,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
                 Field commandMapField = Class.forName("org.bukkit.craftbukkit.v1_21_R1.CraftServer").getDeclaredField("commandMap");
                 commandMapField.setAccessible(true);
                 commandMap = (CommandMap) commandMapField.get(Bukkit.getServer());
-            } catch(Exception e) {
+            } catch (Exception e) {
                 Bukkit.getLogger().log(Level.SEVERE, "(Command Manager): Still couldn't load CommandMap, commands won't work.");
                 e.printStackTrace();
             }
@@ -45,7 +46,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
      *
      * @param moduleCommand - Command being registered
      */
-    public void registerCommand(ModuleCommand moduleCommand) {
+    public void registerCommand(@NotNull ModuleCommand moduleCommand) {
         long startTime = System.nanoTime();
         commands.add(moduleCommand);
         commandMap.register(moduleCommand.getPrefix(),
@@ -59,7 +60,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
 
                     @Override
                     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
-                        return super.tabComplete(sender, alias, args);
+                        return Objects.requireNonNull(moduleCommand.onTabComplete(sender, this, alias, args));
                     }
                 });
         long endTime = System.nanoTime();

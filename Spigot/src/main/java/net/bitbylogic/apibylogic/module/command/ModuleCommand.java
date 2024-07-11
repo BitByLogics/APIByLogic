@@ -8,6 +8,7 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -30,7 +31,7 @@ public abstract class ModuleCommand implements CommandInterface, TabCompleter {
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        return null;
+        return new ArrayList<>();
     }
 
 }
