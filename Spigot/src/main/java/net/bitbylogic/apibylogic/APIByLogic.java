@@ -17,7 +17,6 @@ import net.bitbylogic.apibylogic.metrics.MetricsWrapper;
 import net.bitbylogic.apibylogic.redis.PlayerMessageListener;
 import net.bitbylogic.apibylogic.redis.RedisStateChangeEvent;
 import net.bitbylogic.apibylogic.scoreboard.LogicScoreboard;
-import net.bitbylogic.apibylogic.util.Callback;
 import net.bitbylogic.apibylogic.util.event.armor.listener.ArmorListener;
 import net.bitbylogic.apibylogic.util.event.armor.listener.DispenserArmorListener;
 import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
@@ -37,6 +36,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 
 @Getter
 public class APIByLogic extends JavaPlugin {
@@ -124,7 +124,7 @@ public class APIByLogic extends JavaPlugin {
                             continue;
                         }
 
-                        request.getCallback().call(redisManager);
+                        request.getCallback().accept(redisManager);
                         taskIterator.remove();
                         break;
                     case HIKARI:
@@ -132,7 +132,7 @@ public class APIByLogic extends JavaPlugin {
                             continue;
                         }
 
-                        request.getCallback().call(hikariAPI);
+                        request.getCallback().accept(hikariAPI);
                         taskIterator.remove();
                         break;
                     default:
@@ -231,9 +231,9 @@ public class APIByLogic extends JavaPlugin {
      * @param database The database to use
      * @param callback The callback to call on object creation
      */
-    public void requestHikariAPI(@Nullable String database, Callback<Optional<HikariAPI>> callback) {
+    public void requestHikariAPI(@Nullable String database, Consumer<Optional<HikariAPI>> callback) {
         if (getConfig().getString("Hikari-Details.Address", "").isEmpty()) {
-            callback.call(Optional.empty());
+            callback.accept(Optional.empty());
             return;
         }
 
@@ -249,10 +249,10 @@ public class APIByLogic extends JavaPlugin {
                         return;
                     }
 
-                    callback.call(Optional.of(api));
+                    callback.accept(Optional.of(api));
                 }).exceptionally(e -> {
                     e.printStackTrace();
-                    callback.call(Optional.empty());
+                    callback.accept(Optional.empty());
                     return null;
                 });
     }

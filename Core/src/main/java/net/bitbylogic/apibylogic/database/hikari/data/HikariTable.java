@@ -6,15 +6,15 @@ import net.bitbylogic.apibylogic.database.hikari.redis.HikariRedisUpdateType;
 import net.bitbylogic.apibylogic.database.hikari.redis.HikariUpdateRedisMessageListener;
 import net.bitbylogic.apibylogic.database.redis.client.RedisClient;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 @Getter
@@ -85,28 +85,38 @@ public abstract class HikariTable<O extends HikariObject> {
         });
     }
 
-    public void add(O object) {
+    public void add(@NotNull O object) {
         add(object, true);
     }
 
-    public void add(O object, boolean save) {
+    public void add(@NotNull O object, boolean save) {
         if (dataMap.containsKey(object.getId())) {
             return;
         }
 
         dataMap.put(object.getId(), object);
 
-        if (save) {
-            CompletableFuture.runAsync(() -> save(object));
+        if (!save) {
+            return;
         }
+
+        save(object);
     }
 
-    public void save(O object) {
+    public void save(@NotNull O object) {
         save(object, null);
     }
 
-    public void save(O object, Consumer<ResultSet> result) {
-        hikariAPI.executeStatement(object.getDataSaveStatement(table), rs -> {
+    public void save(@NotNull O object, @Nullable Consumer<Optional<ResultSet>> callback) {
+        hikariAPI.executeStatement(object.getDataSaveStatement(table), result -> {
+            if (result == null) {
+                if (callback != null) {
+                    callback.accept(Optional.empty());
+                }
+
+                return;
+            }
+
             object.getColumnData().forEach(columnData -> {
                 if (!columnData.getStatementData().autoIncrement()) {
                     return;
@@ -118,29 +128,31 @@ public abstract class HikariTable<O extends HikariObject> {
                     Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
                     boolean originalState = field.canAccess(this);
                     field.setAccessible(true);
-                    field.setInt(object, rs.getInt(1));
+                    field.setInt(object, result.getInt(1));
                     field.setAccessible(originalState);
                 } catch (NoSuchFieldException | SQLException | IllegalAccessException e) {
                     e.printStackTrace();
                 }
             });
 
-            if (result != null) {
-                result.accept(rs);
+            if (callback != null) {
+                callback.accept(Optional.of(result));
             }
 
-            if (redisClient != null) {
-                redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
-                        .addData("updateType", HikariRedisUpdateType.SAVE).addData("objectId", object.getId().toString()));
+            if (redisClient == null) {
+                return;
             }
+
+            redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
+                    .addData("updateType", HikariRedisUpdateType.SAVE).addData("objectId", object.getId().toString()));
         });
     }
 
-    public void remove(O object) {
+    public void remove(@NotNull O object) {
         remove(object, false);
     }
 
-    public void remove(O object, boolean delete) {
+    public void remove(@NotNull O object, boolean delete) {
         if (!dataMap.containsKey(object.getId())) {
             return;
         }
@@ -152,7 +164,7 @@ public abstract class HikariTable<O extends HikariObject> {
         }
     }
 
-    public void delete(O object) {
+    public void delete(@NotNull O object) {
         hikariAPI.executeStatement(object.getDataDeleteStatement(table), rs -> {
             if (redisClient != null) {
                 redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
@@ -163,62 +175,66 @@ public abstract class HikariTable<O extends HikariObject> {
 
     public abstract Optional<O> loadObject(ResultSet set) throws SQLException;
 
-    public Optional<O> getDataById(Object id) {
+    public Optional<O> getDataById(@NotNull Object id) {
         return Optional.ofNullable(dataMap.get(id));
     }
 
-    public Optional<O> getDataFromDB(Object id, boolean checkCache) {
+    public void getDataFromDB(@NotNull Object id, boolean checkCache, @NotNull Consumer<Optional<O>> callback) {
         if (checkCache) {
             for (O next : new ArrayList<>(dataMap.values())) {
-                if (next.getId().equals(id)) {
-                    return Optional.of(next);
+                if (!next.getId().equals(id)) {
+                    continue;
                 }
-            }
-        }
 
-        if (primaryKeyFieldName == null) {
-            return Optional.empty();
-        }
-
-        AtomicReference<Optional<O>> databaseObject = new AtomicReference<>();
-
-        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, primaryKeyFieldName, id.toString()), result -> {
-            if (result == null) {
+                callback.accept(Optional.of(next));
                 return;
             }
+        }
 
-            try {
-                if (result.next()) {
-                    databaseObject.set(loadObject(result));
-                }
-            } catch (SQLException exception) {
-                exception.printStackTrace();
-            }
-        });
-
-        return databaseObject.get();
-    }
-
-    public void getDataFromDB(Object id, Consumer<Optional<O>> consumer) {
         if (primaryKeyFieldName == null) {
-            consumer.accept(null);
+            callback.accept(Optional.empty());
             return;
         }
 
         hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, primaryKeyFieldName, id.toString()), result -> {
             if (result == null) {
-                consumer.accept(null);
+                callback.accept(Optional.empty());
                 return;
             }
 
             try {
-                while (result.next()) {
-                    consumer.accept(loadObject(result));
+                if (result.next()) {
+                    callback.accept(loadObject(result));
                 }
             } catch (SQLException exception) {
                 exception.printStackTrace();
             }
         });
+    }
+
+    public void getDataFromDB(@NotNull Object id, @NotNull Consumer<Optional<O>> consumer) {
+        if (primaryKeyFieldName == null) {
+            consumer.accept(Optional.empty());
+            return;
+        }
+
+        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, primaryKeyFieldName, id.toString()), result -> {
+            if (result == null) {
+                consumer.accept(Optional.empty());
+                return;
+            }
+
+            try {
+                if (result.next()) {
+                    consumer.accept(loadObject(result));
+                    return;
+                }
+            } catch (SQLException exception) {
+                exception.printStackTrace();
+            }
+        });
+
+        consumer.accept(Optional.empty());
     }
 
     public void registerRedisHook(RedisClient redisClient) {

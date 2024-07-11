@@ -5,9 +5,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
-import net.bitbylogic.apibylogic.util.Callback;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 
 @Getter
 @AllArgsConstructor
@@ -17,13 +17,13 @@ public class RedisTimedRequest {
     private final UUID uniqueId;
 
     private final String id;
-    private final transient Callback<ListenerComponent> successCallback;
-    private final transient Callback<Void> timeoutCallback;
+    private final transient Consumer<ListenerComponent> successCallback;
+    private final transient Consumer<Void> timeoutCallback;
 
     @Setter
     private String channel;
 
-    public RedisTimedRequest(String id, Callback<ListenerComponent> successCallback, Callback<Void> timeoutCallback) {
+    public RedisTimedRequest(String id, Consumer<ListenerComponent> successCallback, Consumer<Void> timeoutCallback) {
         this.uniqueId = UUID.randomUUID();
         this.id = id;
         this.successCallback = successCallback;

@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class CooldownUtil {
 
@@ -33,7 +34,7 @@ public class CooldownUtil {
         }, unit.toSeconds(expireTime) * 20);
     }
 
-    public static void startCooldown(String key, UUID identifier, long expireTime, TimeUnit unit, Callback<Void> completeCallback) {
+    public static void startCooldown(String key, UUID identifier, long expireTime, TimeUnit unit, Consumer<Void> completeCallback) {
         List<Cooldown> currentCooldowns = cooldowns.getOrDefault(identifier, new ArrayList<>());
         Cooldown cooldown = new Cooldown(identifier, key, unit.toMillis(expireTime));
         currentCooldowns.add(cooldown);
@@ -43,7 +44,7 @@ public class CooldownUtil {
             List<Cooldown> updatedCooldowns = cooldowns.getOrDefault(identifier, new ArrayList<>());
             updatedCooldowns.remove(cooldown);
             cooldowns.put(identifier, currentCooldowns);
-            completeCallback.call(null);
+            completeCallback.accept(null);
         }, unit.toSeconds(expireTime) * 20);
     }
 

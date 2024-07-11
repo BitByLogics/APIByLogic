@@ -53,7 +53,7 @@ public class RedisClient {
 
                     timedRequests.get(timedRequest).cancel();
                     timedRequests.remove(timedRequest);
-                    timedRequest.getSuccessCallback().call(component);
+                    timedRequest.getSuccessCallback().accept(component);
                 });
             });
         });
@@ -133,7 +133,7 @@ public class RedisClient {
                 @Override
                 public void run() {
                     timedRequests.remove(request);
-                    request.getTimeoutCallback().call(null);
+                    request.getTimeoutCallback().accept(null);
                     requestTimer.cancel();
                 }
             }, expireTime);
