@@ -29,6 +29,9 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
             <plugin>
@@ -54,8 +57,15 @@
                                 </relocation>
                                 <relocation>
                                     <pattern>com.cryptomorin.xseries</pattern>
-                                    <!-- Be sure to change the package below -->
                                     <shadedPattern>net.bitbylogic.apibylogic.utils</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>co.aikar.commands</pattern>
+                                    <shadedPattern>net.bitbylogic.apibylogic.acf</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>co.aikar.locales</pattern>
+                                    <shadedPattern>net.bitbylogic.apibylogic.locales</shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>
@@ -159,6 +169,13 @@
             <artifactId>authlib</artifactId>
             <version>6.0.54</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>co.aikar</groupId>
+            <artifactId>acf-paper</artifactId>
+            <version>0.5.1-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>

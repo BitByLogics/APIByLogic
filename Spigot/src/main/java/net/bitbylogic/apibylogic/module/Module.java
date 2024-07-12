@@ -1,9 +1,9 @@
 package net.bitbylogic.apibylogic.module;
 
+import co.aikar.commands.BaseCommand;
 import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.Setter;
-import net.bitbylogic.apibylogic.module.command.ModuleCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.Listener;
@@ -31,7 +31,7 @@ public abstract class Module implements ModuleInterface, Listener {
     private File dataFolder;
     private File configFile;
     private YamlConfiguration config;
-    private List<ModuleCommand> commands;
+    private List<BaseCommand> commands;
     private List<Integer> tasks = Lists.newArrayList();
     private List<Listener> listeners = Lists.newArrayList();
 
@@ -84,8 +84,8 @@ public abstract class Module implements ModuleInterface, Listener {
         }
     }
 
-    protected void registerCommand(ModuleCommand... commands) {
-        for (ModuleCommand command : commands) {
+    protected void registerCommand(BaseCommand... commands) {
+        for (BaseCommand command : commands) {
             if (!this.commands.contains(command) && this.commands.stream().noneMatch(lCommand -> lCommand.getName().equalsIgnoreCase(command.getName()))) {
                 this.commands.add(command);
                 moduleManager.getCommandManager().registerCommand(command);

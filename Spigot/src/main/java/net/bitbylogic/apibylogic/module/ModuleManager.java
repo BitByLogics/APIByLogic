@@ -1,8 +1,8 @@
 package net.bitbylogic.apibylogic.module;
 
+import co.aikar.commands.PaperCommandManager;
 import lombok.Getter;
 import net.bitbylogic.apibylogic.dependency.DependencyManager;
-import net.bitbylogic.apibylogic.module.command.CommandManager;
 import net.bitbylogic.apibylogic.module.command.ModulesCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
@@ -12,23 +12,29 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 @Getter
 public class ModuleManager {
 
     private final JavaPlugin plugin;
     private final DependencyManager dependencyManager;
-    private final CommandManager commandManager;
+    private final PaperCommandManager commandManager;
 
     private final HashMap<String, Module> modules;
 
-    public ModuleManager(JavaPlugin plugin, DependencyManager dependencyManager) {
+    public ModuleManager(JavaPlugin plugin, PaperCommandManager commandManager, DependencyManager dependencyManager) {
         this.plugin = plugin;
         this.dependencyManager = dependencyManager;
-        commandManager = new CommandManager();
-        modules = new HashMap<>();
+        this.commandManager = commandManager;
+        this.modules = new HashMap<>();
 
-        commandManager.registerCommand(new ModulesCommand(this));
+        dependencyManager.setCommandManager(commandManager);
+
+        commandManager.getCommandCompletions().registerCompletion("moduleIds", context -> modules.values().stream()
+                .map(ModuleInterface::getModuleData).map(ModuleData::getId).collect(Collectors.toSet()));
+
+        commandManager.registerCommand(new ModulesCommand());
     }
 
     /**
@@ -67,7 +73,7 @@ public class ModuleManager {
             if (!plugin.getConfig().getStringList("disabled-modules").contains(module.getModuleData().getId() + "")) {
                 module.setEnabled(true);
                 module.onEnable();
-                module.getCommands().forEach(command -> command.setEnabled(true));
+                module.getCommands().forEach(commandManager::registerCommand);
                 Bukkit.getPluginManager().registerEvents(module, plugin);
             }
 
@@ -113,7 +119,7 @@ public class ModuleManager {
             module.setEnabled(true);
             module.onEnable();
             module.reloadConfig();
-            module.getCommands().forEach(command -> command.setEnabled(true));
+            module.getCommands().forEach(commandManager::registerCommand);
             Bukkit.getPluginManager().registerEvents(module, plugin);
         }
     }
@@ -140,7 +146,7 @@ public class ModuleManager {
             module.onDisable();
             module.getTasks().forEach(taskID -> Bukkit.getScheduler().cancelTask(taskID));
             module.getListeners().forEach(HandlerList::unregisterAll);
-            module.getCommands().forEach(command -> command.setEnabled(false));
+            module.getCommands().forEach(commandManager::unregisterCommand);
             HandlerList.unregisterAll(module);
         }
     }

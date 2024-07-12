@@ -1,9 +1,12 @@
 package net.bitbylogic.apibylogic.dependency;
 
+import co.aikar.commands.PaperCommandManager;
 import lombok.Getter;
-import net.bitbylogic.apibylogic.dependency.annotation.Dependency;
+import lombok.Setter;
 import net.bitbylogic.apibylogic.APIByLogic;
+import net.bitbylogic.apibylogic.dependency.annotation.Dependency;
 import net.bitbylogic.apibylogic.util.Table;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.logging.Level;
@@ -13,7 +16,15 @@ public class DependencyManager {
 
     private final Table<Class<?>, String, Object> dependencies;
 
+    @Setter
+    private PaperCommandManager commandManager;
+
     public DependencyManager() {
+        this(null);
+    }
+
+    public DependencyManager(@Nullable PaperCommandManager commandManager) {
+        this.commandManager = commandManager;
         dependencies = new Table<>();
 
         registerDependency(APIByLogic.class, APIByLogic.getInstance());
@@ -26,6 +37,12 @@ public class DependencyManager {
         }
 
         dependencies.put(clazz, clazz.getName(), instance);
+
+        if (commandManager == null) {
+            return;
+        }
+
+        commandManager.registerDependency(clazz, instance);
     }
 
     public void injectDependencies(Object obj) {

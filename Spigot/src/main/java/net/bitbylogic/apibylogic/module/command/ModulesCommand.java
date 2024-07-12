@@ -1,157 +1,124 @@
 package net.bitbylogic.apibylogic.module.command;
 
+import co.aikar.commands.BaseCommand;
+import co.aikar.commands.annotation.*;
+import net.bitbylogic.apibylogic.dependency.annotation.Dependency;
 import net.bitbylogic.apibylogic.module.Module;
-import net.bitbylogic.apibylogic.module.ModuleData;
-import net.bitbylogic.apibylogic.module.ModuleInterface;
 import net.bitbylogic.apibylogic.module.ModuleManager;
-import net.bitbylogic.apibylogic.util.NumberUtil;
 import net.bitbylogic.apibylogic.util.message.Formatter;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
-public class ModulesCommand extends ModuleCommand {
+@CommandAlias("module|mdl|modules|mdls")
+@CommandPermission("apibylogic.command.module")
+public class ModulesCommand extends BaseCommand {
 
-    private final ModuleManager moduleManager;
+    @Dependency
+    private ModuleManager moduleManager;
 
-    public ModulesCommand(ModuleManager moduleManager) {
-        super("module", new String[]{"mdl", "modules", "mdls"}, "apibylogic.admin");
-
-        this.moduleManager = moduleManager;
-        setEnabled(true);
+    @Default
+    public void onDefault(CommandSender sender) {
+        sender.sendMessage(
+                Formatter.listHeader("Module Commands", ""),
+                Formatter.command("module list <page>", "List all modules."),
+                Formatter.command("module reload <id>", "Reload the specified module's config."),
+                Formatter.command("module enable <id>", "Enable the specified module."),
+                Formatter.command("module disable <id>", "Disable the specified module."),
+                Formatter.command("module toggle <id>", "Toggles the specified module.")
+        );
     }
 
-    @Override
-    public void execute(CommandSender sender, String[] args) {
-        if (args.length == 0) {
-            sender.sendMessage(Formatter.listHeader("Module Commands", ""));
-            sender.sendMessage(Formatter.command("module list <page>", "List all modules."));
-            sender.sendMessage(Formatter.command("module reload <id>", "Reload the specified module's config."));
-            sender.sendMessage(Formatter.command("module enable <id>", "Enable the specified module."));
-            sender.sendMessage(Formatter.command("module disable <id>", "Disable the specified module."));
-            sender.sendMessage(Formatter.command("module toggle <id>", "Toggles the specified module."));
+    @Subcommand("list")
+    @CommandPermission("apibylogic.command.module.list")
+    public void onList(CommandSender sender, @Default("1") int page) {
+        displayPage(sender, page);
+    }
+
+    @Subcommand("reload")
+    @CommandPermission("apibylogic.command.module.reload")
+    @CommandCompletion("@moduleIds")
+    public void onReload(CommandSender sender, String moduleId) {
+        Module module = moduleManager.getModuleByID(moduleId);
+
+        if (module == null) {
+            sender.sendMessage(Formatter.error("Modules", "Invalid module."));
             return;
         }
 
-        if (args[0].equalsIgnoreCase("list")) {
-            int page = 1;
+        if (!module.isEnabled()) {
+            sender.sendMessage(Formatter.error("Modules", "That module isn't enabled."));
+        }
 
-            if (args.length >= 2) {
-                if (!NumberUtil.isNumber(args[1])) {
-                    sender.sendMessage(Formatter.error("Modules", "Invalid page."));
-                    return;
-                }
+        sender.sendMessage(Formatter.success("Modules", String.format("Reloading module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId())));
+        module.reloadConfig();
+        module.onReload();
+    }
 
-                page = Integer.parseInt(args[1]);
-            }
+    @Subcommand("enable")
+    @CommandPermission("apibylogic.command.module.enable")
+    @CommandCompletion("@moduleIds")
+    public void onEnable(CommandSender sender, String moduleId) {
+        Module module = moduleManager.getModuleByID(moduleId);
 
-            displayPage(sender, page);
+        if (module == null) {
+            sender.sendMessage(Formatter.error("Modules", "Invalid module."));
             return;
         }
 
-        if (args[0].equalsIgnoreCase("reload")) {
-            if (args.length < 2) {
-                sender.sendMessage(Formatter.error("Modules", "Invalid module ID."));
-                return;
-            }
+        if (module.isEnabled()) {
+            sender.sendMessage(Formatter.error("Modules", "That module isn't disabled."));
+        }
 
-            Module module = moduleManager.getModuleByID(args[1]);
+        sender.sendMessage(Formatter.success("Modules", "Enabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
+        moduleManager.enableModule(module.getModuleData().getId());
+    }
 
-            if (module == null) {
-                sender.sendMessage(Formatter.error("Modules", "Invalid module."));
-                return;
-            }
+    @Subcommand("disable")
+    @CommandPermission("apibylogic.command.module.disable")
+    @CommandCompletion("@moduleIds")
+    public void onDisable(CommandSender sender, String moduleId) {
+        Module module = moduleManager.getModuleByID(moduleId);
 
-            if (!module.isEnabled()) {
-                sender.sendMessage(Formatter.error("Modules", "That module isn't enabled."));
-            }
-
-            sender.sendMessage(Formatter.success("Modules", String.format("Reloading module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId())));
-            module.reloadConfig();
-            module.onReload();
+        if (module == null) {
+            sender.sendMessage(Formatter.error("Modules", "Invalid module."));
             return;
         }
 
-        if (args[0].equalsIgnoreCase("enable")) {
-            if (args.length < 2) {
-                sender.sendMessage(Formatter.error("Modules", "Invalid module ID."));
-                return;
-            }
+        if (!module.isEnabled()) {
+            sender.sendMessage(Formatter.error("Modules", "That module isn't enabled."));
+        }
 
-            Module module = moduleManager.getModuleByID(args[1]);
+        sender.sendMessage(Formatter.success("Modules", "Disabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
+        moduleManager.disableModule(module.getModuleData().getId());
+    }
 
-            if (module == null) {
-                sender.sendMessage(Formatter.error("Modules", "Invalid module."));
-                return;
-            }
+    @Subcommand("toggle")
+    @CommandPermission("apibylogic.command.module.toggle")
+    @CommandCompletion("@moduleIds")
+    public void onToggle(CommandSender sender, String moduleId) {
+        Module module = moduleManager.getModuleByID(moduleId);
 
-            if (module.isEnabled()) {
-                sender.sendMessage(Formatter.error("Modules", "That module isn't disabled."));
-            }
-
-            sender.sendMessage(Formatter.success("Modules", "Enabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
-            moduleManager.enableModule(module.getModuleData().getId());
+        if (module == null) {
+            sender.sendMessage(Formatter.error("Modules", "Invalid module."));
             return;
         }
 
-        if (args[0].equalsIgnoreCase("disable")) {
-            if (args.length < 2) {
-                sender.sendMessage(Formatter.error("Modules", "Invalid module ID."));
-                return;
-            }
-
-            Module module = moduleManager.getModuleByID(args[1]);
-
-            if (module == null) {
-                sender.sendMessage(Formatter.error("Modules", "Invalid module."));
-                return;
-            }
-
-            if (!module.isEnabled()) {
-                sender.sendMessage(Formatter.error("Modules", "That module isn't enabled."));
-            }
-
+        if (module.isEnabled()) {
+            module.setEnabled(false);
             sender.sendMessage(Formatter.success("Modules", "Disabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
             moduleManager.disableModule(module.getModuleData().getId());
             return;
         }
 
-        if (args[0].equalsIgnoreCase("toggle")) {
-            if (args.length < 2) {
-                sender.sendMessage(Formatter.error("Modules", "Invalid module ID."));
-                return;
-            }
-
-            Module module = moduleManager.getModuleByID(args[1]);
-
-            if (module == null) {
-                sender.sendMessage(Formatter.error("Modules", "Invalid module."));
-                return;
-            }
-
-            if (module.isEnabled()) {
-                module.setEnabled(false);
-                sender.sendMessage(Formatter.success("Modules", "Disabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
-                moduleManager.disableModule(module.getModuleData().getId());
-                return;
-            }
-
-            module.setEnabled(true);
-            sender.sendMessage(Formatter.success("Modules", "Enabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
-            moduleManager.enableModule(module.getModuleData().getId());
-        }
+        module.setEnabled(true);
+        sender.sendMessage(Formatter.success("Modules", "Enabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
+        moduleManager.enableModule(module.getModuleData().getId());
     }
 
     private void displayPage(CommandSender sender, int page) {
@@ -187,21 +154,4 @@ public class ModulesCommand extends ModuleCommand {
         sender.sendMessage(Formatter.replace("<c#separator>&m        &r <c#separator>( <c#secondary>Page<c#separator>: <c#highlight>%s <c#separator>)&m        ", page));
     }
 
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        if (args.length == 1) {
-            return StringUtil.copyPartialMatches(args[0], Arrays.asList("list", "reload", "enable", "disable"), new ArrayList<>());
-        }
-
-        if (args.length != 2) {
-            return new ArrayList<>();
-        }
-
-        if (args[0].equalsIgnoreCase("list")) {
-            return StringUtil.copyPartialMatches(args[1], Collections.singleton("1"), new ArrayList<>());
-        }
-
-        return StringUtil.copyPartialMatches(args[1], moduleManager.getModules().values().stream()
-                .map(ModuleInterface::getModuleData).map(ModuleData::getId).collect(Collectors.toSet()), new ArrayList<>());
-    }
 }
