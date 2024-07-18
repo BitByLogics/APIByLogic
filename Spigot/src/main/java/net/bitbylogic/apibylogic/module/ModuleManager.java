@@ -29,12 +29,15 @@ public class ModuleManager {
         this.commandManager = commandManager;
         this.modules = new HashMap<>();
 
+        dependencyManager.registerDependency(getClass(), this);
         dependencyManager.setCommandManager(commandManager);
 
         commandManager.getCommandCompletions().registerCompletion("moduleIds", context -> modules.values().stream()
                 .map(ModuleInterface::getModuleData).map(ModuleData::getId).collect(Collectors.toSet()));
 
-        commandManager.registerCommand(new ModulesCommand());
+        ModulesCommand modulesCommand = new ModulesCommand();
+        dependencyManager.injectDependencies(modulesCommand);
+        commandManager.registerCommand(modulesCommand);
     }
 
     /**

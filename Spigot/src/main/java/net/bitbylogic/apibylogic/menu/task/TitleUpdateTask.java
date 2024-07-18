@@ -45,6 +45,10 @@ public class TitleUpdateTask {
     }
 
     private void run() {
+        if(true) {
+            return;
+        }
+
         List<StringModifier> modifiers = new ArrayList<>();
         modifiers.addAll(menu.getData().getModifiers());
         modifiers.addAll(menu.getData().getPlaceholderProviders().stream().map(PlaceholderProvider::asPlaceholder).collect(Collectors.toList()));

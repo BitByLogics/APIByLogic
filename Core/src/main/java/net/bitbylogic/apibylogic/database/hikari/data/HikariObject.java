@@ -17,6 +17,11 @@ public abstract class HikariObject {
     private final List<HikariColumnData> columnData = new ArrayList<>();
     private final HashMap<String, HikariDataProcessor<?>> processorMap = new HashMap<>();
 
+    public HikariObject() {
+        loadProcessors();
+        loadStatementData();
+    }
+
     public abstract void loadProcessors();
 
     protected void loadStatementData() {

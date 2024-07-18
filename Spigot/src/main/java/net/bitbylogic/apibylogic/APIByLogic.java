@@ -73,10 +73,6 @@ public class APIByLogic extends JavaPlugin {
                     String currentVersion = getDescription().getVersion();
 
                     if (currentVersion.equalsIgnoreCase(latestVersion)) {
-                        String updateMessage = Formatter.format(messagePrefix + "&aYou are using the latest version of APIByLogic!");
-
-                        Bukkit.getConsoleSender().sendMessage(updateMessage);
-                        Bukkit.getOnlinePlayers().stream().filter(ServerOperator::isOp).forEach(player -> player.sendMessage(updateMessage));
                         return;
                     }
 

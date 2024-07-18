@@ -26,11 +26,16 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
+import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
 
 import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class ItemStackUtil {
 
@@ -128,6 +133,21 @@ public class ItemStackUtil {
         if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
             skullMeta.setOwner(Formatter.format(section.getString("Skull-Name", "Notch"), modifiers));
+            stack.setItemMeta(skullMeta);
+        }
+
+        if (section.getString("Skull-URL") != null) {
+            SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
+            PlayerProfile skullProfile = Bukkit.createPlayerProfile("Notch");
+            PlayerTextures textures = skullProfile.getTextures();
+            textures.clear();
+            try {
+                textures.setSkin(URI.create(section.getString("Skull-URL")).toURL());
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+            skullProfile.setTextures(textures);
+            skullMeta.setOwnerProfile(skullProfile);
             stack.setItemMeta(skullMeta);
         }
 

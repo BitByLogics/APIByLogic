@@ -4,6 +4,8 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -34,6 +36,28 @@ public class HikariAPI {
         hikari = new HikariDataSource(config);
     }
 
+    public HikariAPI(File databaseFile) {
+        if (!databaseFile.exists()) {
+            try {
+                databaseFile.createNewFile();
+            } catch (IOException e) {
+                System.out.println("(HikariAPI): Unable to find database file!");
+                hikari = null;
+                return;
+            }
+        }
+
+        HikariConfig config = new HikariConfig();
+        config.setMaximumPoolSize(10);
+        config.setConnectionTimeout(Duration.ofSeconds(30).toMillis());
+        config.setDataSourceClassName("jdbc:sqlite:" + databaseFile);
+        config.addDataSourceProperty("cachePrepStmts", "true");
+        config.addDataSourceProperty("prepStmtCacheSize", "250");
+        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+
+        hikari = new HikariDataSource(config);
+    }
+
     public void executeStatement(String query, Object... arguments) {
         executeStatement(query, null, arguments);
     }
@@ -41,13 +65,13 @@ public class HikariAPI {
     public void executeStatement(String query, Consumer<ResultSet> consumer, Object... arguments) {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = hikari.getConnection()) {
-                        try (PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
-                            int index = 1;
-                            for (Object argument : arguments) {
-                                statement.setObject(index++, argument);
-                            }
+                try (PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    int index = 1;
+                    for (Object argument : arguments) {
+                        statement.setObject(index++, argument);
+                    }
 
-                            statement.executeUpdate();
+                    statement.executeUpdate();
                     try (ResultSet result = statement.getGeneratedKeys()) {
                         consumer.accept(result);
                     }
@@ -84,7 +108,7 @@ public class HikariAPI {
                     }
                 }
             } catch (SQLException e) {
-                // Printed below
+                e.printStackTrace();
             }
         }).handle((unused, e) -> {
             if (e == null) {
