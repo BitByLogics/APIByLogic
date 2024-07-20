@@ -205,6 +205,7 @@ public abstract class HikariTable<O extends HikariObject> {
             try {
                 if (result.next()) {
                     callback.accept(loadObject(result));
+                    return;
                 }
             } catch (SQLException exception) {
                 exception.printStackTrace();
