@@ -4,6 +4,7 @@ import co.aikar.commands.BaseCommand;
 import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.Setter;
+import net.bitbylogic.apibylogic.module.task.ModulePendingTask;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.Listener;
@@ -17,6 +18,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 
 @Getter
@@ -177,4 +179,19 @@ public abstract class Module implements ModuleInterface, Listener {
     public void log(Level level, String message) {
         plugin.getLogger().log(level, "(" + getModuleData().getName() + ") " + message);
     }
+
+    public <T extends Module> void addDependencyTask(Class<T> dependency, Consumer<T> consumer) {
+        if (moduleManager.getDependencyManager().getDependencies().containsKey(dependency, dependency.getName())) {
+            consumer.accept((T) moduleManager.getDependencyManager().getDependencies().get(dependency, dependency.getName()));
+            return;
+        }
+
+        moduleManager.getPendingModuleTasks().add(new ModulePendingTask<>(dependency) {
+            @Override
+            public void accept(T module) {
+                consumer.accept(module);
+            }
+        });
+    }
+
 }

@@ -4,11 +4,13 @@ import co.aikar.commands.PaperCommandManager;
 import lombok.Getter;
 import net.bitbylogic.apibylogic.dependency.DependencyManager;
 import net.bitbylogic.apibylogic.module.command.ModulesCommand;
+import net.bitbylogic.apibylogic.module.task.ModulePendingTask;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
@@ -22,12 +24,14 @@ public class ModuleManager {
     private final PaperCommandManager commandManager;
 
     private final HashMap<String, Module> modules;
+    private final List<ModulePendingTask<? extends Module>> pendingModuleTasks;
 
     public ModuleManager(JavaPlugin plugin, PaperCommandManager commandManager, DependencyManager dependencyManager) {
         this.plugin = plugin;
         this.dependencyManager = dependencyManager;
         this.commandManager = commandManager;
         this.modules = new HashMap<>();
+        this.pendingModuleTasks = new ArrayList<>();
 
         dependencyManager.registerDependency(getClass(), this);
         dependencyManager.setCommandManager(commandManager);
@@ -66,7 +70,7 @@ public class ModuleManager {
                 continue;
             }
 
-            dependencyManager.registerDependency(module.getClass(), module);
+            dependencyManager.registerDependency(moduleClass, module);
             dependencyManager.injectDependencies(module);
 
             module.onRegister();
@@ -79,6 +83,9 @@ public class ModuleManager {
                 module.getCommands().forEach(commandManager::registerCommand);
                 Bukkit.getPluginManager().registerEvents(module, plugin);
             }
+
+            getPendingTasks(moduleClass).forEach(task -> task.accept(module));
+            pendingModuleTasks.removeIf(task -> task.getClazz().equals(moduleClass));
 
             long endTime = System.nanoTime();
             Bukkit.getLogger().log(Level.INFO, "[Module Manager]: Registration time for module (" + module.getModuleData().getName() + "): " + (endTime - startTime) / 1000000d + "ms");
@@ -162,6 +169,18 @@ public class ModuleManager {
      */
     public Module getModuleByID(String id) {
         return modules.values().stream().filter(module -> module.getModuleData().getId().equalsIgnoreCase(id)).findFirst().orElse(null);
+    }
+
+    private <T extends Module> List<ModulePendingTask<Module>> getPendingTasks(Class<T> moduleClass) {
+        List<ModulePendingTask<Module>> tasks = new ArrayList<>();
+        for (ModulePendingTask<? extends Module> task : pendingModuleTasks) {
+            if (moduleClass.isAssignableFrom(task.getClazz())) {
+                @SuppressWarnings("unchecked")
+                ModulePendingTask<Module> castedTask = (ModulePendingTask<Module>) task;
+                tasks.add(castedTask);
+            }
+        }
+        return tasks;
     }
 
 }
