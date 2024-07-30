@@ -1,7 +1,7 @@
 package net.bitbylogic.logicutils.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
+import net.bitbylogic.apibylogic.acf.BaseCommand;
+import net.bitbylogic.apibylogic.acf.annotation.*;
 import net.bitbylogic.apibylogic.util.message.Formatter;
 import net.bitbylogic.logicutils.LogicUtils;
 import org.bukkit.Bukkit;

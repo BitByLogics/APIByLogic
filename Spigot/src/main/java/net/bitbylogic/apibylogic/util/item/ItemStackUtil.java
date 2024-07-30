@@ -3,6 +3,7 @@ package net.bitbylogic.apibylogic.util.item;
 import com.cryptomorin.xseries.reflection.XReflection;
 import com.cryptomorin.xseries.reflection.minecraft.MinecraftPackage;
 import com.google.common.collect.Lists;
+import lombok.NonNull;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.util.Format;
 import net.bitbylogic.apibylogic.util.NumberUtil;
@@ -35,7 +36,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 public class ItemStackUtil {
 
@@ -464,7 +464,10 @@ public class ItemStackUtil {
         ItemStack item = new ItemStack(Material.SPAWNER);
         ItemMeta meta = item.getItemMeta();
 
-        meta.setDisplayName(Format.format(name));
+        if (name != null) {
+            meta.setDisplayName(Format.format(name));
+        }
+
         meta.getPersistentDataContainer().set(SPAWNER_KEY, PersistentDataType.STRING, entityType.name());
 
         item.setItemMeta(meta);
@@ -508,6 +511,26 @@ public class ItemStackUtil {
         SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
         skullMeta.setOwner(owner);
         stack.setItemMeta(skullMeta);
+    }
+
+    public static boolean isSword(@NonNull ItemStack item) {
+        return item.getType().name().endsWith("_SWORD");
+    }
+
+    public static boolean isAxe(@NonNull ItemStack item) {
+        return item.getType().name().endsWith("_AXE");
+    }
+
+    public static boolean isPickaxe(@NonNull ItemStack item) {
+        return item.getType().name().endsWith("_PICKAXE");
+    }
+
+    public static boolean isHoe(@NonNull ItemStack item) {
+        return item.getType().name().endsWith("_HOE");
+    }
+
+    public static boolean isShovel(@NonNull ItemStack item) {
+        return item.getType().name().endsWith("_SHOVEL");
     }
 
 }

@@ -117,6 +117,11 @@ public class Formatter {
         String formattedMessage = message;
 
         for (Object replacement : replacements) {
+            if (replacement instanceof StringModifier) {
+                formattedMessage = ((StringModifier) replacement).modify(formattedMessage);
+                continue;
+            }
+
             if (!formattedMessage.contains("%s")) {
                 break;
             }
@@ -190,13 +195,23 @@ public class Formatter {
     }
 
     public static Object[] applyHighlightColor(String primaryColor, String highlightColor, Object[] objects) {
-        List<String> formattedText = new ArrayList<>();
+        List<Object> formattedReplacements = new ArrayList<>();
 
         for (Object o : objects) {
-            formattedText.add(highlightColor + o.toString() + primaryColor);
+            if (o instanceof Placeholder placeholder) {
+                for (String key : placeholder.getPlaceholderMap().keySet()) {
+                    placeholder.getPlaceholderMap().compute(key,
+                            (k, value) -> highlightColor + value + primaryColor);
+                }
+
+                formattedReplacements.add(o);
+                continue;
+            }
+
+            formattedReplacements.add(highlightColor + o.toString() + primaryColor);
         }
 
-        return formattedText.toArray(new String[]{});
+        return formattedReplacements.toArray();
     }
 
     public static String[] getPagedList(String header, List<String> data, int page) {

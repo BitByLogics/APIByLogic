@@ -1,8 +1,8 @@
 package net.bitbylogic.logicutils;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.PaperCommandManager;
 import lombok.Getter;
+import net.bitbylogic.apibylogic.acf.BaseCommand;
+import net.bitbylogic.apibylogic.acf.PaperCommandManager;
 import net.bitbylogic.logicutils.commands.*;
 import net.bitbylogic.logicutils.config.Messages;
 import net.bitbylogic.logicutils.menu.RuntimeMenusManager;

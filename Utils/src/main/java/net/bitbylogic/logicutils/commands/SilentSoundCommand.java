@@ -1,10 +1,10 @@
 package net.bitbylogic.logicutils.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Syntax;
+import net.bitbylogic.apibylogic.acf.BaseCommand;
+import net.bitbylogic.apibylogic.acf.annotation.CommandAlias;
+import net.bitbylogic.apibylogic.acf.annotation.CommandPermission;
+import net.bitbylogic.apibylogic.acf.annotation.Default;
+import net.bitbylogic.apibylogic.acf.annotation.Syntax;
 import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
