@@ -2,27 +2,27 @@ package net.bitbylogic.apibylogic.database.hikari.data;
 
 import lombok.Getter;
 import net.bitbylogic.apibylogic.database.hikari.annotation.HikariStatementData;
-import net.bitbylogic.apibylogic.database.hikari.processor.HikariDataProcessor;
+import net.bitbylogic.apibylogic.database.hikari.processor.HikariFieldProcessor;
+import net.bitbylogic.apibylogic.util.HashMapUtil;
+import net.bitbylogic.apibylogic.util.ListUtil;
+import net.bitbylogic.apibylogic.util.reflection.ReflectionUtil;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.*;
 
 @Getter
-public abstract class HikariObject {
+public class HikariObject {
 
     private final List<HikariColumnData> columnData = new ArrayList<>();
-    private final HashMap<String, HikariDataProcessor<?>> processorMap = new HashMap<>();
+    private final HashMap<String, HikariFieldProcessor<?>> cachedProcessors = new HashMap<>();
 
     public HikariObject() {
-        loadProcessors();
         loadStatementData();
     }
-
-    public abstract void loadProcessors();
 
     protected void loadStatementData() {
         loadStatementData(null, new ArrayList<>());
@@ -44,6 +44,14 @@ public abstract class HikariObject {
 
             HikariStatementData data = field.getAnnotation(HikariStatementData.class);
 
+            if (!data.foreignTable().isEmpty() &&
+                    (!field.getType().isInstance(HikariObject.class) ||
+                            ReflectionUtil.isListOf(field, HikariObject.class) ||
+                            ReflectionUtil.isMapOf(field, HikariObject.class))) {
+                System.out.println("(HikariObject): Skipped field " + field.getName() + ", foreign classes must extend HikariObject!");
+                return;
+            }
+
             if (data.subClass()) {
                 try {
                     field.setAccessible(true);
@@ -57,12 +65,24 @@ public abstract class HikariObject {
                 return;
             }
 
-            if (data.dataType().isEmpty()) {
+            if (data.dataType().isEmpty() && data.foreignTable().isEmpty()) {
                 System.out.println("(HikariObject): Skipped field " + field.getName() + ", you must provide a data type!");
                 return;
             }
 
-            columnData.add(new HikariColumnData(field.getName(), fieldObject.getClass().getName(), data, parentObjectFields));
+            boolean list = false;
+
+            Type fieldType = field.getGenericType();
+
+            if (fieldType instanceof ParameterizedType parameterizedType) {
+                Class<?> fieldClass = (Class<?>) parameterizedType.getRawType();
+
+                if (List.class.isAssignableFrom(fieldClass)) {
+                    list = true;
+                }
+            }
+
+            columnData.add(new HikariColumnData(field.getName(), field.getType(), list, fieldObject.getClass().getName(), data, parentObjectFields));
         });
     }
 
@@ -113,19 +133,24 @@ public abstract class HikariObject {
                 field.setAccessible(true);
                 Object fieldValue = field.get(fieldObject);
 
-                if (statementData.processorID().isEmpty()) {
-                    data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + (fieldValue instanceof Boolean ? ((Boolean) fieldValue) ? 1 : 0 : fieldValue.toString()) + "'"));
-                    return;
-                }
-
-                HikariDataProcessor processor = processorMap.get(statementData.processorID());
+                HikariFieldProcessor processor = cachedProcessors.get(columnData.getFieldName());
 
                 if (processor == null) {
-                    System.out.println("(HikariObject): Invalid processor: " + statementData.processorID());
+                    try {
+                        processor = statementData.processor().getDeclaredConstructor().newInstance();
+                        cachedProcessors.put(columnData.getFieldName(), processor);
+                    } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+
+                if (statementData.foreignTable().isEmpty()) {
+                    data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + processor.parseToObject(fieldValue) + "'"));
                     return;
                 }
 
-                data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + processor.processObject(fieldValue) + "'"));
+                data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(field, columnData) + "'"));
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 e.printStackTrace();
             }
@@ -148,19 +173,24 @@ public abstract class HikariObject {
                 field.setAccessible(true);
                 Object fieldValue = field.get(fieldObject);
 
-                if (statementData.processorID().isEmpty()) {
-                    data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + (fieldValue instanceof Boolean ? ((Boolean) fieldValue) ? 1 : 0 : fieldValue.toString()) + "'"));
-                    return;
-                }
-
-                HikariDataProcessor processor = processorMap.get(statementData.processorID());
+                HikariFieldProcessor processor = cachedProcessors.get(columnData.getFieldName());
 
                 if (processor == null) {
-                    System.out.println("(HikariObject): Invalid processor: " + statementData.processorID());
+                    try {
+                        processor = statementData.processor().getDeclaredConstructor().newInstance();
+                        cachedProcessors.put(columnData.getFieldName(), processor);
+                    } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+
+                if (statementData.foreignTable().isEmpty()) {
+                    data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + processor.parseToObject(fieldValue) + "'"));
                     return;
                 }
 
-                data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + processor.processObject(fieldValue) + "'"));
+                data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(field, columnData) + "'"));
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 e.printStackTrace();
             }
@@ -170,7 +200,7 @@ public abstract class HikariObject {
         return builder.toString();
     }
 
-    public String getTableCreateStatement(String table) {
+    protected String getTableCreateStatement(String table) {
         StringBuilder builder = new StringBuilder(String.format("CREATE TABLE IF NOT EXISTS %s (%s", table, getStatementDataBlock(true)));
 
         columnData.stream().filter(columnData -> columnData.getStatementData().primaryKey()).findFirst()
@@ -179,11 +209,11 @@ public abstract class HikariObject {
         return builder.append(");").toString();
     }
 
-    public String getDataCreateStatement(String table) {
+    protected String getDataCreateStatement(String table) {
         return String.format("INSERT INTO %s (%s) VALUES(%S);", table, getStatementDataBlock(false), getValuesDataBlock());
     }
 
-    public String getDataSaveStatement(String table, String... includedFields) {
+    protected String getDataSaveStatement(String table, String... includedFields) {
         StringBuilder builder = new StringBuilder(String.format("INSERT INTO %s (%s) VALUES(%s) ON DUPLICATE KEY UPDATE ",
                 table, getStatementDataBlock(false, includedFields), getValuesDataBlock(includedFields)));
 
@@ -208,7 +238,7 @@ public abstract class HikariObject {
         return builder.append(String.join(", ", entries)).append(";").toString();
     }
 
-    public String getUpdateStatement(String table, String... includedFields) {
+    protected String getUpdateStatement(String table, String... includedFields) {
         StringBuilder builder = new StringBuilder(String.format("UPDATE %s SET ", table));
 
         List<String> entries = new ArrayList<>();
@@ -230,19 +260,24 @@ public abstract class HikariObject {
                 field.setAccessible(true);
                 Object fieldValue = field.get(fieldObject);
 
-                if (statementData.processorID().isEmpty()) {
-                    entries.add(String.format("key= %s", fieldValue == null ? "NULL" : "'" + (fieldValue instanceof Boolean ? ((Boolean) fieldValue) ? 1 : 0 : fieldValue.toString()) + "'"));
-                    return;
-                }
-
-                HikariDataProcessor processor = processorMap.get(statementData.processorID());
+                HikariFieldProcessor processor = cachedProcessors.get(columnData.getFieldName());
 
                 if (processor == null) {
-                    System.out.println("(HikariObject): Invalid processor: " + statementData.processorID());
+                    try {
+                        processor = statementData.processor().getDeclaredConstructor().newInstance();
+                        cachedProcessors.put(columnData.getFieldName(), processor);
+                    } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+
+                if (statementData.foreignTable().isEmpty()) {
+                    entries.add(String.format("key= %s", fieldValue == null ? null : "'" + processor.parseToObject(fieldValue) + "'"));
                     return;
                 }
 
-                entries.add(String.format("key= %s", fieldValue == null ? null : "'" + processor.processObject(fieldValue) + "'"));
+                entries.add(String.format("key= %s", fieldValue == null ? null : "'" + getForeignFieldObject(field, columnData) + "'"));
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 e.printStackTrace();
             }
@@ -260,19 +295,24 @@ public abstract class HikariObject {
 
                         builder.append(String.join(", ", entries)).append(" WHERE ").append(columnData.getColumnName()).append(" = ");
 
-                        if (statementData.processorID().isEmpty()) {
-                            builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + (fieldValue instanceof Boolean ? ((Boolean) fieldValue) ? 1 : 0 : fieldValue.toString()) + "'"));
-                            return;
-                        }
-
-                        HikariDataProcessor processor = processorMap.get(statementData.processorID());
+                        HikariFieldProcessor processor = cachedProcessors.get(columnData.getFieldName());
 
                         if (processor == null) {
-                            System.out.println("(HikariObject): Invalid processor: " + statementData.processorID());
+                            try {
+                                processor = statementData.processor().getDeclaredConstructor().newInstance();
+                                cachedProcessors.put(columnData.getFieldName(), processor);
+                            } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
+                                e.printStackTrace();
+                                return;
+                            }
+                        }
+
+                        if (statementData.foreignTable().isEmpty()) {
+                            builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + processor.parseToObject(fieldValue) + "'"));
                             return;
                         }
 
-                        builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + processor.processObject(fieldValue) + "'"));
+                        builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(field, columnData) + "'"));
                     } catch (NoSuchFieldException | IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
@@ -281,7 +321,7 @@ public abstract class HikariObject {
         return builder.toString();
     }
 
-    public String getDataDeleteStatement(String table) {
+    protected String getDataDeleteStatement(String table) {
         if (columnData.stream().noneMatch(columnData -> columnData.getStatementData().primaryKey())) {
             System.out.printf("[APIByLogic] [HikariAPI] (%s) No primary key, aborting.%n", table);
             return null;
@@ -301,19 +341,24 @@ public abstract class HikariObject {
                         field.setAccessible(true);
                         Object fieldValue = field.get(fieldObject);
 
-                        if (statementData.processorID().isEmpty()) {
-                            builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + (fieldValue instanceof Boolean ? ((Boolean) fieldValue) ? 1 : 0 : fieldValue.toString()) + "'"));
-                            return;
-                        }
-
-                        HikariDataProcessor processor = processorMap.get(statementData.processorID());
+                        HikariFieldProcessor processor = cachedProcessors.get(columnData.getFieldName());
 
                         if (processor == null) {
-                            System.out.println("(HikariObject): Invalid processor: " + statementData.processorID());
+                            try {
+                                processor = statementData.processor().getDeclaredConstructor().newInstance();
+                                cachedProcessors.put(columnData.getFieldName(), processor);
+                            } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
+                                e.printStackTrace();
+                                return;
+                            }
+                        }
+
+                        if (statementData.foreignTable().isEmpty()) {
+                            builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + processor.parseToObject(fieldValue) + "'"));
                             return;
                         }
 
-                        builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + processor.processObject(fieldValue) + "'"));
+                        builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(field, columnData) + "'"));
                     } catch (NoSuchFieldException | IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
@@ -322,7 +367,7 @@ public abstract class HikariObject {
         return builder.toString();
     }
 
-    public Object getFieldObject(HikariColumnData columnData) {
+    protected Object getFieldObject(HikariColumnData columnData) {
         if (columnData.getParentObjectFields().isEmpty()) {
             return this;
         }
@@ -344,7 +389,53 @@ public abstract class HikariObject {
         return object;
     }
 
-    public String getPrimaryKeyFieldName() {
+    protected Object getForeignFieldObject(Field field, HikariColumnData columnData) {
+        if (columnData.getStatementData().foreignTable().isEmpty()) {
+            return null;
+        }
+
+        field.setAccessible(true);
+
+        try {
+            Object fieldValue = field.get(this);
+
+            if (field.getType().isInstance(HikariObject.class)) {
+                return ((HikariObject) fieldValue).getId();
+            }
+
+            Type fieldType = field.getGenericType();
+
+            if (fieldType instanceof ParameterizedType parameterizedType) {
+                Class<?> fieldClass = (Class<?>) parameterizedType.getRawType();
+
+                if (List.class.isAssignableFrom(fieldClass)) {
+                    List<HikariObject> list = (List<HikariObject>) fieldValue;
+                    List<Object> newList = new ArrayList<>();
+                    list.forEach(hikariObject -> newList.add(hikariObject.getId()));
+
+                    field.set(this, newList);
+                    return ListUtil.listToString(newList);
+                }
+
+                if (!Map.class.isAssignableFrom(fieldClass)) {
+                    return fieldValue;
+                }
+
+                Map<Object, HikariObject> map = (Map<Object, HikariObject>) fieldValue;
+                HashMap<Object, Object> newMap = new HashMap<>();
+                map.forEach((key, value) -> newMap.put(key, value.getId()));
+
+                field.set(this, map);
+                return HashMapUtil.mapToString(newMap);
+            }
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    protected String getPrimaryKeyFieldName() {
         return columnData.stream().filter(columnData -> columnData.getStatementData().primaryKey())
                 .findFirst().map(HikariColumnData::getFieldName).orElse(null);
     }

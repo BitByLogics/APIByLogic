@@ -88,15 +88,18 @@ public abstract class Module implements ModuleInterface, Listener {
 
     protected void registerCommand(BaseCommand... commands) {
         for (BaseCommand command : commands) {
-            if (!this.commands.contains(command) && this.commands.stream().noneMatch(lCommand -> lCommand.getName().equalsIgnoreCase(command.getName()))) {
-                this.commands.add(command);
-                moduleManager.getCommandManager().registerCommand(command);
+            if (this.commands.contains(command)) {
+                continue;
             }
+
+            this.commands.add(command);
+            //moduleManager.getCommandManager().registerCommand(command);
         }
     }
 
     protected void registerModuleListener(Listener listener) {
         if (!listeners.contains(listener)) {
+            moduleManager.getDependencyManager().injectDependencies(listener);
             listeners.add(listener);
             Bukkit.getServer().getPluginManager().registerEvents(listener, plugin);
         }

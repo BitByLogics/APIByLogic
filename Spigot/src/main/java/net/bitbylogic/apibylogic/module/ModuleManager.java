@@ -77,7 +77,7 @@ public class ModuleManager {
             module.getCommands().forEach(dependencyManager::injectDependencies);
             modules.put(moduleClass.getSimpleName(), module);
 
-            if (!plugin.getConfig().getStringList("disabled-modules").contains(module.getModuleData().getId() + "")) {
+            if (!plugin.getConfig().getStringList("disabled-modules").contains(module.getModuleData().getId())) {
                 module.setEnabled(true);
                 module.onEnable();
                 module.getCommands().forEach(commandManager::registerCommand);

@@ -3,14 +3,22 @@ package net.bitbylogic.apibylogic.database.hikari;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
+import lombok.NonNull;
+import net.bitbylogic.apibylogic.database.hikari.data.HikariObject;
+import net.bitbylogic.apibylogic.database.hikari.data.HikariTable;
+import net.bitbylogic.apibylogic.util.Pair;
+import net.bitbylogic.apibylogic.util.reflection.ReflectionUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -18,6 +26,8 @@ import java.util.function.Consumer;
 public class HikariAPI {
 
     private final HikariDataSource hikari;
+
+    private final HashMap<String, Pair<String, HikariTable<?>>> tables = new HashMap<>();
 
     public HikariAPI(String address, String database, String port, String username, String password) {
         HikariConfig config = new HikariConfig();
@@ -56,6 +66,36 @@ public class HikariAPI {
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 
         hikari = new HikariDataSource(config);
+    }
+
+    public <O extends HikariObject, T extends HikariTable<O>> Optional<T> registerTable(Class<? extends T> tableClass) {
+        if (getTables().containsKey(tableClass.getSimpleName())) {
+            System.out.println("(HikariAPI): Couldn't register table " + tableClass.getSimpleName() + ", it's already registered.");
+            return Optional.empty();
+        }
+
+        try {
+            T table = ReflectionUtil.findAndCallConstructor(tableClass, this);
+
+            if (table == null || table.getTable() == null) {
+                System.out.println("(HikariAPI): Couldn't create instance of table " + tableClass.getSimpleName() + "!");
+                return Optional.empty();
+            }
+
+            getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
+            return Optional.of(table);
+        } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
+            System.out.println("(HikariAPI): Couldn't create instance of table " + tableClass.getSimpleName() + "!");
+            e.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
+    public HikariTable<?> getTable(@NonNull String tableName) {
+        return tables.values().stream()
+                .filter(stringHikariTablePair -> stringHikariTablePair.getKey().equalsIgnoreCase(tableName))
+                .map(Pair::getValue).findFirst().orElse(null);
     }
 
     public void executeStatement(String query, Object... arguments) {

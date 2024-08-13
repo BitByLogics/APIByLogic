@@ -27,6 +27,9 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
             <plugin>
@@ -42,6 +45,7 @@
                         <configuration>
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <minimizeJar>true</minimizeJar>
+                            <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
                         </configuration>
                     </execution>
                 </executions>

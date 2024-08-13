@@ -29,6 +29,7 @@ Redis-Credentials:
 # Hikari Configuration
 # ────────────────────
 Hikari-Details:
+  Enabled: false
   Address: ""
   Database: ""
   Port: "3306"

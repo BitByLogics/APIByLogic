@@ -46,6 +46,7 @@
                         </goals>
                         <configuration>
                             <minimizeJar>true</minimizeJar>
+                            <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
                             <relocations>
                                 <relocation>
                                     <pattern>org.bstats</pattern>
@@ -76,7 +77,6 @@
                                     </includes>
                                 </filter>
                             </filters>
-                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <artifactSet>
                                 <excludes>
                                     <exclude>net.bytebuddy:byte-buddy:*</exclude>

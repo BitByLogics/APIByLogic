@@ -2,38 +2,73 @@ package net.bitbylogic.apibylogic.database.hikari.data;
 
 import lombok.Getter;
 import net.bitbylogic.apibylogic.database.hikari.HikariAPI;
+import net.bitbylogic.apibylogic.database.hikari.processor.HikariFieldProcessor;
+import net.bitbylogic.apibylogic.database.hikari.processor.impl.DefaultHikariFieldProcessor;
 import net.bitbylogic.apibylogic.database.hikari.redis.HikariRedisUpdateType;
 import net.bitbylogic.apibylogic.database.hikari.redis.HikariUpdateRedisMessageListener;
 import net.bitbylogic.apibylogic.database.redis.client.RedisClient;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
+import net.bitbylogic.apibylogic.util.HashMapUtil;
+import net.bitbylogic.apibylogic.util.StringProcessor;
+import net.bitbylogic.apibylogic.util.reflection.NamedParameter;
+import net.bitbylogic.apibylogic.util.reflection.ReflectionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 @Getter
-public abstract class HikariTable<O extends HikariObject> {
+public class HikariTable<O extends HikariObject> {
 
     private final HikariAPI hikariAPI;
+
     private final String table;
+    private final Class<O> objectClass;
     private final ConcurrentHashMap<Object, O> dataMap;
+
     private String primaryKeyFieldName;
+    private List<HikariColumnData> columnData;
+    private Constructor<O> objectConstructor;
 
     private RedisClient redisClient;
 
     public HikariTable(HikariAPI hikariAPI, Class<O> objectClass, String table, boolean loadData) {
         this.hikariAPI = hikariAPI;
         this.table = table;
+        this.objectClass = objectClass;
         this.dataMap = new ConcurrentHashMap<>();
 
         try {
-            O tempObject = objectClass.newInstance();
+            Constructor<O> emptyConstructor = ReflectionUtil.findConstructor(objectClass);
+
+            if (emptyConstructor == null) {
+                System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table, missing empty constructor.");
+                return;
+            }
+
+            O tempObject = emptyConstructor.newInstance();
+
+            List<NamedParameter> namedParameters = new ArrayList<>();
+
+            for (HikariColumnData columnData : tempObject.getColumnData()) {
+                namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), null));
+            }
+
+            columnData = tempObject.getColumnData();
+            objectConstructor = ReflectionUtil.findNamedConstructor(objectClass, namedParameters.toArray(new NamedParameter[]{}));
+
+            if (objectConstructor == null) {
+                System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table, missing main constructor.");
+                return;
+            }
+
             hikariAPI.executeStatement(tempObject.getTableCreateStatement(table), resultSet -> {
                 if (!loadData) {
                     return;
@@ -41,8 +76,9 @@ public abstract class HikariTable<O extends HikariObject> {
 
                 loadData();
             });
+
             primaryKeyFieldName = tempObject.getPrimaryKeyFieldName();
-        } catch (InstantiationException | IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table.");
             e.printStackTrace();
         }
@@ -51,16 +87,39 @@ public abstract class HikariTable<O extends HikariObject> {
     public HikariTable(HikariAPI hikariAPI, Class<O> objectClass, String table) {
         this.hikariAPI = hikariAPI;
         this.table = table;
+        this.objectClass = objectClass;
         this.dataMap = new ConcurrentHashMap<>();
 
         try {
-            O tempObject = objectClass.newInstance();
+            Constructor<O> emptyConstructor = ReflectionUtil.findConstructor(objectClass);
+
+            if (emptyConstructor == null) {
+                System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table, missing empty constructor.");
+                return;
+            }
+
+            O tempObject = emptyConstructor.newInstance();
+
+            columnData = tempObject.getColumnData();
+
+            List<NamedParameter> namedParameters = new ArrayList<>();
+
+            for (HikariColumnData columnData : columnData) {
+                namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), null));
+            }
+
+            objectConstructor = ReflectionUtil.findNamedConstructor(objectClass, namedParameters.toArray(new NamedParameter[]{}));
+
+            if (objectConstructor == null) {
+                System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table, missing main constructor.");
+                return;
+            }
 
             hikariAPI.executeStatement(tempObject.getTableCreateStatement(table), rs -> {
                 loadData();
             });
             primaryKeyFieldName = tempObject.getPrimaryKeyFieldName();
-        } catch (InstantiationException | IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table.");
             e.printStackTrace();
         }
@@ -173,7 +232,86 @@ public abstract class HikariTable<O extends HikariObject> {
         });
     }
 
-    public abstract Optional<O> loadObject(ResultSet set) throws SQLException;
+    public Optional<O> loadObject(ResultSet result) throws SQLException {
+        try {
+            List<NamedParameter> namedParameters = new ArrayList<>();
+
+            for (HikariColumnData columnData : columnData) {
+                HikariFieldProcessor processor = ReflectionUtil.findAndCallConstructor(columnData.getStatementData().processor());
+
+                if (processor == null) {
+                    System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to load object, invalid processor.");
+                    return Optional.empty();
+                }
+
+                Object object = result.getObject(columnData.getColumnName());
+
+                if (columnData.getFieldClass() != String.class &&
+                        processor instanceof DefaultHikariFieldProcessor &&
+                        object instanceof String string) {
+                    object = StringProcessor.findAndProcess(columnData.getFieldClass(), string);
+                } else {
+                    object = processor.parseFromObject(object);
+                }
+
+                if (columnData.getStatementData().foreignTable().isEmpty()) {
+                    namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), object));
+                    continue;
+                }
+
+                HikariTable<?> foreignTable = hikariAPI.getTable(columnData.getStatementData().foreignTable());
+
+                if (foreignTable == null) {
+                    System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to load object, missing foreign table for: "
+                            + columnData.getStatementData().foreignTable());
+                    continue;
+                }
+
+                if (columnData.getFieldClass().isInstance(HikariObject.class)) {
+                    foreignTable.getDataFromDB(object, true, o -> {
+                        if (o.isEmpty()) {
+                            namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), null));
+                            return;
+                        }
+
+                        namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), o.get()));
+                    });
+                    continue;
+                }
+
+                if (columnData.isList()) {
+                    List<Object> list = (List<Object>) object;
+                    List<HikariObject> newList = new ArrayList<>();
+
+                    list.forEach(id -> {
+                        foreignTable.getDataFromDB(id, true, o -> {
+                            o.ifPresent(newList::add);
+                        });
+                    });
+
+                    namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), newList));
+                    continue;
+                }
+
+                Map<Object, Object> map = (Map<Object, Object>) object;
+                HashMap<Object, HikariObject> newMap = new HashMap<>();
+                map.forEach((key, value) -> {
+                    foreignTable.getDataFromDB(value, true, o -> {
+                        o.ifPresent(data -> newMap.put(key, data));
+                    });
+                });
+
+                namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), newMap));
+            }
+
+            return Optional.of(ReflectionUtil.callConstructor(objectConstructor, namedParameters.toArray(new NamedParameter[]{})));
+        } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
+            System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to load object.");
+            e.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
 
     public Optional<O> getDataById(@NotNull Object id) {
         return Optional.ofNullable(dataMap.get(id));

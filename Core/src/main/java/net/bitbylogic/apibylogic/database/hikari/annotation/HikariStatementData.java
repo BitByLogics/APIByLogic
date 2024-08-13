@@ -1,5 +1,8 @@
 package net.bitbylogic.apibylogic.database.hikari.annotation;
 
+import net.bitbylogic.apibylogic.database.hikari.processor.HikariFieldProcessor;
+import net.bitbylogic.apibylogic.database.hikari.processor.impl.DefaultHikariFieldProcessor;
+
 import java.lang.annotation.*;
 
 @Target(ElementType.FIELD)
@@ -21,6 +24,8 @@ public @interface HikariStatementData {
 
     boolean subClass() default false;
 
-    String processorID() default "";
+    Class<? extends HikariFieldProcessor<?>> processor() default DefaultHikariFieldProcessor.class;
+
+    String foreignTable() default "";
 
 }

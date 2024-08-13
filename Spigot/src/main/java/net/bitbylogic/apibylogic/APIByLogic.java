@@ -103,7 +103,6 @@ public class APIByLogic extends JavaPlugin {
         pluginManager.registerEvents(new DispenserArmorListener(), this);
         pluginManager.registerEvents(new SpawnerListener(), this);
 
-        // Possibly remove this later? I forget why I added it
         getServer().getScheduler().runTaskTimer(this, () -> {
             if (pendingTasks.isEmpty()) {
                 return;
@@ -191,6 +190,10 @@ public class APIByLogic extends JavaPlugin {
     }
 
     private void initializeHikari() {
+        if (!getConfig().getBoolean("Hikari-Details.Enabled", false)) {
+            return;
+        }
+
         if (!getConfig().isSet("Hikari-Details.Address") || getConfig().getString("Hikari-Details.Address").isEmpty()
                 || !getConfig().isSet("Hikari-Details.Database") || getConfig().getString("Hikari-Details.Database").isEmpty()) {
             return;

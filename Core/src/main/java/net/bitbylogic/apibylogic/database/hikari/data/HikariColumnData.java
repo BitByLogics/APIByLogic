@@ -11,6 +11,8 @@ import java.util.List;
 public class HikariColumnData {
 
     private final String fieldName;
+    private final Class<?> fieldClass;
+    private final boolean list;
     private final String parentClassName;
     private final HikariStatementData statementData;
     private final List<String> parentObjectFields;
