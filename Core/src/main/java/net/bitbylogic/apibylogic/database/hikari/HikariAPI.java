@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 import lombok.NonNull;
+import net.bitbylogic.apibylogic.database.hikari.data.HikariColumnData;
 import net.bitbylogic.apibylogic.database.hikari.data.HikariObject;
 import net.bitbylogic.apibylogic.database.hikari.data.HikariTable;
 import net.bitbylogic.apibylogic.util.Pair;
@@ -17,8 +18,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -28,6 +28,7 @@ public class HikariAPI {
     private final HikariDataSource hikari;
 
     private final HashMap<String, Pair<String, HikariTable<?>>> tables = new HashMap<>();
+    private final HashMap<HikariTable<?>, List<String>> pendingTables = new HashMap<>();
 
     public HikariAPI(String address, String database, String port, String username, String password) {
         HikariConfig config = new HikariConfig();
@@ -82,7 +83,34 @@ public class HikariAPI {
                 return Optional.empty();
             }
 
+            for (HikariColumnData columnData : table.getColumnData()) {
+                if (columnData.getStatementData().foreignTable().isEmpty()) {
+                    continue;
+                }
+
+                String foreignTable = columnData.getStatementData().foreignTable();
+
+                if (getTable(foreignTable) == null) {
+                    List<String> tables = pendingTables.getOrDefault(table, new ArrayList<>());
+                    tables.add(foreignTable);
+                    pendingTables.put(table, tables);
+                    System.out.println("(HikariAPI): Table " + table.getTable() + " requires " + foreignTable + " and will be loaded when it's loaded!");
+                    getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
+                    return Optional.of(table);
+                }
+            }
+
+            executeStatement(table.getTableCreateStatement(), resultSet -> {
+                if (!table.isLoadData()) {
+                    return;
+                }
+
+                table.loadData();
+            });
+
             getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
+            loadTable(table);
+
             return Optional.of(table);
         } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
             System.out.println("(HikariAPI): Couldn't create instance of table " + tableClass.getSimpleName() + "!");
@@ -90,6 +118,37 @@ public class HikariAPI {
         }
 
         return Optional.empty();
+    }
+
+    private void loadTable(@NonNull HikariTable<?> table) {
+        executeStatement(table.getTableCreateStatement(), resultSet -> {
+            if (!table.isLoadData()) {
+                return;
+            }
+
+            table.loadData();
+        });
+
+        Iterator<Map.Entry<HikariTable<?>, List<String>>> iterator = pendingTables.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<HikariTable<?>, List<String>> entry = iterator.next();
+
+            if (!entry.getValue().contains(table.getTable())) {
+                continue;
+            }
+
+            List<String> newTables = entry.getValue();
+            newTables.remove(table.getTable());
+            pendingTables.put(entry.getKey(), newTables);
+
+            if (!newTables.isEmpty()) {
+                continue;
+            }
+
+            loadTable(entry.getKey());
+            iterator.remove();
+        }
     }
 
     public HikariTable<?> getTable(@NonNull String tableName) {

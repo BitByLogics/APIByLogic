@@ -6,7 +6,11 @@ public class DefaultHikariFieldProcessor implements HikariFieldProcessor<Object>
 
     @Override
     public Object parseToObject(Object fieldValue) {
-        return fieldValue instanceof Boolean ? String.valueOf(((Boolean) fieldValue) ? 1 : 0) : fieldValue.toString();
+        if (fieldValue instanceof Boolean) {
+            return String.valueOf((Boolean) fieldValue ? 1 : 0);
+        }
+
+        return fieldValue.toString();
     }
 
     @Override

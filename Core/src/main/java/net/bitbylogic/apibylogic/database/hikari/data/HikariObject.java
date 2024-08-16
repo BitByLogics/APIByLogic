@@ -45,10 +45,10 @@ public class HikariObject {
             HikariStatementData data = field.getAnnotation(HikariStatementData.class);
 
             if (!data.foreignTable().isEmpty() &&
-                    (!field.getType().isInstance(HikariObject.class) ||
-                            ReflectionUtil.isListOf(field, HikariObject.class) ||
-                            ReflectionUtil.isMapOf(field, HikariObject.class))) {
-                System.out.println("(HikariObject): Skipped field " + field.getName() + ", foreign classes must extend HikariObject!");
+                    (!field.getType().isInstance(HikariObject.class) &&
+                            !ReflectionUtil.isListOf(field, HikariObject.class) &&
+                            !ReflectionUtil.isMapOf(field, HikariObject.class))) {
+                System.out.println("(HikariObject): Skipped field " + field.getName() + ", foreign classes must contain HikariObject!");
                 return;
             }
 

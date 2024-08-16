@@ -27,7 +27,7 @@ public class ReflectionUtil {
             Type[] arguments = parameterizedType.getActualTypeArguments();
 
             if (arguments.length > 0) {
-                return arguments[0].equals(entryClass);
+                return arguments[0].getClass().isInstance(entryClass);
             }
         }
 
@@ -42,7 +42,7 @@ public class ReflectionUtil {
             Type[] arguments = parameterizedType.getActualTypeArguments();
 
             if (arguments.length > 1) {
-                return arguments[1].equals(valueClass);
+                return arguments[1].getClass().isInstance(valueClass);
             }
         }
 
