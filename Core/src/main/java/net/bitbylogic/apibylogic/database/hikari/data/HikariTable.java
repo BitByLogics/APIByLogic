@@ -9,6 +9,8 @@ import net.bitbylogic.apibylogic.database.hikari.redis.HikariRedisUpdateType;
 import net.bitbylogic.apibylogic.database.hikari.redis.HikariUpdateRedisMessageListener;
 import net.bitbylogic.apibylogic.database.redis.client.RedisClient;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
+import net.bitbylogic.apibylogic.util.HashMapUtil;
+import net.bitbylogic.apibylogic.util.ListUtil;
 import net.bitbylogic.apibylogic.util.StringProcessor;
 import net.bitbylogic.apibylogic.util.reflection.NamedParameter;
 import net.bitbylogic.apibylogic.util.reflection.ReflectionUtil;
@@ -32,11 +34,10 @@ public class HikariTable<O extends HikariObject> {
     private final String table;
     private final boolean loadData;
     private final Class<O> objectClass;
-    private final ConcurrentHashMap<Object, O> dataMap;
 
-    private String primaryKeyFieldName;
-    private String tableCreateStatement;
-    private List<HikariColumnData> columnData;
+    private final ConcurrentHashMap<Object, O> dataMap;
+    private final HikariStatements<O> statements;
+
     private Constructor<O> objectConstructor;
 
     private RedisClient redisClient;
@@ -47,6 +48,7 @@ public class HikariTable<O extends HikariObject> {
         this.loadData = loadData;
         this.objectClass = objectClass;
         this.dataMap = new ConcurrentHashMap<>();
+        this.statements = new HikariStatements<>(table);
 
         try {
             Constructor<O> emptyConstructor = ReflectionUtil.findConstructor(objectClass);
@@ -57,19 +59,15 @@ public class HikariTable<O extends HikariObject> {
             }
 
             O tempObject = emptyConstructor.newInstance();
+            statements.loadColumnData(tempObject, new ArrayList<>());
 
-            columnData = tempObject.getColumnData();
-
-            List<NamedParameter> namedParameters = columnData.stream().map(data -> data.asNamedParameter(null)).toList();
+            List<NamedParameter> namedParameters = statements.getColumnData().stream().map(data -> data.asNamedParameter(null)).toList();
             objectConstructor = ReflectionUtil.findNamedConstructor(objectClass, namedParameters.toArray(new NamedParameter[]{}));
 
             if (objectConstructor == null) {
                 System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table, missing main constructor.");
                 return;
             }
-
-            primaryKeyFieldName = tempObject.getPrimaryKeyFieldName();
-            tableCreateStatement = tempObject.getTableCreateStatement(table);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table.");
             e.printStackTrace();
@@ -77,38 +75,7 @@ public class HikariTable<O extends HikariObject> {
     }
 
     public HikariTable(HikariAPI hikariAPI, Class<O> objectClass, String table) {
-        this.hikariAPI = hikariAPI;
-        this.table = table;
-        this.loadData = true;
-        this.objectClass = objectClass;
-        this.dataMap = new ConcurrentHashMap<>();
-
-        try {
-            Constructor<O> emptyConstructor = ReflectionUtil.findConstructor(objectClass);
-
-            if (emptyConstructor == null) {
-                System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table, missing empty constructor.");
-                return;
-            }
-
-            O tempObject = emptyConstructor.newInstance();
-
-            columnData = tempObject.getColumnData();
-
-            List<NamedParameter> namedParameters = columnData.stream().map(data -> data.asNamedParameter(null)).toList();
-            objectConstructor = ReflectionUtil.findNamedConstructor(objectClass, namedParameters.toArray(new NamedParameter[]{}));
-
-            if (objectConstructor == null) {
-                System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table, missing main constructor.");
-                return;
-            }
-
-            primaryKeyFieldName = tempObject.getPrimaryKeyFieldName();
-            tableCreateStatement = tempObject.getTableCreateStatement(table);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to create table.");
-            e.printStackTrace();
-        }
+        this(hikariAPI, objectClass, table, true);
     }
 
     public void loadData() {
@@ -122,7 +89,7 @@ public class HikariTable<O extends HikariObject> {
             try {
                 while (result.next()) {
                     Optional<O> object = loadObject(result);
-                    object.ifPresent(o -> dataMap.put(o.getId(), o));
+                    object.ifPresent(o -> dataMap.put(statements.getId(o), o));
                 }
             } catch (SQLException exception) {
                 exception.printStackTrace();
@@ -135,11 +102,11 @@ public class HikariTable<O extends HikariObject> {
     }
 
     public void add(@NotNull O object, boolean save) {
-        if (dataMap.containsKey(object.getId())) {
+        if (dataMap.containsKey(statements.getId(object))) {
             return;
         }
 
-        dataMap.put(object.getId(), object);
+        dataMap.put(statements.getId(object), object);
 
         if (!save) {
             return;
@@ -153,7 +120,7 @@ public class HikariTable<O extends HikariObject> {
     }
 
     public void save(@NotNull O object, @Nullable Consumer<Optional<ResultSet>> callback) {
-        hikariAPI.executeStatement(object.getDataSaveStatement(table), result -> {
+        hikariAPI.executeStatement(statements.getDataSaveStatement(object), result -> {
             if (result == null) {
                 if (callback != null) {
                     callback.accept(Optional.empty());
@@ -162,12 +129,12 @@ public class HikariTable<O extends HikariObject> {
                 return;
             }
 
-            object.getColumnData().forEach(columnData -> {
+            statements.getColumnData().forEach(columnData -> {
                 if (!columnData.getStatementData().autoIncrement()) {
                     return;
                 }
 
-                Object fieldObject = object.getFieldObject(columnData);
+                Object fieldObject = statements.getFieldObject(object, columnData);
 
                 try {
                     Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
@@ -189,7 +156,7 @@ public class HikariTable<O extends HikariObject> {
             }
 
             redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
-                    .addData("updateType", HikariRedisUpdateType.SAVE).addData("objectId", object.getId().toString()));
+                    .addData("updateType", HikariRedisUpdateType.SAVE).addData("objectId", statements.getId(object).toString()));
         });
     }
 
@@ -198,11 +165,11 @@ public class HikariTable<O extends HikariObject> {
     }
 
     public void remove(@NotNull O object, boolean delete) {
-        if (!dataMap.containsKey(object.getId())) {
+        if (!dataMap.containsKey(statements.getId(object))) {
             return;
         }
 
-        dataMap.remove(object.getId());
+        dataMap.remove(statements.getId(object));
 
         if (delete) {
             delete(object);
@@ -210,10 +177,10 @@ public class HikariTable<O extends HikariObject> {
     }
 
     public void delete(@NotNull O object) {
-        hikariAPI.executeStatement(object.getDataDeleteStatement(table), rs -> {
+        hikariAPI.executeStatement(statements.getDataDeleteStatement(object, table), rs -> {
             if (redisClient != null) {
                 redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
-                        .addData("updateType", HikariRedisUpdateType.DELETE).addData("objectId", object.getId().toString()));
+                        .addData("updateType", HikariRedisUpdateType.DELETE).addData("objectId", statements.getId(object).toString()));
             }
         });
     }
@@ -222,7 +189,7 @@ public class HikariTable<O extends HikariObject> {
         try {
             List<NamedParameter> namedParameters = new ArrayList<>();
 
-            for (HikariColumnData columnData : columnData) {
+            for (HikariColumnData columnData : statements.getColumnData()) {
                 HikariStatementData statementData = columnData.getStatementData();
                 HikariFieldProcessor processor = ReflectionUtil.findAndCallConstructor(columnData.getStatementData().processor());
 
@@ -233,22 +200,22 @@ public class HikariTable<O extends HikariObject> {
 
                 Object object = result.getObject(columnData.getColumnName());
 
-                if (columnData.getFieldClass() != String.class &&
-                        processor instanceof DefaultHikariFieldProcessor &&
-                        object instanceof String string) {
-                    object = StringProcessor.findAndProcess(columnData.getFieldClass(), string);
-                } else {
-                    if (columnData.getFieldClass().isEnum()) {
-                        for (Object enumConstant : columnData.getFieldClass().getEnumConstants()) {
-                            if (!((Enum<?>) enumConstant).name().equalsIgnoreCase((String) object)) {
-                                continue;
-                            }
-
-                            object = enumConstant;
-                            break;
+                if (columnData.getFieldClass().isEnum()) {
+                    for (Object enumConstant : columnData.getFieldClass().getEnumConstants()) {
+                        if (!((Enum<?>) enumConstant).name().equalsIgnoreCase((String) object)) {
+                            continue;
                         }
-                    } else {
-                        object = processor.parseFromObject(object);
+
+                        object = enumConstant;
+                        break;
+                    }
+                } else {
+                    object = processor.parseFromObject(object);
+
+                    if (columnData.getFieldClass() != String.class &&
+                            processor instanceof DefaultHikariFieldProcessor &&
+                            object instanceof String string) {
+                        object = StringProcessor.findAndProcess(columnData.getFieldClass(), string);
                     }
                 }
 
@@ -267,18 +234,13 @@ public class HikariTable<O extends HikariObject> {
 
                 if (columnData.getFieldClass().isInstance(HikariObject.class)) {
                     foreignTable.getDataFromDB(object, true, o -> {
-                        if (o.isEmpty()) {
-                            namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), null));
-                            return;
-                        }
-
-                        namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), o.get()));
+                        namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), o.orElse(null)));
                     });
                     continue;
                 }
 
-                if (columnData.isList()) {
-                    List<Object> list = (List<Object>) object;
+                if (columnData.getFieldClass().isAssignableFrom(List.class)) {
+                    List<Object> list = (List<Object>) ListUtil.stringToList((String) object);
                     List<HikariObject> newList = new ArrayList<>();
 
                     list.forEach(id -> {
@@ -291,7 +253,7 @@ public class HikariTable<O extends HikariObject> {
                     continue;
                 }
 
-                Map<Object, Object> map = (Map<Object, Object>) object;
+                Map<Object, Object> map = HashMapUtil.mapFromString(null, (String) object);
                 HashMap<Object, HikariObject> newMap = new HashMap<>();
                 map.forEach((key, value) -> {
                     foreignTable.getDataFromDB(value, true, o -> {
@@ -318,7 +280,7 @@ public class HikariTable<O extends HikariObject> {
     public void getDataFromDB(@NotNull Object id, boolean checkCache, @NotNull Consumer<Optional<O>> callback) {
         if (checkCache) {
             for (O next : new ArrayList<>(dataMap.values())) {
-                if (!next.getId().equals(id)) {
+                if (!statements.getId(next).equals(id)) {
                     continue;
                 }
 
@@ -327,12 +289,12 @@ public class HikariTable<O extends HikariObject> {
             }
         }
 
-        if (primaryKeyFieldName == null) {
+        if (statements.getPrimaryKeyData() == null) {
             callback.accept(Optional.empty());
             return;
         }
 
-        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, primaryKeyFieldName, id.toString()), result -> {
+        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, getStatements().getPrimaryKeyData().getFieldName(), id), result -> {
             if (result == null) {
                 callback.accept(Optional.empty());
                 return;
@@ -352,12 +314,12 @@ public class HikariTable<O extends HikariObject> {
     }
 
     public void getDataFromDB(@NotNull Object id, @NotNull Consumer<Optional<O>> consumer) {
-        if (primaryKeyFieldName == null) {
+        if (statements.getPrimaryKeyData() == null) {
             consumer.accept(Optional.empty());
             return;
         }
 
-        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, primaryKeyFieldName, id.toString()), result -> {
+        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, statements.getPrimaryKeyData().getFieldName(), id.toString()), result -> {
             if (result == null) {
                 consumer.accept(Optional.empty());
                 return;

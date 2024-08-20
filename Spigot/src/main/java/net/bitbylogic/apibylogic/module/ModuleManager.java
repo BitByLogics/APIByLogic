@@ -53,7 +53,7 @@ public class ModuleManager {
     public final void registerModule(Class<? extends Module>... classes) {
         for (Class<? extends Module> moduleClass : classes) {
             if (modules.get(moduleClass.getSimpleName()) != null) {
-                Bukkit.getLogger().log(Level.WARNING, "[Module Manager]: Couldn't register module '" + moduleClass.getSimpleName() + "', this module is already registered.");
+                plugin.getLogger().log(Level.WARNING, "[Module Manager]: Couldn't register module '" + moduleClass.getSimpleName() + "', this module is already registered.");
                 continue;
             }
 
@@ -65,7 +65,7 @@ public class ModuleManager {
                 module = moduleClass.getDeclaredConstructor(JavaPlugin.class, ModuleManager.class).newInstance(plugin, this);
             } catch (InstantiationException | IllegalAccessException | NoSuchMethodException |
                      InvocationTargetException e) {
-                Bukkit.getLogger().log(Level.SEVERE, "[Module Manager]: Couldn't create new instance of module class '" + moduleClass.getName() + "'");
+                plugin.getLogger().log(Level.SEVERE, "[Module Manager]: Couldn't create new instance of module class '" + moduleClass.getName() + "'");
                 e.printStackTrace();
                 continue;
             }
@@ -88,7 +88,7 @@ public class ModuleManager {
             pendingModuleTasks.removeIf(task -> task.getClazz().equals(moduleClass));
 
             long endTime = System.nanoTime();
-            Bukkit.getLogger().log(Level.INFO, "[Module Manager]: Registration time for module (" + module.getModuleData().getName() + "): " + (endTime - startTime) / 1000000d + "ms");
+            plugin.getLogger().log(Level.INFO, "[Module Manager]: Registration time for module (" + module.getModuleData().getName() + "): " + (endTime - startTime) / 1000000d + "ms");
         }
     }
 
@@ -117,7 +117,7 @@ public class ModuleManager {
         Module module = getModuleByID(moduleID);
 
         if (module == null) {
-            Bukkit.getLogger().log(Level.WARNING, "[Module Manager]: Invalid Module ID '" + moduleID + "'.");
+            plugin.getLogger().log(Level.WARNING, "[Module Manager]: Invalid Module ID '" + moduleID + "'.");
             return;
         }
 
@@ -143,7 +143,7 @@ public class ModuleManager {
         Module module = getModuleByID(moduleID);
 
         if (module == null) {
-            Bukkit.getLogger().log(Level.WARNING, "[Module Manager]: Invalid Module ID '" + moduleID + "'.");
+            plugin.getLogger().log(Level.WARNING, "[Module Manager]: Invalid Module ID '" + moduleID + "'.");
             return;
         }
 

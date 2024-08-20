@@ -83,30 +83,25 @@ public class HikariAPI {
                 return Optional.empty();
             }
 
-            for (HikariColumnData columnData : table.getColumnData()) {
+            for (HikariColumnData columnData : table.getStatements().getColumnData()) {
                 if (columnData.getStatementData().foreignTable().isEmpty()) {
                     continue;
                 }
 
-                String foreignTable = columnData.getStatementData().foreignTable();
+                String foreignTableName = columnData.getStatementData().foreignTable();
+                HikariTable<?> foreignTable = getTable(foreignTableName);
 
-                if (getTable(foreignTable) == null) {
+                if (foreignTable == null) {
                     List<String> tables = pendingTables.getOrDefault(table, new ArrayList<>());
-                    tables.add(foreignTable);
+                    tables.add(foreignTableName);
                     pendingTables.put(table, tables);
-                    System.out.println("(HikariAPI): Table " + table.getTable() + " requires " + foreignTable + " and will be loaded when it's loaded!");
+                    System.out.println("(HikariAPI): Table " + table.getTable() + " requires " + foreignTableName + " and will be loaded when it's loaded!");
                     getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
                     return Optional.of(table);
                 }
+
+                columnData.setForeignKeyData(foreignTable.getStatements().getPrimaryKeyData().getStatementData());
             }
-
-            executeStatement(table.getTableCreateStatement(), resultSet -> {
-                if (!table.isLoadData()) {
-                    return;
-                }
-
-                table.loadData();
-            });
 
             getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
             loadTable(table);
@@ -121,7 +116,7 @@ public class HikariAPI {
     }
 
     private void loadTable(@NonNull HikariTable<?> table) {
-        executeStatement(table.getTableCreateStatement(), resultSet -> {
+        executeStatement(table.getStatements().getTableCreateStatement(), resultSet -> {
             if (!table.isLoadData()) {
                 return;
             }
@@ -138,16 +133,29 @@ public class HikariAPI {
                 continue;
             }
 
-            List<String> newTables = entry.getValue();
+            List<String> newTables = new ArrayList<>(entry.getValue());
             newTables.remove(table.getTable());
-            pendingTables.put(entry.getKey(), newTables);
+
+            HikariTable<?> pendingTable = entry.getKey();
 
             if (!newTables.isEmpty()) {
+                pendingTables.put(pendingTable, newTables);
                 continue;
             }
 
-            loadTable(entry.getKey());
+            for (HikariColumnData columnData : pendingTable.getStatements().getColumnData()) {
+                if (!columnData.getStatementData().foreignTable().equalsIgnoreCase(table.getTable())) {
+                    continue;
+                }
+
+                columnData.setForeignKeyData(table.getStatements().getPrimaryKeyData().getStatementData());
+                columnData.setForeignTable(table);
+            }
+
+            loadTable(pendingTable);
             iterator.remove();
+
+            System.out.println("(HikariAPI): All foreign tables loaded for " + pendingTable.getTable() + ", it will now be loaded!");
         }
     }
 
@@ -176,7 +184,7 @@ public class HikariAPI {
                     }
                 }
             } catch (SQLException e) {
-                // Printed below
+                throw new RuntimeException(e);
             }
         }).handle((unused, e) -> {
             if (e == null) {
@@ -207,7 +215,7 @@ public class HikariAPI {
                     }
                 }
             } catch (SQLException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }).handle((unused, e) -> {
             if (e == null) {

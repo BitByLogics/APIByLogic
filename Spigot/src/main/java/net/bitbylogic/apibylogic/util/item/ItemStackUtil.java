@@ -230,7 +230,7 @@ public class ItemStackUtil {
 
         try {
             Object nmsItem = craftItemStack.getMethod("asNMSCopy", ItemStack.class).invoke(craftItemStack, item);
-            descriptionId = (String) nmsItem.getClass().getMethod("q").invoke(nmsItem);
+            descriptionId = (String) nmsItem.getClass().getMethod("t").invoke(nmsItem);
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }

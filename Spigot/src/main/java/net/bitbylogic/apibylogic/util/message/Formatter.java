@@ -5,6 +5,7 @@ import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringModifier;
+import net.bitbylogic.apibylogic.util.TimeConverter;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -12,9 +13,9 @@ import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
+import java.awt.*;
 import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,8 +23,12 @@ public class Formatter {
 
     public final static String RIGHT_ARROW = "»";
     public final static String DOT = "•";
+
     @Getter
     private static final List<StringModifier> globalModifiers = new ArrayList<>();
+    @Getter
+    private static final HashMap<String, Long> messageCooldowns = new HashMap<>();
+
     private static final Pattern placeholderPattern = Pattern.compile("%.+?%");
     private static final Pattern formatPattern = Pattern.compile("<([a-zA-Z]+?)#(.+?)>");
     private static final Pattern hexColorExtractor = Pattern.compile("#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})");
@@ -84,6 +89,11 @@ public class Formatter {
                     break;
                 case HEX:
                     formattedMessage = formattedMessage.replace(matcher.group(), ChatColor.of(matcher.group(2)).toString());
+                    break;
+                case GRADIENT:
+                    String[] textData = matcher.group(2).split(" ", 2);
+                    List<String> colors = new ArrayList<>(Arrays.asList(textData[0].split(",")));
+                    formattedMessage = formattedMessage.replace(matcher.group(), applyGradientToText(textData[1], colors.toArray(new String[]{})));
                     break;
                 default:
                     break;
@@ -194,6 +204,21 @@ public class Formatter {
         player.sendMessage(formattedMessage);
     }
 
+    public static void sendCooldownMessage(Player player, String message, String id, String cooldown) {
+        if (player == null) {
+            return;
+        }
+
+        if (messageCooldowns.containsKey(id) && messageCooldowns.get(id) - System.currentTimeMillis() > 0) {
+            return;
+        }
+
+        long cooldownTime = TimeConverter.convert(cooldown);
+        messageCooldowns.put(id, System.currentTimeMillis() + cooldownTime);
+
+        player.sendMessage(format(message));
+    }
+
     public static Object[] applyHighlightColor(String primaryColor, String highlightColor, Object[] objects) {
         List<Object> formattedReplacements = new ArrayList<>();
 
@@ -236,6 +261,61 @@ public class Formatter {
 
         text.add(color(replace("⤷ &7(Page: %s/%s)", page, pages)));
         return text.toArray(new String[]{});
+    }
+
+    public static String applyGradientToText(String text, String[] colors) {
+        int steps = text.length();
+        String[] gradientColors = generateGradientColors(colors, steps);
+        StringBuilder gradientText = new StringBuilder();
+
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            String color = gradientColors[i];
+            gradientText.append(color).append(ch);
+        }
+
+        return format(gradientText.toString());
+    }
+
+    private static String[] generateGradientColors(String[] colors, int steps) {
+        List<String> stylePrefixes = new ArrayList<>();
+        List<Color> colorList = new ArrayList<>();
+
+        for (String color : colors) {
+            if (!color.startsWith("&")) {
+                colorList.add(Color.decode(color));
+                continue;
+            }
+
+            stylePrefixes.add(color);
+        }
+
+        int numColors = colorList.size();
+        String[] gradientColors = new String[steps];
+
+        for (int i = 0; i < steps; i++) {
+            float ratio = (float) i / (steps - 1);
+            int segment = Math.min(numColors - 2, (int) (ratio * (numColors - 1)));
+            float segmentRatio = (ratio * (numColors - 1)) - segment;
+
+            Color startColor = colorList.get(segment);
+            Color endColor = colorList.get(segment + 1);
+
+            int r = (int) (startColor.getRed() + segmentRatio * (endColor.getRed() - startColor.getRed()));
+            int g = (int) (startColor.getGreen() + segmentRatio * (endColor.getGreen() - startColor.getGreen()));
+            int b = (int) (startColor.getBlue() + segmentRatio * (endColor.getBlue() - startColor.getBlue()));
+
+            StringBuilder formattedColor = new StringBuilder(String.format("#%02X%02X%02X", r, g, b));
+
+            // Append all style prefixes to the color
+            for (String stylePrefix : stylePrefixes) {
+                formattedColor.append(stylePrefix);
+            }
+
+            gradientColors[i] = formattedColor.toString();
+        }
+
+        return gradientColors;
     }
 
 }

@@ -9,6 +9,7 @@ public enum FormatCodes {
 
     COLOR(new String[]{"c"}),
     HEX(new String[]{"h"}),
+    GRADIENT(new String[]{"g"}),
     CUSTOM_DATA(new String[]{"cd"});
 
     private final String[] aliases;

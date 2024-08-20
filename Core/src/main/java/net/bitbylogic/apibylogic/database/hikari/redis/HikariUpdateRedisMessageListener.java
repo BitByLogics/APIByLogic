@@ -37,13 +37,13 @@ public class HikariUpdateRedisMessageListener<O extends HikariObject> extends Re
         CompletableFuture.runAsync(() -> {
             switch (updateType) {
                 case SAVE:
-                    hikariTable.getDataMap().remove(object.getId());
+                    hikariTable.getDataMap().remove(hikariTable.getStatements().getId(object));
 
                     hikariTable.getDataFromDB(objectId, optional ->
-                            optional.ifPresent(result -> hikariTable.getDataMap().put(result.getId(), result)));
+                            optional.ifPresent(result -> hikariTable.getDataMap().put(hikariTable.getStatements().getId(result), result)));
                     break;
                 case DELETE:
-                    hikariTable.getDataMap().remove(object.getId());
+                    hikariTable.getDataMap().remove(hikariTable.getStatements().getId(object));
                     break;
                 default:
                     break;

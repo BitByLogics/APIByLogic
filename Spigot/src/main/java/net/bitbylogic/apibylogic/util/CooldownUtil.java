@@ -48,6 +48,31 @@ public class CooldownUtil {
         }, unit.toSeconds(expireTime) * 20);
     }
 
+    public static void attemptRun(String key, UUID identifier, String cooldownTime, Runnable runnable) {
+        if(!hasCooldown(key, identifier)) {
+            List<Cooldown> currentCooldowns = cooldowns.getOrDefault(identifier, new ArrayList<>());
+            Cooldown cooldown = new Cooldown(identifier, key, TimeConverter.convert(cooldownTime));
+            currentCooldowns.add(cooldown);
+            cooldowns.put(identifier, currentCooldowns);
+            runnable.run();
+            return;
+        }
+
+        Cooldown cooldown = cooldowns.getOrDefault(identifier, new ArrayList<>()).stream()
+                .filter(cd -> cd.getCooldownId().equalsIgnoreCase(key)).findFirst().orElse(null);
+
+        if(cooldown != null && cooldown.isActive()) {
+            return;
+        }
+
+        List<Cooldown> currentCooldowns = cooldowns.getOrDefault(identifier, new ArrayList<>());
+        Cooldown newCooldown = new Cooldown(identifier, key, TimeConverter.convert(cooldownTime));
+        currentCooldowns.remove(cooldown);
+        currentCooldowns.add(newCooldown);
+        cooldowns.put(identifier, currentCooldowns);
+        runnable.run();
+    }
+
     public static void endCooldown(String key, UUID identifier) {
         List<Cooldown> currentCooldowns = cooldowns.getOrDefault(identifier, new ArrayList<>());
         currentCooldowns.removeIf(cooldown -> cooldown.getIdentifier().equals(identifier) && cooldown.getCooldownId().equalsIgnoreCase(key));

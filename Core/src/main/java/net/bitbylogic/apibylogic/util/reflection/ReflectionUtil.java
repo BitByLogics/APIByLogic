@@ -49,6 +49,40 @@ public class ReflectionUtil {
         return false;
     }
 
+    public static Class<?> getParameterizedType(Field field, Class<?> valueClass) {
+        field.setAccessible(true);
+
+        if (isListOf(field, valueClass)) {
+            Type fieldType = field.getGenericType();
+
+            if (fieldType instanceof ParameterizedType parameterizedType) {
+                Type[] arguments = parameterizedType.getActualTypeArguments();
+
+                if (arguments.length > 0) {
+                    return arguments[0].getClass().isInstance(valueClass) ? arguments[0].getClass() : null;
+                }
+            }
+
+            return null;
+        }
+
+        if (isMapOf(field, valueClass)) {
+            Type fieldType = field.getGenericType();
+
+            if (fieldType instanceof ParameterizedType parameterizedType) {
+                Type[] arguments = parameterizedType.getActualTypeArguments();
+
+                if (arguments.length > 1) {
+                    return arguments[1].getClass().isInstance(valueClass) ? arguments[1].getClass() : null;
+                }
+            }
+
+            return null;
+        }
+
+        return field.getType();
+    }
+
     public static void createAndPopulateField(Object targetObject, Field field, Object[] values) throws IllegalAccessException {
         field.setAccessible(true);
         Type fieldType = field.getGenericType();
