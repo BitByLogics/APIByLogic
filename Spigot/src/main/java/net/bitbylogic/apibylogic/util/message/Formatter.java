@@ -5,6 +5,7 @@ import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringModifier;
+import net.bitbylogic.apibylogic.util.StringUtil;
 import net.bitbylogic.apibylogic.util.TimeConverter;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -23,7 +24,7 @@ public class Formatter {
 
     public final static String RIGHT_ARROW = "»";
     public final static String DOT = "•";
-
+    private final static int CENTER_PX = 154;
     @Getter
     private static final List<StringModifier> globalModifiers = new ArrayList<>();
     @Getter
@@ -95,6 +96,9 @@ public class Formatter {
                     List<String> colors = new ArrayList<>(Arrays.asList(textData[0].split(",")));
                     formattedMessage = formattedMessage.replace(matcher.group(), applyGradientToText(textData[1], colors.toArray(new String[]{})));
                     break;
+                case CENTER:
+                    String[] centerData = matcher.group(2).split(" ");
+                    formattedMessage = formattedMessage.replace(matcher.group(), centerMessage(StringUtil.join(0, centerData, " ")));
                 default:
                     break;
             }
@@ -316,6 +320,54 @@ public class Formatter {
         }
 
         return gradientColors;
+    }
+
+    public static String centerMessage(String message) {
+        if (message == null || message.isEmpty()) return "";
+        message = format(message);
+
+        int messagePxSize = 0;
+        boolean previousCode = false;
+        boolean isBold = false;
+
+        for (char c : message.toCharArray()) {
+            if (c == '§') {
+                previousCode = true;
+                continue;
+            } else if (previousCode == true) {
+                previousCode = false;
+                if (c == 'l' || c == 'L') {
+                    isBold = true;
+                    continue;
+                } else isBold = false;
+            } else {
+                DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
+                messagePxSize += isBold ? dFI.getBoldLength() : dFI.getLength();
+                messagePxSize++;
+            }
+        }
+
+        int halvedMessageSize = messagePxSize / 2;
+        int toCompensate = CENTER_PX - halvedMessageSize;
+        int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
+        int compensated = 0;
+        StringBuilder sb = new StringBuilder();
+        while (compensated < toCompensate) {
+            sb.append(" ");
+            compensated += spaceLength;
+        }
+
+        return sb + message;
+    }
+
+    public static void sendCenteredMessages(Player player, String[] lines) {
+        for (String line : lines) {
+            sendCenteredMessage(player, line);
+        }
+    }
+
+    public static void sendCenteredMessage(Player player, String message) {
+        player.sendMessage(centerMessage(message));
     }
 
 }

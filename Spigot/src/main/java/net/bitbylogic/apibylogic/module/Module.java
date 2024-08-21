@@ -3,6 +3,7 @@ package net.bitbylogic.apibylogic.module;
 import co.aikar.commands.BaseCommand;
 import com.google.common.collect.Lists;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import net.bitbylogic.apibylogic.module.task.ModulePendingTask;
 import org.bukkit.Bukkit;
@@ -84,6 +85,28 @@ public abstract class Module implements ModuleInterface, Listener {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public <T> T getConfigValueOrDefault(@NonNull String path, @NonNull T defaultValue) {
+        return getConfigValueOrDefault(path, defaultValue, true);
+    }
+
+    public <T> T getConfigValueOrDefault(@NonNull String path, @NonNull T defaultValue, boolean save) {
+        Object actualValue = getConfig().get(path);
+
+        if (actualValue == null && save) {
+            getConfig().set(path, defaultValue);
+            saveConfig();
+        }
+
+        try {
+            return actualValue == null ? defaultValue : (T) actualValue;
+        } catch (ClassCastException e) {
+            log(Level.SEVERE, "Unable to ");
+            e.printStackTrace();
+        }
+
+        return defaultValue;
     }
 
     protected void registerCommand(BaseCommand... commands) {

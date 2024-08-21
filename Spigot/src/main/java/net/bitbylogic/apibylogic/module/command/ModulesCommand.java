@@ -151,7 +151,7 @@ public class ModulesCommand extends BaseCommand {
             sender.spigot().sendMessage(moduleComponent);
         }
 
-        sender.sendMessage(Formatter.replace("<c#separator>&m        &r <c#separator>( <c#secondary>Page<c#separator>: <c#highlight>%s <c#separator>)&m        ", page));
+        sender.sendMessage(Formatter.replace("<c#separator>&m        &r <c#separator>( <c#secondary>Page<c#separator>: <c#highlight>%s/%s <c#separator>)&m        ", page, pages));
     }
 
 }

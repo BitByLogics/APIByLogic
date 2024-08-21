@@ -2,6 +2,7 @@ package net.bitbylogic.apibylogic.hooks;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import net.bitbylogic.apibylogic.util.Placeholder;
+import net.bitbylogic.apibylogic.util.StringUtil;
 import net.bitbylogic.apibylogic.util.message.Formatter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +42,11 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
             List<String> colors = new ArrayList<>(Arrays.asList(placeholderData[1].split(",")));
 
             return Formatter.applyGradientToText(placeholderData[2], colors.toArray(new String[]{}));
+        }
+
+        if(placeholder.split("_")[0].equalsIgnoreCase("center")) {
+            String[] placeholderData = placeholder.split("_");
+            return Formatter.centerMessage(StringUtil.join(1, placeholderData, " "));
         }
 
         for (Placeholder modifier : Formatter.getGlobalModifiers().stream().filter(modifier -> modifier instanceof Placeholder)
