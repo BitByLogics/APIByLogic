@@ -55,7 +55,7 @@ public class ModulesCommand extends BaseCommand {
             sender.sendMessage(Formatter.error("Modules", "That module isn't enabled."));
         }
 
-        sender.sendMessage(Formatter.success("Modules", String.format("Reloading module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId())));
+        sender.sendMessage(Formatter.success("Modules", String.format("Reloading module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> %s<c#separator>,</c> <c#success_secondary>ID></c><c#separator>:</c> %s<c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId())));
         module.reloadConfig();
         module.onReload();
     }
@@ -75,7 +75,7 @@ public class ModulesCommand extends BaseCommand {
             sender.sendMessage(Formatter.error("Modules", "That module isn't disabled."));
         }
 
-        sender.sendMessage(Formatter.success("Modules", "Enabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
+        sender.sendMessage(Formatter.success("Modules", "Enabling module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> %s<c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> %s<c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId()));
         moduleManager.enableModule(module.getModuleData().getId());
     }
 
@@ -94,7 +94,7 @@ public class ModulesCommand extends BaseCommand {
             sender.sendMessage(Formatter.error("Modules", "That module isn't enabled."));
         }
 
-        sender.sendMessage(Formatter.success("Modules", "Disabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
+        sender.sendMessage(Formatter.success("Modules", "Disabling module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> %s<c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> %s<c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId()));
         moduleManager.disableModule(module.getModuleData().getId());
     }
 
@@ -111,13 +111,13 @@ public class ModulesCommand extends BaseCommand {
 
         if (module.isEnabled()) {
             module.setEnabled(false);
-            sender.sendMessage(Formatter.success("Modules", "Disabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
+            sender.sendMessage(Formatter.success("Modules", "Disabling module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> %s<c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> %s<c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId()));
             moduleManager.disableModule(module.getModuleData().getId());
             return;
         }
 
         module.setEnabled(true);
-        sender.sendMessage(Formatter.success("Modules", "Enabling module! <c#separator>(<c#success_secondary>Name<c#separator>: %s<c#separator>, <c#success_secondary>ID<c#separator>: %s<c#separator>)", module.getModuleData().getName(), module.getModuleData().getId()));
+        sender.sendMessage(Formatter.success("Modules", "Enabling module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> <c#success_highlight>%s</c><c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> <c#succes_highlight>%s</c><c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId()));
         moduleManager.enableModule(module.getModuleData().getId());
     }
 
@@ -134,24 +134,24 @@ public class ModulesCommand extends BaseCommand {
         int startingModule = (page * 10) - 10;
         int lastModule = Math.min(startingModule + 10, lastPossibleModule);
 
-        sender.sendMessage(Formatter.format("<c#separator>&m     &r <c#separator>( <c#primary>&lMODULE LIST <c#separator>)&m     "));
+        sender.sendMessage(Formatter.format("<c#separator>&m     </c>&r <c#separator>(</c> <c#primary>&lMODULE LIST </c><c#separator>)&m     </c>"));
 
         for (int i = startingModule; i < lastModule; i++) {
             Module module = modules.get(i);
 
             BaseComponent moduleComponent = Formatter.richFormat(
-                    "<c#separator>- <c#primary>%s <c#separator>(<c#secondary>ID<c#separator>: <c#highlight>%s<c#separator>, <c#secondary>Status<c#separator>: <c#highlight>%s<c#separator>)",
+                    "<c#separator>-</c> <c#primary>%s</c> <c#separator>(</c><c#secondary>ID</c><c#separator>:</c> <c#highlight>%s</c><c#separator>,</c> <c#secondary>Status</c><c#separator>:</c> <c#highlight>%s</c><c#separator>)</c>",
                     module.getModuleData().getName(),
                     module.getModuleData().getId(),
-                    Formatter.format(module.isEnabled() ? "<c#success_highlight>Enabled" : "<c#error_highlight>Disabled"));
+                    Formatter.format(module.isEnabled() ? "<c#success_highlight>Enabled</c>" : "<c#error_highlight>Disabled</c>"));
 
-            moduleComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(Formatter.richFormat("<c#highlight>%s", module.getModuleData().getDescription()))));
+            moduleComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(Formatter.richFormat("<c#highlight>%s</c>", module.getModuleData().getDescription()))));
             moduleComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/module toggle " + module.getModuleData().getId()));
 
             sender.spigot().sendMessage(moduleComponent);
         }
 
-        sender.sendMessage(Formatter.replace("<c#separator>&m        &r <c#separator>( <c#secondary>Page<c#separator>: <c#highlight>%s/%s <c#separator>)&m        ", page, pages));
+        sender.sendMessage(Formatter.replace("<c#separator>&m        </c>&r <c#separator>(</c> <c#secondary>Page</c><c#separator>:</c> <c#highlight>%s</c><c#separator>/</c><c#highlight>%s</c> <c#separator>)&m        </c>", page, pages));
     }
 
 }

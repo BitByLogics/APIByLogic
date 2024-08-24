@@ -22,6 +22,10 @@ public class LogicColor {
     }
 
     public static String getColor(String name) {
+        if(name == null || name.isEmpty()) {
+            return null;
+        }
+
         String colorId = colors.keySet().stream().filter(color -> color.equalsIgnoreCase(name) ||
                 color.replace("-", "_").equalsIgnoreCase(name)).findFirst().orElse(null);
         return colorId == null ? null : colors.get(colorId);

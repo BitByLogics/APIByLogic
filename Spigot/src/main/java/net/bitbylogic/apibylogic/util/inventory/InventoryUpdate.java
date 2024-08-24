@@ -131,10 +131,6 @@ public final class InventoryUpdate {
                                 .constructor(int.class, String.class, I_CHAT_BASE_COMPONENT.unreflect(), int.class)
                                 .unreflect();
 
-        for (Field field : ENTITY_PLAYER.unreflect().getFields()) {
-            System.out.println(field.getName() + ":" + field.getType().getName());
-        }
-
         // Initialize fields.
         activeContainer = ENTITY_PLAYER.field()
                 .named("containerMenu", "activeContainer", "bV", "bW", "bU", "bP", "cd")

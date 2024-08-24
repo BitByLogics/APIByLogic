@@ -1,12 +1,10 @@
 package net.bitbylogic.apibylogic.util.message;
 
 import lombok.Getter;
+import lombok.NonNull;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
-import net.bitbylogic.apibylogic.util.Placeholder;
-import net.bitbylogic.apibylogic.util.StringModifier;
-import net.bitbylogic.apibylogic.util.StringUtil;
-import net.bitbylogic.apibylogic.util.TimeConverter;
+import net.bitbylogic.apibylogic.util.*;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -31,7 +29,7 @@ public class Formatter {
     private static final HashMap<String, Long> messageCooldowns = new HashMap<>();
 
     private static final Pattern placeholderPattern = Pattern.compile("%.+?%");
-    private static final Pattern formatPattern = Pattern.compile("<([a-zA-Z]+?)#(.+?)>");
+    private static final Pattern formatPattern = Pattern.compile("<([a-zA-Z0-9 _]+)>(.*?)</\\1>|<([a-zA-Z0-9 _]+)#(.*?)>(.*?)</\\3>");
     private static final Pattern hexColorExtractor = Pattern.compile("#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})");
 
     public static void registerGlobalModifier(StringModifier modifier) {
@@ -69,42 +67,57 @@ public class Formatter {
             formattedMessage = globalModifier.modify(formattedMessage);
         }
 
-        Matcher matcher = formatPattern.matcher(formattedMessage);
+        List<FormatData> formatData = new ArrayList<>();
+        List<FormatData> temporaryData = new ArrayList<>();
+
+        temporaryData.add(new FormatData(null, null, null, formattedMessage));
+
+        while(!temporaryData.isEmpty()) {
+            FormatData data = temporaryData.removeFirst();
+            String stringToAnalyze = data.getContents();
+
+            List<FormatData> newData = findFormatMatches(stringToAnalyze);
+
+            if(data.getEntireMatch() != null) {
+                newData.forEach(nd -> nd.setParentData(data));
+            }
+
+            formatData.addAll(newData);
+            temporaryData.addAll(newData);
+        }
+
+        formatData.sort((dataOne, dataTwo) -> {
+            FormatCode codeOne = dataOne.getCode();
+            FormatCode codeTwo = dataTwo.getCode();
+            return Integer.compare(codeOne.getPriority(), codeTwo.getPriority());
+        });
+
+        for (FormatData data : formatData) {
+            formattedMessage = data.format(formattedMessage);
+        }
+
+        return color(formattedMessage);
+    }
+
+    private static List<FormatData> findFormatMatches(@NonNull String string) {
+        List<FormatData> formatData = new ArrayList<>();
+        Matcher matcher = formatPattern.matcher(string);
 
         while (matcher.find()) {
-            FormatCodes code = FormatCodes.match(matcher.group(1));
+            String codeIdentifier = matcher.group(1) == null ? matcher.group(3) : matcher.group(1);
+            String codeData = matcher.group(4);
+            String text = matcher.group(2) == null ? matcher.group(5) : matcher.group(2);
+
+            FormatCode code = FormatCode.match(codeIdentifier);
 
             if (code == null) {
                 continue;
             }
 
-            switch (code) {
-                case COLOR:
-                    String color = LogicColor.getColor(matcher.group(2));
-
-                    if (color == null) {
-                        break;
-                    }
-
-                    formattedMessage = formattedMessage.replace(matcher.group(), color);
-                    break;
-                case HEX:
-                    formattedMessage = formattedMessage.replace(matcher.group(), ChatColor.of(matcher.group(2)).toString());
-                    break;
-                case GRADIENT:
-                    String[] textData = matcher.group(2).split(" ", 2);
-                    List<String> colors = new ArrayList<>(Arrays.asList(textData[0].split(",")));
-                    formattedMessage = formattedMessage.replace(matcher.group(), applyGradientToText(textData[1], colors.toArray(new String[]{})));
-                    break;
-                case CENTER:
-                    String[] centerData = matcher.group(2).split(" ");
-                    formattedMessage = formattedMessage.replace(matcher.group(), centerMessage(StringUtil.join(0, centerData, " ")));
-                default:
-                    break;
-            }
+            formatData.add(new FormatData(matcher.group(), code, codeData, text));
         }
 
-        return color(formattedMessage);
+        return formatData;
     }
 
     public static String autoFormat(String message, String... replacements) {
@@ -147,39 +160,39 @@ public class Formatter {
     }
 
     public static String command(String command, String description) {
-        return replace(" <c#primary>/%s &8─ <c#secondary>%s", command, description);
+        return replace(" <c#primary>/%s</c> &8─ <c#secondary>%s</c>", command, description);
     }
 
     public static BaseComponent richCommand(String command, String description) {
-        BaseComponent component = richFormat(" <c#primary>/%s", command);
-        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(richFormat("<c#secondary>%s", description))));
+        BaseComponent component = richFormat(" <c#primary>/%s</c>", command);
+        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(richFormat("<c#secondary>%s</c>", description))));
 
         return component;
     }
 
     public static String main(String prefix, String message, Object... replacements) {
-        return replace("<c#primary>&l%s &8%s <c#secondary>%s", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("primary"),
+        return replace("<c#primary>&l%s</c> &8%s <c#secondary>%s</c>", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("primary"),
                 LogicColor.getColor("highlight"), replacements)));
     }
 
     public static String error(String prefix, String message, Object... replacements) {
-        return replace("<c#error_primary>&l%s &8%s <c#error_secondary>%s", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("error-secondary"), LogicColor.getColor("error-highlight"), replacements)));
+        return replace("<c#error_primary>&l%s</c> &8%s <c#error_secondary>%s</c>", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("error-secondary"), LogicColor.getColor("error-highlight"), replacements)));
     }
 
     public static String success(String prefix, String message, Object... replacements) {
-        return replace("<c#success_primary>&l%s &8%s <c#success_secondary>%s", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("success-secondary"), LogicColor.getColor("success-highlight"), replacements)));
+        return replace("<c#success_primary>&l%s</c> &8%s <c#success_secondary>%s</c>", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("success-secondary"), LogicColor.getColor("success-highlight"), replacements)));
     }
 
     public static String listHeader(String prefix, String info, Object... replacements) {
-        return replace("<c#primary>&l%s &8%s <c#secondary>%s", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("secondary"), LogicColor.getColor("highlight"), replacements)));
+        return replace("<c#primary>&l%s</c> &8%s <c#secondary>%s</c>", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("secondary"), LogicColor.getColor("highlight"), replacements)));
     }
 
     public static String listItem(String prefix, String info, Object... replacements) {
-        return replace("&8| &8» <c#success_primary>%s &8%s <c#success_secondary>%s", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements)));
+        return replace("&8| &8» <c#success_primary>%s</c> &8%s <c#success_secondary>%s</c>", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements)));
     }
 
     public static String dottedMessage(String prefix, String info, Object... replacements) {
-        return replace("<c#success_primary>%s &8%s <c#success_secondary>%s", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements)));
+        return replace("<c#success_primary>%s</c> &8%s <c#success_secondary>%s</c>", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements)));
     }
 
     public static void sendMessage(Player player, String prefix, String message, Placeholder... placeholders) {
@@ -278,7 +291,7 @@ public class Formatter {
             gradientText.append(color).append(ch);
         }
 
-        return format(gradientText.toString());
+        return gradientText.toString();
     }
 
     private static String[] generateGradientColors(String[] colors, int steps) {
@@ -323,36 +336,31 @@ public class Formatter {
     }
 
     public static String centerMessage(String message) {
-        if (message == null || message.isEmpty()) return "";
-        message = format(message);
+        String sanitizedString = ChatColor.translateAlternateColorCodes('&', message);
 
         int messagePxSize = 0;
         boolean previousCode = false;
         boolean isBold = false;
 
-        for (char c : message.toCharArray()) {
+        for (char c : sanitizedString.toCharArray()) {
             if (c == '§') {
                 previousCode = true;
-                continue;
-            } else if (previousCode == true) {
+            } else if (previousCode) {
                 previousCode = false;
-                if (c == 'l' || c == 'L') {
-                    isBold = true;
-                    continue;
-                } else isBold = false;
+                isBold = c == 'l';
             } else {
                 DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
-                messagePxSize += isBold ? dFI.getBoldLength() : dFI.getLength();
+                messagePxSize = isBold ? messagePxSize + dFI.getBoldLength() : messagePxSize + dFI.getLength();
                 messagePxSize++;
             }
         }
 
-        int halvedMessageSize = messagePxSize / 2;
-        int toCompensate = CENTER_PX - halvedMessageSize;
+        int toCompensate = CENTER_PX - messagePxSize / 2;
         int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
         int compensated = 0;
+
         StringBuilder sb = new StringBuilder();
-        while (compensated < toCompensate) {
+        while(compensated < toCompensate){
             sb.append(" ");
             compensated += spaceLength;
         }

@@ -56,6 +56,32 @@ public enum DefaultFontInfo {
     y('y', 5),
     Z('Z', 5),
     z('z', 5),
+    SC_A('ᴀ', 5),
+    SC_B('ʙ', 5),
+    SC_C('ᴄ', 5),
+    SC_D('ᴅ', 5),
+    SC_E('ᴇ', 5),
+    SC_F('ꜰ', 5),
+    SC_G('ɢ', 5),
+    SC_H('ʜ', 5),
+    SC_I('ɪ', 3),
+    SC_J('ᴊ', 5),
+    SC_K('ᴋ', 5),
+    SC_L('ʟ', 5),
+    SC_M('ᴍ', 5),
+    SC_N('ɴ', 5),
+    SC_O('ᴏ', 5),
+    SC_P('ᴘ', 5),
+    SC_Q('ꞯ', 5),
+    SC_R('ʀ', 5),
+    SC_S('ꜱ', 5),
+    SC_T('ᴛ', 5),
+    SC_U('ᴜ', 5),
+    SC_V('ᴠ', 5),
+    SC_W('ᴡ', 5),
+    SC_X('x', 5),
+    SC_Y('ʏ', 5),
+    SC_Z('ᴢ', 5),
     NUM_1('1', 5),
     NUM_2('2', 5),
     NUM_3('3', 5),
@@ -111,8 +137,11 @@ public enum DefaultFontInfo {
 
     public static DefaultFontInfo getDefaultFontInfo(char c) {
         for (DefaultFontInfo dFI : DefaultFontInfo.values()) {
-            if (dFI.getCharacter() == c) return dFI;
+            if (((int) dFI.getCharacter()) == ((int) c)) {
+                return dFI;
+            }
         }
+
         return DefaultFontInfo.DEFAULT;
     }
 
