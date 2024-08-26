@@ -394,6 +394,11 @@ public class HikariStatements<O extends HikariObject> {
             HikariTable<?> foreignTable = columnData.getForeignTable();
             Object fieldValue = field.get(object);
 
+            if(foreignTable == null) {
+                System.out.println("(HikariAPI): Missing foreign table: " + columnData.getStatementData().foreignTable());
+                return null;
+            }
+
             if (field.getType().isInstance(HikariObject.class)) {
                 return foreignTable.getStatements().getId((HikariObject) fieldValue);
             }

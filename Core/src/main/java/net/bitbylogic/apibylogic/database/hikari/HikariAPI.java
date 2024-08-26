@@ -101,6 +101,7 @@ public class HikariAPI {
                 }
 
                 columnData.setForeignKeyData(foreignTable.getStatements().getPrimaryKeyData().getStatementData());
+                columnData.setForeignTable(foreignTable);
             }
 
             getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
