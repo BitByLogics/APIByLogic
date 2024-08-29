@@ -64,7 +64,7 @@ Confirmation-Menu:
       Material: "PLAYER_HEAD"
       Skull-Name: "MHF_Question"
       Name: "&a%question%"
-    Cancel-Item:
+    Cancel:
       Slot: 16
       Material: "RED_STAINED_GLASS_PANE"
       Name: "&c&lCancel"
