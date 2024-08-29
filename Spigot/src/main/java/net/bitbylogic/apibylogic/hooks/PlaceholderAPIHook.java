@@ -41,7 +41,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
             String[] placeholderData = placeholder.split("_");
             List<String> colors = new ArrayList<>(Arrays.asList(placeholderData[1].split(",")));
 
-            return Formatter.applyGradientToText(placeholderData[2], colors.toArray(new String[]{}));
+            return Formatter.color(Formatter.applyGradientToText(placeholderData[2], colors.toArray(new String[]{})));
         }
 
         if(placeholder.split("_")[0].equalsIgnoreCase("center")) {

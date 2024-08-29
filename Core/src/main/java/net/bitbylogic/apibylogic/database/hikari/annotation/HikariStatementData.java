@@ -28,4 +28,6 @@ public @interface HikariStatementData {
 
     String foreignTable() default "";
 
+    boolean foreignDelete() default false;
+
 }
