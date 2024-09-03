@@ -20,7 +20,7 @@ import net.bitbylogic.apibylogic.scoreboard.LogicScoreboard;
 import net.bitbylogic.apibylogic.util.event.armor.listener.ArmorListener;
 import net.bitbylogic.apibylogic.util.event.armor.listener.DispenserArmorListener;
 import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.bitbylogic.apibylogic.util.message.LogicColor;
 import net.bitbylogic.apibylogic.util.request.LogicRequest;
 import org.bukkit.Bukkit;
@@ -30,6 +30,7 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -61,6 +62,7 @@ public class APIByLogic extends JavaPlugin {
         saveDefaultConfig();
 
         LogicColor.loadColors(getConfig());
+        Formatter.registerConfig(new File(getDataFolder(), "config.yml"));
         ItemStackUtil.initialize(this);
 
         new UpdateChecker(this, UpdateCheckSource.GITHUB_RELEASE_TAG, "BitByLogics/APIByLogic")

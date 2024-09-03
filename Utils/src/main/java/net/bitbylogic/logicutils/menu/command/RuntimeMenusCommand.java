@@ -3,7 +3,7 @@ package net.bitbylogic.logicutils.menu.command;
 import net.bitbylogic.apibylogic.acf.BaseCommand;
 import net.bitbylogic.apibylogic.acf.annotation.*;
 import net.bitbylogic.apibylogic.menu.Menu;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.bitbylogic.logicutils.LogicUtils;
 import net.bitbylogic.logicutils.menu.RuntimeMenusManager;
 import net.md_5.bungee.api.chat.ClickEvent;

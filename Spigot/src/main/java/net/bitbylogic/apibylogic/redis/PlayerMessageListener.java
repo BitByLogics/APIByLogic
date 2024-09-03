@@ -2,7 +2,7 @@ package net.bitbylogic.apibylogic.redis;
 
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
 import net.bitbylogic.apibylogic.database.redis.listener.RedisMessageListener;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 

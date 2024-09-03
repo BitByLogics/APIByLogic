@@ -3,7 +3,7 @@ package net.bitbylogic.apibylogic.hooks;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringUtil;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

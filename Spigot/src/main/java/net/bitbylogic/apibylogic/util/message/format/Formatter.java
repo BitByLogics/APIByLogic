@@ -1,10 +1,14 @@
-package net.bitbylogic.apibylogic.util.message;
+package net.bitbylogic.apibylogic.util.message.format;
 
 import lombok.Getter;
 import lombok.NonNull;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
-import net.bitbylogic.apibylogic.util.*;
+import net.bitbylogic.apibylogic.util.Placeholder;
+import net.bitbylogic.apibylogic.util.StringModifier;
+import net.bitbylogic.apibylogic.util.TimeConverter;
+import net.bitbylogic.apibylogic.util.message.DefaultFontInfo;
+import net.bitbylogic.apibylogic.util.message.LogicColor;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -13,33 +17,34 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.entity.Player;
 
 import java.awt.*;
+import java.io.File;
 import java.util.List;
 import java.util.*;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Formatter {
 
-    public final static String RIGHT_ARROW = "»";
-    public final static String DOT = "•";
-    private final static int CENTER_PX = 154;
     @Getter
     private static final List<StringModifier> globalModifiers = new ArrayList<>();
+
     @Getter
     private static final HashMap<String, Long> messageCooldowns = new HashMap<>();
 
-    private static final Pattern placeholderPattern = Pattern.compile("%.+?%");
-    private static final Pattern formatPattern = Pattern.compile("<([a-zA-Z0-9 _]+)>(.*?)</\\1>|<([a-zA-Z0-9 _]+)#(.*?)>(.*?)</\\3>");
-    private static final Pattern hexColorExtractor = Pattern.compile("#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})");
+    @Getter
+    private static FormatConfig config;
 
-    public static void registerGlobalModifier(StringModifier modifier) {
-        globalModifiers.add(modifier);
+    public static void registerConfig(@NonNull File configFile) {
+        config = new FormatConfig(configFile);
+    }
+
+    public static void registerGlobalModifier(StringModifier... modifiers) {
+        globalModifiers.addAll(Arrays.asList(modifiers));
     }
 
     public static String color(String message) {
         String coloredMessage = ChatColor.translateAlternateColorCodes('&', message);
 
-        Matcher matcher = hexColorExtractor.matcher(coloredMessage);
+        Matcher matcher = config.getHexPattern().matcher(coloredMessage);
 
         while (matcher.find()) {
             String hexColor = matcher.group();
@@ -72,13 +77,13 @@ public class Formatter {
 
         temporaryData.add(new FormatData(null, null, null, formattedMessage));
 
-        while(!temporaryData.isEmpty()) {
+        while (!temporaryData.isEmpty()) {
             FormatData data = temporaryData.removeFirst();
             String stringToAnalyze = data.getContents();
 
             List<FormatData> newData = findFormatMatches(stringToAnalyze);
 
-            if(data.getEntireMatch() != null) {
+            if (data.getEntireMatch() != null) {
                 newData.forEach(nd -> nd.setParentData(data));
             }
 
@@ -101,7 +106,7 @@ public class Formatter {
 
     private static List<FormatData> findFormatMatches(@NonNull String string) {
         List<FormatData> formatData = new ArrayList<>();
-        Matcher matcher = formatPattern.matcher(string);
+        Matcher matcher = config.getFormatPattern().matcher(string);
 
         while (matcher.find()) {
             String codeIdentifier = matcher.group(1) == null ? matcher.group(3) : matcher.group(1);
@@ -120,8 +125,8 @@ public class Formatter {
         return formatData;
     }
 
-    public static String autoFormat(String message, String... replacements) {
-        Matcher placeholderMatcher = placeholderPattern.matcher(message);
+    public static String autoFormat(String message, Object... replacements) {
+        Matcher placeholderMatcher = config.getPlaceholderPattern().matcher(message);
 
         int currentIndex = 0;
         while (placeholderMatcher.find()) {
@@ -130,7 +135,7 @@ public class Formatter {
             }
 
             String placeholder = placeholderMatcher.group();
-            message = message.replace(placeholder, replacements[currentIndex++]);
+            message = message.replace(placeholder, replacements[currentIndex++].toString());
         }
 
         return format(message);
@@ -160,39 +165,54 @@ public class Formatter {
     }
 
     public static String command(String command, String description) {
-        return replace(" <c#primary>/%s</c> &8─ <c#secondary>%s</c>", command, description);
+        return replace(config.getCommand(),
+                new Placeholder("%command%", command),
+                new Placeholder("%description%", description)
+        );
     }
 
     public static BaseComponent richCommand(String command, String description) {
-        BaseComponent component = richFormat(" <c#primary>/%s</c>", command);
-        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(richFormat("<c#secondary>%s</c>", description))));
+        BaseComponent component = richFormat(config.getRichCommandText(), new Placeholder("%command%", command));
+        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                new Text(richFormat(config.getRichCommandHover(), new Placeholder("%description%", description)))));
 
         return component;
     }
 
     public static String main(String prefix, String message, Object... replacements) {
-        return replace("<c#primary>&l%s</c> &8%s <c#secondary>%s</c>", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("primary"),
-                LogicColor.getColor("highlight"), replacements)));
+        return replace(config.getMainFormat(),
+                new Placeholder("%prefix%", prefix),
+                new Placeholder("%message%", replace(message, applyHighlightColor(LogicColor.getColor("primary"), LogicColor.getColor("highlight"), replacements))));
     }
 
     public static String error(String prefix, String message, Object... replacements) {
-        return replace("<c#error_primary>&l%s</c> &8%s <c#error_secondary>%s</c>", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("error-secondary"), LogicColor.getColor("error-highlight"), replacements)));
+        return replace(config.getErrorFormat(),
+                new Placeholder("%prefix%", prefix),
+                new Placeholder("%message%", replace(message, applyHighlightColor(LogicColor.getColor("error-secondary"), LogicColor.getColor("error-highlight"), replacements))));
     }
 
     public static String success(String prefix, String message, Object... replacements) {
-        return replace("<c#success_primary>&l%s</c> &8%s <c#success_secondary>%s</c>", prefix, DOT, replace(message, applyHighlightColor(LogicColor.getColor("success-secondary"), LogicColor.getColor("success-highlight"), replacements)));
+        return replace(config.getSuccessFormat(),
+                new Placeholder("%prefix%", prefix),
+                new Placeholder("%message%", replace(message, applyHighlightColor(LogicColor.getColor("success-secondary"), LogicColor.getColor("success-highlight"), replacements))));
     }
 
     public static String listHeader(String prefix, String info, Object... replacements) {
-        return replace("<c#primary>&l%s</c> &8%s <c#secondary>%s</c>", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("secondary"), LogicColor.getColor("highlight"), replacements)));
+        return replace(config.getListHeader(),
+                new Placeholder("%prefix%", prefix),
+                new Placeholder("%info%", replace(info, applyHighlightColor(LogicColor.getColor("secondary"), LogicColor.getColor("highlight"), replacements))));
     }
 
-    public static String listItem(String prefix, String info, Object... replacements) {
-        return replace("&8| &8» <c#success_primary>%s</c> &8%s <c#success_secondary>%s</c>", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements)));
+    public static String listItem(String prefix, String message, Object... replacements) {
+        return replace(config.getListItem(),
+                new Placeholder("%prefix%", prefix),
+                new Placeholder("%message%", replace(message, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements))));
     }
 
-    public static String dottedMessage(String prefix, String info, Object... replacements) {
-        return replace("<c#success_primary>%s</c> &8%s <c#success_secondary>%s</c>", prefix, DOT, replace(info, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements)));
+    public static String dottedMessage(String prefix, String message, Object... replacements) {
+        return replace(config.getDottedMessage(),
+                new Placeholder("%prefix%", prefix),
+                new Placeholder("%message%", replace(message, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements))));
     }
 
     public static void sendMessage(Player player, String prefix, String message, Placeholder... placeholders) {
@@ -207,7 +227,7 @@ public class Formatter {
 
     public static void sendRedisMessage(UUID player, String message) {
         APIByLogic.getInstance().getRedisClient().sendListenerMessage(
-                new ListenerComponent(null, "j-message")
+                new ListenerComponent(null, "abl-message")
                         .addData("uuid", player).addData("message", message));
     }
 
@@ -263,7 +283,7 @@ public class Formatter {
         int lastPossibleItem = data.size();
 
         if (page == 0 || page > pages) {
-            text.add(Formatter.error(header, "Invalid page!"));
+            text.add(Formatter.error(header, config.getInvalidPage()));
             return text.toArray(new String[]{});
         }
 
@@ -273,10 +293,12 @@ public class Formatter {
 
         for (int i = startingItem; i < lastItem; i++) {
             String item = data.get(i);
-            text.add(format(LogicColor.getColor("separator") + "| » " + LogicColor.getColor("highlight") + item));
+            text.add(format(config.getPagedItem(), new Placeholder("%text%", item)));
         }
 
-        text.add(color(replace("⤷ &7(Page: %s/%s)", page, pages)));
+        text.add(format(config.getPageFooter(),
+                new Placeholder("%current-page%", page),
+                new Placeholder("%pages%", pages)));
         return text.toArray(new String[]{});
     }
 
@@ -355,12 +377,12 @@ public class Formatter {
             }
         }
 
-        int toCompensate = CENTER_PX - messagePxSize / 2;
+        int toCompensate = config.getCenterPixels() - messagePxSize / 2;
         int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
         int compensated = 0;
 
         StringBuilder sb = new StringBuilder();
-        while(compensated < toCompensate){
+        while (compensated < toCompensate) {
             sb.append(" ");
             compensated += spaceLength;
         }

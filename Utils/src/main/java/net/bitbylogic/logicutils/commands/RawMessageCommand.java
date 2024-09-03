@@ -2,7 +2,7 @@ package net.bitbylogic.logicutils.commands;
 
 import net.bitbylogic.apibylogic.acf.BaseCommand;
 import net.bitbylogic.apibylogic.acf.annotation.*;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.bitbylogic.logicutils.LogicUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -20,6 +20,7 @@ public class RawMessageCommand extends BaseCommand {
 
     @Default
     @Syntax("<target> <message>")
+    @CommandCompletion("@players *")
     public void onCommand(CommandSender sender, String target, String message) {
         if (target.equals("*")) {
             sender.sendMessage(Formatter.format("&e&lMessaging &8• &aSending raw message to everyone."));

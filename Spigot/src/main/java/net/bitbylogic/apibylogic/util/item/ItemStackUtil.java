@@ -8,7 +8,7 @@ import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.util.Format;
 import net.bitbylogic.apibylogic.util.NumberUtil;
 import net.bitbylogic.apibylogic.util.StringModifier;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.md_5.bungee.api.ChatColor;
 import net.minecraft.locale.LocaleLanguage;
 import org.bukkit.Bukkit;

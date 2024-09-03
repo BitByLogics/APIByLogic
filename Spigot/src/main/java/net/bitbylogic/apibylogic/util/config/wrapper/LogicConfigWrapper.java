@@ -1,4 +1,4 @@
-package net.bitbylogic.apibylogic.config;
+package net.bitbylogic.apibylogic.util.config.wrapper;
 
 public interface LogicConfigWrapper {
 

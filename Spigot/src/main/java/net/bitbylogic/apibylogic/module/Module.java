@@ -1,11 +1,11 @@
 package net.bitbylogic.apibylogic.module;
 
 import co.aikar.commands.BaseCommand;
-import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import net.bitbylogic.apibylogic.module.task.ModulePendingTask;
+import net.bitbylogic.apibylogic.util.config.Configurable;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.Listener;
@@ -16,7 +16,6 @@ import org.bukkit.scheduler.BukkitTask;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -24,65 +23,63 @@ import java.util.logging.Level;
 
 @Getter
 @Setter
-public abstract class Module implements ModuleInterface, Listener {
+public abstract class Module extends Configurable implements ModuleInterface, Listener {
 
     private final JavaPlugin plugin;
     private final ModuleManager moduleManager;
 
-    private boolean enabled;
+    private final File dataFolder;
+    private final File configFile;
 
-    private File dataFolder;
-    private File configFile;
+    private final List<BaseCommand> commands = new ArrayList<>();
+    private final List<Integer> taskIds = new ArrayList<>();
+    private final List<Listener> listeners = new ArrayList<>();
+    private final List<Configurable> configurables = new ArrayList<>();
+
+    private boolean enabled = true;
+
     private YamlConfiguration config;
-    private List<BaseCommand> commands;
-    private List<Integer> tasks = Lists.newArrayList();
-    private List<Listener> listeners = Lists.newArrayList();
 
     public Module(JavaPlugin plugin, ModuleManager moduleManager) {
         this.plugin = plugin;
         this.moduleManager = moduleManager;
-        this.commands = new ArrayList<>();
+
+        ModuleData moduleData = getModuleData();
+        String moduleDir = moduleData.getId().toLowerCase().replace(" ", "_");
+
+        this.dataFolder = new File(plugin.getDataFolder() + File.separator + moduleDir);
+        this.configFile = new File(getDataFolder() + File.separator + "config.yml");
 
         loadConfiguration();
+
+        setConfigFile(configFile);
+        loadConfigPaths();
     }
 
     private void loadConfiguration() {
         ModuleData moduleData = getModuleData();
-        String pathPrefix = moduleData.getId().toLowerCase().replace(" ", "_");
+        String moduleDir = moduleData.getId().toLowerCase().replace(" ", "_");
 
-        dataFolder = new File(plugin.getDataFolder() + File.separator + pathPrefix);
-        configFile = new File(getDataFolder() + File.separator + "config.yml");
+        if (!configFile.exists()) {
+            InputStream configStream = plugin.getResource(moduleDir + "/config.yml");
 
-        InputStream configStream = plugin.getResource(pathPrefix + "/config.yml");
-
-        if (!configFile.exists() && configStream != null) {
-            plugin.saveResource(pathPrefix + "/config.yml", false);
+            if (configStream != null) {
+                plugin.saveResource(moduleDir + "/config.yml", false);
+            }
         }
 
         config = YamlConfiguration.loadConfiguration(configFile);
-
-        if (configStream != null) {
-            YamlConfiguration jarConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(configStream));
-
-//            for (String key : jarConfig.getKeys(true)) {
-//                if(config.get(key) == null) {
-//                    config.set(key, jarConfig.get(key));
-//                }
-//            }
-
-            saveConfig();
-        }
     }
 
     public void reloadConfig() {
         config = YamlConfiguration.loadConfiguration(configFile);
-        onReload();
     }
 
     public void saveConfig() {
         try {
             config.save(configFile);
         } catch (IOException e) {
+            log(Level.SEVERE, "Unable to save configuration file.");
             e.printStackTrace();
         }
     }
@@ -95,14 +92,14 @@ public abstract class Module implements ModuleInterface, Listener {
         Object actualValue = getConfig().get(path);
 
         if (actualValue == null && save) {
-            getConfig().set(path, defaultValue);
+            config.set(path, defaultValue);
             saveConfig();
         }
 
         try {
             return actualValue == null ? defaultValue : (T) actualValue;
         } catch (ClassCastException e) {
-            log(Level.SEVERE, "Unable to ");
+            log(Level.SEVERE, "Unable to cast config value");
             e.printStackTrace();
         }
 
@@ -116,20 +113,29 @@ public abstract class Module implements ModuleInterface, Listener {
             }
 
             this.commands.add(command);
-            //moduleManager.getCommandManager().registerCommand(command);
         }
     }
 
     protected void registerModuleListener(Listener listener) {
-        if (!listeners.contains(listener)) {
-            moduleManager.getDependencyManager().injectDependencies(listener);
-            listeners.add(listener);
-            Bukkit.getServer().getPluginManager().registerEvents(listener, plugin);
+        if (listeners.contains(listener)) {
+            return;
         }
+
+        moduleManager.getDependencyManager().injectDependencies(listener);
+        listeners.add(listener);
+        Bukkit.getServer().getPluginManager().registerEvents(listener, plugin);
+    }
+
+    protected void registerConfigurable(Configurable configurable) {
+        if (configurables.contains(configurable)) {
+            return;
+        }
+
+        configurables.add(configurable);
     }
 
     /**
-     * Return a configuration file from the modules folder.
+     * Return a configuration file from the module's folder.
      *
      * @param name The files name (do not include .yml)
      * @return The newly created configuration file instance.
@@ -158,7 +164,7 @@ public abstract class Module implements ModuleInterface, Listener {
         }
     }
 
-    public int runModuleTask(Runnable runnable) {
+    public int runTask(Runnable runnable) {
         int taskId = new BukkitRunnable() {
             @Override
             public void run() {
@@ -166,8 +172,24 @@ public abstract class Module implements ModuleInterface, Listener {
             }
         }.runTask(plugin).getTaskId();
 
-        tasks.add(taskId);
+        taskIds.add(taskId);
+        return taskId;
+    }
 
+    public int addTask(BukkitTask task) {
+        taskIds.add(task.getTaskId());
+        return task.getTaskId();
+    }
+
+    public int runTaskAsync(Runnable runnable) {
+        int taskId = new BukkitRunnable() {
+            @Override
+            public void run() {
+                runnable.run();
+            }
+        }.runTaskAsynchronously(plugin).getTaskId();
+
+        taskIds.add(taskId);
         return taskId;
     }
 
@@ -179,7 +201,7 @@ public abstract class Module implements ModuleInterface, Listener {
             }
         }.runTaskLater(plugin, delay).getTaskId();
 
-        tasks.add(taskId);
+        taskIds.add(taskId);
 
         return taskId;
     }
@@ -192,14 +214,35 @@ public abstract class Module implements ModuleInterface, Listener {
             }
         }.runTaskTimer(plugin, delay, repeat).getTaskId();
 
-        tasks.add(taskId);
+        taskIds.add(taskId);
 
         return taskId;
     }
 
-    public int runModuleTask(BukkitTask task) {
-        tasks.add(task.getTaskId());
-        return task.getTaskId();
+    public int runTaskLaterAsync(Runnable runnable, long delay) {
+        int taskId = new BukkitRunnable() {
+            @Override
+            public void run() {
+                runnable.run();
+            }
+        }.runTaskLaterAsynchronously(plugin, delay).getTaskId();
+
+        taskIds.add(taskId);
+
+        return taskId;
+    }
+
+    public int runTaskTimerAsync(Runnable runnable, long delay, long repeat) {
+        int taskId = new BukkitRunnable() {
+            @Override
+            public void run() {
+                runnable.run();
+            }
+        }.runTaskTimerAsynchronously(plugin, delay, repeat).getTaskId();
+
+        taskIds.add(taskId);
+
+        return taskId;
     }
 
     public void log(Level level, String message) {
@@ -220,4 +263,14 @@ public abstract class Module implements ModuleInterface, Listener {
         });
     }
 
+    @Override
+    public void loadConfigPaths() {
+        super.loadConfigPaths();
+
+        if(configurables == null) {
+            return;
+        }
+
+        configurables.forEach(Configurable::loadConfigPaths);
+    }
 }

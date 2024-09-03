@@ -6,7 +6,7 @@ import net.bitbylogic.apibylogic.acf.annotation.CommandPermission;
 import net.bitbylogic.apibylogic.acf.annotation.Default;
 import net.bitbylogic.apibylogic.acf.annotation.Subcommand;
 import net.bitbylogic.apibylogic.util.RichTextUtil;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.bitbylogic.logicutils.LogicUtils;
 import net.bitbylogic.logicutils.player.PlayerUtil;
 import org.bukkit.Material;
@@ -14,6 +14,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -203,6 +204,36 @@ public class ItemModifyCommand extends BaseCommand {
 
         ItemStack item = player.getInventory().getItemInMainHand();
         item.addUnsafeEnchantment(enchantment, level);
+    }
+
+    @Subcommand("flag add")
+    public void onFlagAdd(Player player, ItemFlag flag) {
+        ItemStack item = player.getInventory().getItemInMainHand();
+
+        if (item.getType() == Material.AIR) {
+            player.sendMessage(Formatter.error("Item Modify", "You must hold an item."));
+            return;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        meta.addItemFlags(flag);
+        item.setItemMeta(meta);
+        player.sendMessage(Formatter.success("Item Modify", "Successfully added flag %s to item!", flag.name()));
+    }
+
+    @Subcommand("flag remove")
+    public void onFlagRemove(Player player, ItemFlag flag) {
+        ItemStack item = player.getInventory().getItemInMainHand();
+
+        if (item.getType() == Material.AIR) {
+            player.sendMessage(Formatter.error("Item Modify", "You must hold an item."));
+            return;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        meta.removeItemFlags(flag);
+        item.setItemMeta(meta);
+        player.sendMessage(Formatter.success("Item Modify", "Successfully removed flag %s from item!", flag.name()));
     }
 
 }

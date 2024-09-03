@@ -1,6 +1,6 @@
 package net.bitbylogic.logicutils.player;
 
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.md_5.bungee.api.chat.BaseComponent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;

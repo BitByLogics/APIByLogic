@@ -1,4 +1,4 @@
-package net.bitbylogic.apibylogic.util.message;
+package net.bitbylogic.apibylogic.util.message.format;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

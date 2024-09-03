@@ -5,7 +5,7 @@ import co.aikar.commands.annotation.*;
 import net.bitbylogic.apibylogic.dependency.annotation.Dependency;
 import net.bitbylogic.apibylogic.module.Module;
 import net.bitbylogic.apibylogic.module.ModuleManager;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -57,6 +57,7 @@ public class ModulesCommand extends BaseCommand {
 
         sender.sendMessage(Formatter.success("Modules", String.format("Reloading module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> %s<c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> %s<c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId())));
         module.reloadConfig();
+        module.loadConfigPaths();
         module.onReload();
     }
 

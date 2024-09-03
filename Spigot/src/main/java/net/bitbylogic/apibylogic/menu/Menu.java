@@ -12,7 +12,7 @@ import net.bitbylogic.apibylogic.menu.view.internal.PreviousPageViewRequirement;
 import net.bitbylogic.apibylogic.util.*;
 import net.bitbylogic.apibylogic.util.inventory.InventoryUtil;
 import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;

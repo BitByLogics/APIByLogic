@@ -1,8 +1,9 @@
-package net.bitbylogic.apibylogic.util.message;
+package net.bitbylogic.apibylogic.util.message.format;
 
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.bitbylogic.apibylogic.util.message.LogicColor;
 import net.md_5.bungee.api.ChatColor;
 
 import java.util.ArrayList;

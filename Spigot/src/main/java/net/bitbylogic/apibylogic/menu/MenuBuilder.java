@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import net.bitbylogic.apibylogic.menu.action.MenuClickActionType;
 import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
 import net.bitbylogic.apibylogic.util.StringModifier;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 

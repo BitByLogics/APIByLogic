@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.RichTextUtil;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 

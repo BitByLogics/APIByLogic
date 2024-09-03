@@ -2,7 +2,7 @@ package net.bitbylogic.apibylogic.scoreboard;
 
 import lombok.Getter;
 import net.bitbylogic.apibylogic.APIByLogic;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.bitbylogic.apibylogic.util.message.config.MessageProvider;
 import net.bitbylogic.apibylogic.util.StringModifier;
 import net.md_5.bungee.api.ChatColor;

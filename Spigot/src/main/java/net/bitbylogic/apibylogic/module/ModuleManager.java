@@ -127,8 +127,9 @@ public class ModuleManager {
             plugin.getConfig().set("disabled-modules", disabledModules);
             plugin.saveConfig();
             module.setEnabled(true);
-            module.onEnable();
             module.reloadConfig();
+            module.loadConfigPaths();
+            module.onEnable();
             module.getCommands().forEach(commandManager::registerCommand);
             Bukkit.getPluginManager().registerEvents(module, plugin);
         }
@@ -154,7 +155,7 @@ public class ModuleManager {
             plugin.saveConfig();
             module.setEnabled(false);
             module.onDisable();
-            module.getTasks().forEach(taskID -> Bukkit.getScheduler().cancelTask(taskID));
+            module.getTaskIds().forEach(taskID -> Bukkit.getScheduler().cancelTask(taskID));
             module.getListeners().forEach(HandlerList::unregisterAll);
             module.getCommands().forEach(commandManager::unregisterCommand);
             HandlerList.unregisterAll(module);

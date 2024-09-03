@@ -1,8 +1,9 @@
 package net.bitbylogic.apibylogic.command;
 
 import net.bitbylogic.apibylogic.APIByLogic;
+import net.bitbylogic.apibylogic.util.Format;
 import net.bitbylogic.apibylogic.util.message.LogicColor;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -34,6 +35,7 @@ public class APIByLogicCommand implements CommandExecutor {
         if (args[0].equalsIgnoreCase("reload")) {
             APIByLogic.getInstance().reloadConfig();
             LogicColor.loadColors(APIByLogic.getInstance().getConfig());
+            Formatter.getConfig().loadConfigPaths();
             sender.sendMessage(Formatter.success("APIByLogic", "Successfully reloaded configuration."));
             return true;
         }

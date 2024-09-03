@@ -5,9 +5,8 @@ import net.bitbylogic.apibylogic.acf.annotation.CommandAlias;
 import net.bitbylogic.apibylogic.acf.annotation.CommandPermission;
 import net.bitbylogic.apibylogic.acf.annotation.Default;
 import net.bitbylogic.apibylogic.acf.annotation.Subcommand;
-import net.bitbylogic.apibylogic.util.message.Formatter;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.bitbylogic.logicutils.LogicUtils;
-import net.bitbylogic.logicutils.config.Messages;
 import net.bitbylogic.logicutils.util.PersistentDataUtil;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -25,8 +24,6 @@ public class ItemDebugComand extends BaseCommand {
     @Default
     public void onDefault(Player sender, @Default("1") int page) {
         List<String> data = new ArrayList<>();
-
-        sender.sendMessage(Formatter.autoFormat(Messages.testMessage, "TACO"));
 
         ItemStack item = sender.getInventory().getItemInMainHand();
 
@@ -78,7 +75,6 @@ public class ItemDebugComand extends BaseCommand {
     @Subcommand("hat")
     public void onHatCommand(Player player) {
         LogicUtils.getInstance().reloadConfig();
-        LogicUtils.getInstance().getMessages().loadConfigData();
 
         ItemStack item = player.getInventory().getItemInMainHand();
 

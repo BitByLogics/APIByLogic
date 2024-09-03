@@ -1,17 +1,14 @@
 package net.bitbylogic.apibylogic.util.message.config;
 
 import lombok.Getter;
-import net.bitbylogic.apibylogic.util.Pair;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringModifier;
-import net.bitbylogic.apibylogic.util.message.Formatter;
-import net.bitbylogic.apibylogic.util.message.config.annotation.ConfigValue;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
