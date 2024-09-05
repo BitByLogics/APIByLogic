@@ -89,7 +89,10 @@ public class HikariTable<O extends HikariObject> {
             try {
                 while (result.next()) {
                     Optional<O> object = loadObject(result);
-                    object.ifPresent(o -> dataMap.put(statements.getId(o), o));
+                    object.ifPresent(o -> {
+                        dataMap.put(statements.getId(o), o);
+                        o.setOwningTable(this);
+                    });
                 }
             } catch (SQLException exception) {
                 exception.printStackTrace();
@@ -107,6 +110,7 @@ public class HikariTable<O extends HikariObject> {
         }
 
         dataMap.put(statements.getId(object), object);
+        object.setOwningTable(this);
 
         if (!save) {
             return;

@@ -1,9 +1,12 @@
 package net.bitbylogic.apibylogic.util.config.wrapper;
 
-public interface LogicConfigWrapper {
+import lombok.NonNull;
+import org.bukkit.configuration.file.FileConfiguration;
 
-    <T> String wrap(T object);
+public interface LogicConfigWrapper<T> {
 
-    <T, W> T unwrap(W wrappedObject);
+    void wrap(@NonNull T object, @NonNull String path, @NonNull FileConfiguration config);
+
+    <W> T unwrap(@NonNull W wrappedObject, @NonNull Class<?> requestedClass);
 
 }

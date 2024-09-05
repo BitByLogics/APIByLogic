@@ -6,6 +6,7 @@ import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.util.config.annotation.ConfigPath;
 import net.bitbylogic.apibylogic.util.config.data.ConfigFieldData;
 import net.bitbylogic.apibylogic.util.config.wrapper.LogicConfigWrapper;
+import net.bitbylogic.apibylogic.util.config.wrapper.impl.DefaultConfigWrapper;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -20,7 +21,8 @@ import java.util.function.Consumer;
 
 public class Configurable {
 
-    private final HashMap<String, LogicConfigWrapper> valueWrappers = new HashMap<>();
+    private final DefaultConfigWrapper DEFAULT_WRAPPER = new DefaultConfigWrapper();
+    private final HashMap<String, LogicConfigWrapper<?>> valueWrappers = new HashMap<>();
 
     @Setter
     private File configFile;
@@ -64,12 +66,17 @@ public class Configurable {
                     Object value = field.get(this);
 
                     if (!config.isSet(fieldPath)) {
-                        config.set(fieldPath, wrapper == null ? value : wrapper.wrap(value));
+                        if(wrapper == null) {
+                            config.set(fieldPath, value);
+                            continue;
+                        }
+
+                        wrapper.wrap(value, fieldPath, config);
                         continue;
                     }
 
                     Object configValue = config.get(fieldPath);
-                    field.set(this, wrapper == null ? configValue : wrapper.unwrap(configValue));
+                    field.set(this, wrapper == null ? configValue : wrapper.unwrap(configValue, field.getType()));
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
                 }
@@ -98,7 +105,13 @@ public class Configurable {
 
                 try {
                     Object value = field.get(this);
-                    config.set(fieldPath, wrapper == null ? value : wrapper.wrap(value));
+
+                    if(wrapper != null) {
+                        wrapper.wrap(value, fieldPath, config);
+                        continue;
+                    }
+
+                    config.set(fieldPath, value);
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
                 }
@@ -136,8 +149,8 @@ public class Configurable {
 
                 String path = valueSettings.path().isEmpty() ? field.getType().getName() : valueSettings.path();
                 String fieldPath = globalPrefix == null ? path : globalPrefix + path;
-                LogicConfigWrapper wrapper = valueSettings.wrapperId().isEmpty() ? null
-                        : valueWrappers.getOrDefault(valueSettings.wrapperId(), null);
+                LogicConfigWrapper wrapper = valueSettings.wrapperId().isEmpty() ? DEFAULT_WRAPPER
+                        : valueWrappers.getOrDefault(valueSettings.wrapperId(), DEFAULT_WRAPPER);
 
                 fieldData.add(new ConfigFieldData(field, fieldPath, wrapper));
             }

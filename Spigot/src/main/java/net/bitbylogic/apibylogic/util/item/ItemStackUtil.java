@@ -94,6 +94,10 @@ public class ItemStackUtil {
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         }
 
+        if(section.getBoolean("Hide-Tooltip")) {
+            meta.setHideTooltip(true);
+        }
+
         // If leather armor, apply dye color if defined
         if (stack.getType().name().startsWith("LEATHER_") && section.getString("Dye-Color") != null) {
             LeatherArmorMeta leatherArmorMeta = (LeatherArmorMeta) stack.getItemMeta();
