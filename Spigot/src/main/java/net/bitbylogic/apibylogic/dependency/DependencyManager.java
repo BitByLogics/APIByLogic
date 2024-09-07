@@ -76,7 +76,6 @@ public class DependencyManager {
                     List<Object> pendingObjects = missingDependencies.getOrDefault(field.getType(), new ArrayList<>());
                     pendingObjects.add(obj);
                     missingDependencies.put(field.getType(), pendingObjects);
-
                     continue;
                 }
 

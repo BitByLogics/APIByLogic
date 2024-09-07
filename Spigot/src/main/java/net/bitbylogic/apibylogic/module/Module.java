@@ -37,6 +37,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
     private final List<Configurable> configurables = new ArrayList<>();
 
     private boolean enabled = true;
+    private boolean debug = false;
 
     private YamlConfiguration config;
 
@@ -247,6 +248,22 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
 
     public void log(Level level, String message) {
         plugin.getLogger().log(level, "(" + getModuleData().getName() + ") " + message);
+    }
+
+    public void debug(Level level, String message) {
+        if(!debug) {
+            return;
+        }
+
+        plugin.getLogger().log(level, "(" + getModuleData().getName() + ") [DEBUG] " + message);
+    }
+
+    public void debugBroadcast(String message) {
+        if(!debug) {
+            return;
+        }
+
+        Bukkit.broadcast("(" + getModuleData().getName() + ") [DEBUG]: " + message, "apibylogic.module.debuglog");
     }
 
     public <T extends Module> void addDependencyTask(Class<T> dependency, Consumer<T> consumer) {

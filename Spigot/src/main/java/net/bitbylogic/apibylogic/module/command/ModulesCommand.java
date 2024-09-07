@@ -99,6 +99,27 @@ public class ModulesCommand extends BaseCommand {
         moduleManager.disableModule(module.getModuleData().getId());
     }
 
+    @Subcommand("debug")
+    @CommandPermission("apibylogic.command.module.debug")
+    @CommandCompletion("@moduleIds")
+    public void onDebug(CommandSender sender, String moduleId) {
+        Module module = moduleManager.getModuleByID(moduleId);
+
+        if (module == null) {
+            sender.sendMessage(Formatter.error("Modules", "Invalid module."));
+            return;
+        }
+
+        if (!module.isDebug()) {
+            module.setDebug(true);
+            sender.sendMessage(Formatter.success("Modules", "Enabling debug for module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> %s<c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> %s<c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId()));
+            return;
+        }
+
+        module.setDebug(false);
+        sender.sendMessage(Formatter.success("Modules", "Disabling debug for module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> %s<c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> %s<c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId()));
+    }
+
     @Subcommand("toggle")
     @CommandPermission("apibylogic.command.module.toggle")
     @CommandCompletion("@moduleIds")
