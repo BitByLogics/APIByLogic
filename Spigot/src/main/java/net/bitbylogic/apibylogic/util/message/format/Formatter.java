@@ -165,52 +165,52 @@ public class Formatter {
     }
 
     public static String command(String command, String description) {
-        return replace(config.getCommand(),
+        return replace(config.getConfigValue("Command"),
                 new Placeholder("%command%", command),
                 new Placeholder("%description%", description)
         );
     }
 
     public static BaseComponent richCommand(String command, String description) {
-        BaseComponent component = richFormat(config.getRichCommandText(), new Placeholder("%command%", command));
+        BaseComponent component = richFormat(config.getConfigValue("Rich-Format.Text"), new Placeholder("%command%", command));
         component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                new Text(richFormat(config.getRichCommandHover(), new Placeholder("%description%", description)))));
+                new Text(richFormat(config.getConfigValue("Rich-Format.Hover"), new Placeholder("%description%", description)))));
 
         return component;
     }
 
     public static String main(String prefix, String message, Object... replacements) {
-        return replace(config.getMainFormat(),
+        return replace(config.getConfigValue("Main"),
                 new Placeholder("%prefix%", prefix),
                 new Placeholder("%message%", replace(message, applyHighlightColor(LogicColor.getColor("primary"), LogicColor.getColor("highlight"), replacements))));
     }
 
     public static String error(String prefix, String message, Object... replacements) {
-        return replace(config.getErrorFormat(),
+        return replace(config.getConfigValue("Error"),
                 new Placeholder("%prefix%", prefix),
                 new Placeholder("%message%", replace(message, applyHighlightColor(LogicColor.getColor("error-secondary"), LogicColor.getColor("error-highlight"), replacements))));
     }
 
     public static String success(String prefix, String message, Object... replacements) {
-        return replace(config.getSuccessFormat(),
+        return replace(config.getConfigValue("Success"),
                 new Placeholder("%prefix%", prefix),
                 new Placeholder("%message%", replace(message, applyHighlightColor(LogicColor.getColor("success-secondary"), LogicColor.getColor("success-highlight"), replacements))));
     }
 
     public static String listHeader(String prefix, String info, Object... replacements) {
-        return replace(config.getListHeader(),
+        return replace(config.getConfigValue("List.Header"),
                 new Placeholder("%prefix%", prefix),
                 new Placeholder("%info%", replace(info, applyHighlightColor(LogicColor.getColor("secondary"), LogicColor.getColor("highlight"), replacements))));
     }
 
     public static String listItem(String prefix, String message, Object... replacements) {
-        return replace(config.getListItem(),
+        return replace(config.getConfigValue("List.Item"),
                 new Placeholder("%prefix%", prefix),
                 new Placeholder("%message%", replace(message, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements))));
     }
 
     public static String dottedMessage(String prefix, String message, Object... replacements) {
-        return replace(config.getDottedMessage(),
+        return replace(config.getConfigValue("Dotted-Message"),
                 new Placeholder("%prefix%", prefix),
                 new Placeholder("%message%", replace(message, applyHighlightColor(LogicColor.getColor("success-primary"), LogicColor.getColor("success-secondary"), replacements))));
     }
@@ -283,7 +283,7 @@ public class Formatter {
         int lastPossibleItem = data.size();
 
         if (page == 0 || page > pages) {
-            text.add(Formatter.error(header, config.getInvalidPage()));
+            text.add(Formatter.error(header, config.getConfigValue("Paged.Invalid-Page")));
             return text.toArray(new String[]{});
         }
 
@@ -293,10 +293,10 @@ public class Formatter {
 
         for (int i = startingItem; i < lastItem; i++) {
             String item = data.get(i);
-            text.add(format(config.getPagedItem(), new Placeholder("%text%", item)));
+            text.add(format(config.getConfigValue("Paged.Item"), new Placeholder("%text%", item)));
         }
 
-        text.add(format(config.getPageFooter(),
+        text.add(format(config.getConfigValue("Paged.Footer"),
                 new Placeholder("%current-page%", page),
                 new Placeholder("%pages%", pages)));
         return text.toArray(new String[]{});
@@ -377,7 +377,8 @@ public class Formatter {
             }
         }
 
-        int toCompensate = config.getCenterPixels() - messagePxSize / 2;
+        int centerPixels = config.getConfigValue("Center-Pixels");
+        int toCompensate = centerPixels - messagePxSize / 2;
         int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
         int compensated = 0;
 

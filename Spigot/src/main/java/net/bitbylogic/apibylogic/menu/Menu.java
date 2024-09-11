@@ -2,14 +2,18 @@ package net.bitbylogic.apibylogic.menu;
 
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
+import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.menu.inventory.MenuInventory;
 import net.bitbylogic.apibylogic.menu.placeholder.PlaceholderProvider;
 import net.bitbylogic.apibylogic.menu.task.MenuUpdateTask;
 import net.bitbylogic.apibylogic.menu.task.TitleUpdateTask;
 import net.bitbylogic.apibylogic.menu.view.internal.NextPageViewRequirement;
 import net.bitbylogic.apibylogic.menu.view.internal.PreviousPageViewRequirement;
-import net.bitbylogic.apibylogic.util.*;
+import net.bitbylogic.apibylogic.util.Pair;
+import net.bitbylogic.apibylogic.util.Placeholder;
+import net.bitbylogic.apibylogic.util.StringModifier;
 import net.bitbylogic.apibylogic.util.inventory.InventoryUtil;
 import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
 import net.bitbylogic.apibylogic.util.message.format.Formatter;
@@ -17,6 +21,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -29,17 +34,14 @@ import java.util.stream.Collectors;
 @Setter
 public class Menu implements InventoryHolder, Cloneable {
 
-    private String id;
     private final String title;
     private final int size;
-
     private final List<MenuItem> items;
-    private MenuData data;
-
     @Getter(AccessLevel.NONE)
     private final List<MenuInventory> inventories;
     private final List<UUID> activePlayers;
-
+    private String id;
+    private MenuData data;
     private MenuUpdateTask updateTask;
     private TitleUpdateTask titleUpdateTask;
     private long lastUpdateCheck;
@@ -375,6 +377,23 @@ public class Menu implements InventoryHolder, Cloneable {
         }
 
         return inventories.get(0).getInventory();
+    }
+
+    public void open(@NonNull Player player, int page) {
+        if (page > inventories.size()) {
+            return;
+        }
+
+        if (inventories.isEmpty()) {
+            generateInventories();
+        }
+
+        MenuInventory inventory = inventories.get(page - 1);
+        Bukkit.getScheduler().runTaskLater(APIByLogic.getInstance(), () -> player.openInventory(inventory.getInventory()), 1);
+    }
+
+    public void open(@NonNull Player player) {
+        open(player, 1);
     }
 
     public List<MenuInventory> getInventories() {

@@ -44,8 +44,8 @@ public class DependencyManager {
         dependencies.put(clazz, clazz.getName(), instance);
 
         if (missingDependencies.containsKey(clazz)) {
-            APIByLogic.getInstance().getLogger().log(Level.INFO, "Injecting missing dependencies for %s", clazz.getName());
-            missingDependencies.get(clazz).forEach(this::injectDependencies);
+            APIByLogic.getInstance().getLogger().log(Level.INFO, "Injecting missing dependencies for " + clazz.getName());
+            missingDependencies.get(clazz).forEach(obj -> injectDependencies(obj, false));
             missingDependencies.remove(clazz);
         }
 
@@ -56,7 +56,7 @@ public class DependencyManager {
         commandManager.registerDependency(clazz, instance);
     }
 
-    public void injectDependencies(Object obj) {
+    public void injectDependencies(Object obj, boolean deepInjection) {
         Class<?> clazz = obj.getClass();
 
         do {
@@ -93,7 +93,7 @@ public class DependencyManager {
                 }
             }
             clazz = clazz.getSuperclass();
-        } while (clazz != null);
+        } while (deepInjection && clazz != null);
     }
 
 }

@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import net.bitbylogic.apibylogic.util.LivePlaceholder;
 import net.bitbylogic.apibylogic.util.config.Configurable;
-import net.bitbylogic.apibylogic.util.config.annotation.ConfigPath;
 
 import java.io.File;
 import java.util.regex.Pattern;
@@ -12,79 +11,44 @@ import java.util.regex.Pattern;
 @Getter
 public class FormatConfig extends Configurable {
 
-    @ConfigPath(path = "Center-Pixels")
-    private int centerPixels = 154;
-
-    @ConfigPath(path = "Symbols.Right-Arrow")
-    private String rightArrow = "»";
-
-    @ConfigPath(path = "Symbols.Dot")
-    private String dot = "•";
-
-    @ConfigPath(path = "Patterns.Placeholder")
-    private String patternPlaceholder = "%.+?%";
-
-    @ConfigPath(path = "Patterns.Format")
-    private String patternFormat = "<([a-zA-Z0-9 _]+)>(.*?)</\\1>|<([a-zA-Z0-9 _]+)#(.*?)>(.*?)</\\3>";
-
-    @ConfigPath(path = "Patterns.Hex")
-    private String patternHex = "#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})";
-
-    @ConfigPath(path = "Command")
-    private String command = " <c#primary>/%command%</c> &8─ <c#secondary>%description%</c>";
-
-    @ConfigPath(path = "Rich-Command.Text")
-    private String richCommandText = " <c#primary>/%command%</c>";
-
-    @ConfigPath(path = "Rich-Command.Hover")
-    private String richCommandHover = "<c#secondary>%description%</c>";
-
-    @ConfigPath(path = "Main")
-    private String mainFormat = "<c#primary>&l%prefix%</c> &8%dot% <c#secondary>%message%</c>";
-
-    @ConfigPath(path = "Error")
-    private String errorFormat = "<c#error_primary>&l%prefix%</c> &8%dot% <c#error_secondary>%message%</c>";
-
-    @ConfigPath(path = "Success")
-    private String successFormat = "<c#success_primary>&l%prefix%</c> &8%dot% <c#success_secondary>%message%</c>";
-
-    @ConfigPath(path = "List.Header")
-    private String listHeader = "<c#primary>&l%prefix%</c> &8%dot% <c#secondary>%info%</c>";
-
-    @ConfigPath(path = "List.Item")
-    private String listItem = "&8| &8» <c#success_primary>%prefix%</c> &8%dot% <c#success_secondary>%message%</c>";
-
-    @ConfigPath(path = "Dotted-Message")
-    private String dottedMessage = "<c#success_primary>%prefix%</c> &8%dot% <c#success_secondary>%message%</c>";
-
-    @ConfigPath(path = "Paged.Invalid-Page")
-    private String invalidPage = "Invalid page!";
-
-    @ConfigPath(path = "Paged.Item")
-    private String pagedItem = "<c#separator>| » </c><c#highlight>%text%</c>";
-
-    @ConfigPath(path = "Paged.Footer")
-    private String pageFooter = "⤷ &7(Page: %current-page%/%pages%)";
-
     public FormatConfig(@NonNull File configFile) {
-        super(configFile, "Formatting.");
+        super(configFile, "Formatting.",
+                pair("Center-Pixels", 154),
+                pair("Symbols.Right-Arrow", "»"),
+                pair("Symbols.Dot", "•"),
+                pair("Patterns.Placeholder", "%.+?%"),
+                pair("Patterns.Format", "<([a-zA-Z0-9 _]+)>(.*?)</\\1>|<([a-zA-Z0-9 _]+)#(.*?)>(.*?)</\\3>"),
+                pair("Patterns.Hex", "#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})"),
+                pair("Command", " <c#primary>/%command%</c> &8─ <c#secondary>%description%</c>"),
+                pair("Rich-Command.Text", " <c#primary>/%command%</c>"),
+                pair("Rich-Command.Hover", "<c#secondary>%description%</c>"),
+                pair("Main", "<c#primary>&l%prefix%</c> &8%dot% <c#secondary>%message%</c>"),
+                pair("Error", "<c#error_primary>&l%prefix%</c> &8%dot% <c#error_secondary>%message%</c>"),
+                pair("Success", "<c#success_primary>&l%prefix%</c> &8%dot% <c#success_secondary>%message%</c>"),
+                pair("List.Header", "<c#primary>&l%prefix%</c> &8%dot% <c#secondary>%info%</c>"),
+                pair("List.Item", "&8| &8» <c#success_primary>%prefix%</c> &8%dot% <c#success_secondary>%message%</c>"),
+                pair("Dotted-Message", "<c#success_primary>%prefix%</c> &8%dot% <c#success_secondary>%message%</c>"),
+                pair("Paged.Invalid-Page", "Invalid page!"),
+                pair("Paged.Item", "<c#separator>| » </c><c#highlight>%text%</c>"),
+                pair("Paged.Footer", "⤷ &7(Page: %current-page%/%pages%)")
+        );
 
         Formatter.registerGlobalModifier(
-                new LivePlaceholder("%right-arrow%", () -> rightArrow),
-                new LivePlaceholder("%dot%", () -> dot)
+                new LivePlaceholder("%right-arrow%", () -> getConfigValue("Symbols.Right-Arrow")),
+                new LivePlaceholder("%dot%", () -> getConfigValue("Symbols.Dot"))
         );
     }
 
     public Pattern getPlaceholderPattern() {
-        return Pattern.compile(patternPlaceholder);
+        return Pattern.compile(getConfigValue("Patterns.Placeholder"));
     }
 
     public Pattern getFormatPattern() {
-        return Pattern.compile(patternFormat);
+        return Pattern.compile(getConfigValue("Patterns.Format"));
     }
 
     public Pattern getHexPattern() {
-        return Pattern.compile(patternHex);
+        return Pattern.compile(getConfigValue("Patterns.Hex"));
     }
 
 }

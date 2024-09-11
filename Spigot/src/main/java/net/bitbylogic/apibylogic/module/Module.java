@@ -122,7 +122,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
             return;
         }
 
-        moduleManager.getDependencyManager().injectDependencies(listener);
+        moduleManager.getDependencyManager().injectDependencies(listener, false);
         listeners.add(listener);
         Bukkit.getServer().getPluginManager().registerEvents(listener, plugin);
     }

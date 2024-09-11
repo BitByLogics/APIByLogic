@@ -40,7 +40,7 @@ public class ModuleManager {
                 .map(ModuleInterface::getModuleData).map(ModuleData::getId).collect(Collectors.toSet()));
 
         ModulesCommand modulesCommand = new ModulesCommand();
-        dependencyManager.injectDependencies(modulesCommand);
+        dependencyManager.injectDependencies(modulesCommand, false);
         commandManager.registerCommand(modulesCommand);
     }
 
@@ -71,10 +71,10 @@ public class ModuleManager {
             }
 
             dependencyManager.registerDependency(moduleClass, module);
-            dependencyManager.injectDependencies(module);
+            dependencyManager.injectDependencies(module, false);
 
             module.onRegister();
-            module.getCommands().forEach(dependencyManager::injectDependencies);
+            module.getCommands().forEach(command -> dependencyManager.injectDependencies(command, false));
             modules.put(moduleClass.getSimpleName(), module);
 
             if (!plugin.getConfig().getStringList("disabled-modules").contains(module.getModuleData().getId())) {

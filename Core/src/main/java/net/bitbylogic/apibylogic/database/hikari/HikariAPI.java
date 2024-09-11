@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 
 @Getter
@@ -69,51 +70,53 @@ public class HikariAPI {
         hikari = new HikariDataSource(config);
     }
 
-    public <O extends HikariObject, T extends HikariTable<O>> Optional<T> registerTable(Class<? extends T> tableClass) {
+    public <O extends HikariObject, T extends HikariTable<O>> void registerTable(Class<? extends T> tableClass, Consumer<T> consumer) {
         if (getTables().containsKey(tableClass.getSimpleName())) {
             System.out.println("(HikariAPI): Couldn't register table " + tableClass.getSimpleName() + ", it's already registered.");
-            return Optional.empty();
+            return;
         }
 
-        try {
-            T table = ReflectionUtil.findAndCallConstructor(tableClass, this);
+        try (ForkJoinPool pool = ForkJoinPool.commonPool()) {
+            pool.execute(() -> {
+                try {
+                    T table = ReflectionUtil.findAndCallConstructor(tableClass, this);
 
-            if (table == null || table.getTable() == null) {
-                System.out.println("(HikariAPI): Couldn't create instance of table " + tableClass.getSimpleName() + "!");
-                return Optional.empty();
-            }
+                    if (table == null || table.getTable() == null) {
+                        System.out.println("(HikariAPI): Couldn't create instance of table " + tableClass.getSimpleName() + "!");
+                        return;
+                    }
 
-            for (HikariColumnData columnData : table.getStatements().getColumnData()) {
-                if (columnData.getStatementData().foreignTable().isEmpty()) {
-                    continue;
-                }
+                    for (HikariColumnData columnData : table.getStatements().getColumnData()) {
+                        if (columnData.getStatementData().foreignTable().isEmpty()) {
+                            continue;
+                        }
 
-                String foreignTableName = columnData.getStatementData().foreignTable();
-                HikariTable<?> foreignTable = getTable(foreignTableName);
+                        String foreignTableName = columnData.getStatementData().foreignTable();
+                        HikariTable<?> foreignTable = getTable(foreignTableName);
 
-                if (foreignTable == null) {
-                    List<String> tables = pendingTables.getOrDefault(table, new ArrayList<>());
-                    tables.add(foreignTableName);
-                    pendingTables.put(table, tables);
-                    System.out.println("(HikariAPI): Table " + table.getTable() + " requires " + foreignTableName + " and will be loaded when it's loaded!");
+                        if (foreignTable == null) {
+                            List<String> tables = pendingTables.getOrDefault(table, new ArrayList<>());
+                            tables.add(foreignTableName);
+                            pendingTables.put(table, tables);
+                            System.out.println("(HikariAPI): Table " + table.getTable() + " requires " + foreignTableName + " and will be loaded when it's loaded!");
+                            getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
+                            consumer.accept(table);
+                        }
+
+                        columnData.setForeignKeyData(foreignTable.getStatements().getPrimaryKeyData().getStatementData());
+                        columnData.setForeignTable(foreignTable);
+                    }
+
                     getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
-                    return Optional.of(table);
+                    loadTable(table);
+
+                    consumer.accept(table);
+                } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
+                    System.out.println("(HikariAPI): Couldn't create instance of table " + tableClass.getSimpleName() + "!");
+                    e.printStackTrace();
                 }
-
-                columnData.setForeignKeyData(foreignTable.getStatements().getPrimaryKeyData().getStatementData());
-                columnData.setForeignTable(foreignTable);
-            }
-
-            getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
-            loadTable(table);
-
-            return Optional.of(table);
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
-            System.out.println("(HikariAPI): Couldn't create instance of table " + tableClass.getSimpleName() + "!");
-            e.printStackTrace();
+            });
         }
-
-        return Optional.empty();
     }
 
     private void loadTable(@NonNull HikariTable<?> table) {
