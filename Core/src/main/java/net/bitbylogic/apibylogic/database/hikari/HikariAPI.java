@@ -101,6 +101,7 @@ public class HikariAPI {
                             System.out.println("(HikariAPI): Table " + table.getTable() + " requires " + foreignTableName + " and will be loaded when it's loaded!");
                             getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
                             consumer.accept(table);
+                            return;
                         }
 
                         columnData.setForeignKeyData(foreignTable.getStatements().getPrimaryKeyData().getStatementData());

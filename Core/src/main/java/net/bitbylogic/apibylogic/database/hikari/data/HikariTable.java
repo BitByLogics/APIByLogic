@@ -1,6 +1,7 @@
 package net.bitbylogic.apibylogic.database.hikari.data;
 
 import lombok.Getter;
+import lombok.NonNull;
 import net.bitbylogic.apibylogic.database.hikari.HikariAPI;
 import net.bitbylogic.apibylogic.database.hikari.annotation.HikariStatementData;
 import net.bitbylogic.apibylogic.database.hikari.processor.HikariFieldProcessor;
@@ -94,11 +95,19 @@ public class HikariTable<O extends HikariObject> {
                         o.setOwningTable(this);
                     });
                 }
+
+                onDataLoaded();
             } catch (SQLException exception) {
                 exception.printStackTrace();
             }
         });
     }
+
+    public void onDataLoaded() {}
+
+    public void onDataDeleted(@NonNull O object) {}
+
+    public void onDataAdded(@NonNull O object) {}
 
     public void add(@NotNull O object) {
         add(object, true);
@@ -111,6 +120,7 @@ public class HikariTable<O extends HikariObject> {
 
         dataMap.put(statements.getId(object), object);
         object.setOwningTable(this);
+        onDataAdded(object);
 
         if (!save) {
             return;
@@ -164,24 +174,8 @@ public class HikariTable<O extends HikariObject> {
         });
     }
 
-    public void remove(@NotNull O object) {
-        remove(object, false);
-    }
-
-    public void remove(@NotNull O object, boolean delete) {
-        if (!dataMap.containsKey(statements.getId(object))) {
-            return;
-        }
-
-        dataMap.remove(statements.getId(object));
-
-        if (delete) {
-            delete(object);
-        }
-    }
-
     public void deleteById(@NotNull Object id) {
-        getDataFromDB(id, (data) -> {
+        getDataFromDB(id, true, (data) -> {
             if (data.isEmpty()) {
                 return;
             }
@@ -191,6 +185,12 @@ public class HikariTable<O extends HikariObject> {
     }
 
     public void delete(@NotNull O object) {
+        if (!dataMap.containsKey(statements.getId(object))) {
+            return;
+        }
+
+        dataMap.remove(statements.getId(object));
+
         for (HikariColumnData columnData : statements.getColumnData()) {
             if (columnData.getForeignTable() == null || !columnData.getStatementData().foreignDelete()) {
                 continue;
@@ -214,7 +214,7 @@ public class HikariTable<O extends HikariObject> {
                     continue;
                 }
 
-                if(foreignObject instanceof HashMap<?,?> hashMap) {
+                if (foreignObject instanceof HashMap<?, ?> hashMap) {
                     if (hashMap.isEmpty()) {
                         continue;
                     }
@@ -224,7 +224,7 @@ public class HikariTable<O extends HikariObject> {
                     continue;
                 }
 
-                if(!(foreignObject instanceof HikariObject)) {
+                if (!(foreignObject instanceof HikariObject)) {
                     continue;
                 }
 
@@ -233,6 +233,8 @@ public class HikariTable<O extends HikariObject> {
                 System.out.println("[APIByLogic] [HikariAPI] (" + table + "): Unable to delete foreign data.");
                 e.printStackTrace();
             }
+
+            onDataDeleted(object);
         }
 
         hikariAPI.executeStatement(statements.getDataDeleteStatement(object, table), rs -> {
