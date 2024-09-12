@@ -46,7 +46,7 @@ public enum StringProcessor {
     public static Object findAndProcess(Class<?> targetClass, String value) {
         for (StringProcessor internalProcessor : values()) {
             for (Class<?> dataType : internalProcessor.getDataTypes()) {
-                if (!dataType.equals(targetClass)) {
+                if (!dataType.isAssignableFrom(targetClass)) {
                     continue;
                 }
 
