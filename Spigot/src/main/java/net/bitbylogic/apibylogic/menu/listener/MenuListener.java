@@ -117,41 +117,8 @@ public class MenuListener implements Listener {
     public void onOpen(InventoryOpenEvent event) {
         Inventory inventory = event.getInventory();
 
-        if (!(inventory.getHolder() instanceof Menu)) {
+        if (!(inventory.getHolder() instanceof Menu menu)) {
             return;
-        }
-
-        Menu menu = (Menu) inventory.getHolder();
-
-        List<StringModifier> modifiers = new ArrayList<>();
-        modifiers.addAll(menu.getData().getModifiers());
-        modifiers.addAll(menu.getData().getPlaceholderProviders().stream().map(PlaceholderProvider::asPlaceholder).collect(Collectors.toList()));
-
-        Placeholder pagesPlaceholder = new Placeholder("%pages%", menu.getInventories().size() + "");
-        Placeholder pagePlaceholder = new Placeholder("%page%", (menu.getInventoryIndex(inventory) + 1) + "");
-        modifiers.add(pagesPlaceholder);
-        modifiers.add(pagePlaceholder);
-
-        if (!menu.getData().hasFlag(MenuFlag.DISABLE_TITLE_UPDATE)) {
-            Bukkit.getScheduler().runTaskLater(APIByLogic.getInstance(), () -> {
-                if (XReflection.MINOR_NUMBER >= 20) {
-                    try {
-                        XReflection.ofMinecraft()
-                                .inPackage(MinecraftPackage.BUKKIT, "inventory")
-                                .named("InventoryView")
-                                .method().named("setTitle")
-                                .parameters(String.class).returns(void.class)
-                                .reflect().invoke(event.getPlayer().getOpenInventory(), Formatter.format(menu.getTitle(),
-                                        modifiers.toArray(new StringModifier[]{})));
-                    } catch (Throwable e) {
-                        e.printStackTrace();
-                    }
-                    return;
-                }
-
-                InventoryUpdate.updateInventory(APIByLogic.getInstance(), (Player) event.getPlayer(),
-                        Formatter.format(menu.getMenuInventory(inventory).getTitle(), modifiers.toArray(new StringModifier[]{})));
-            }, 1);
         }
 
         menu.getActivePlayers().add(event.getPlayer().getUniqueId());
@@ -169,10 +136,6 @@ public class MenuListener implements Listener {
 
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
-        if (XReflection.MINOR_NUMBER < 20) {
-            InventoryUpdate.getLastSentTitle().remove(event.getPlayer().getUniqueId());
-        }
-
         Inventory inventory = event.getInventory();
 
         if (!(inventory.getHolder() instanceof Menu)) {

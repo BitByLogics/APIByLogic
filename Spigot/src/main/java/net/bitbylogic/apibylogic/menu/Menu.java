@@ -265,7 +265,7 @@ public class Menu implements InventoryHolder, Cloneable {
         modifiers.add(pagePlaceholder);
 
         AtomicReference<List<Integer>> availableSlots = new AtomicReference<>(new ArrayList<>(validSlots));
-        Inventory inventory = Bukkit.createInventory(this, size, data.hasFlag(MenuFlag.DISABLE_TITLE_UPDATE) ? Formatter.format(title, modifiers.toArray(new StringModifier[]{})) : ChatColor.RED.toString());
+        Inventory inventory = Bukkit.createInventory(this, size, Formatter.format(title, modifiers.toArray(new StringModifier[]{})));
 
         List<MenuItem> itemCache = new ArrayList<>();
 
