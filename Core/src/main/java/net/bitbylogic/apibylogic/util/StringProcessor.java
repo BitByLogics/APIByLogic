@@ -37,7 +37,8 @@ public enum StringProcessor {
         return tc.isPrimitive() ? value.booleanValue() : value;
     }),
     CHAR(new Class[]{Character.class, char.class}, (tc, s) -> s.isEmpty() ? 'A' : s.charAt(0)),
-    UUID(new Class[]{java.util.UUID.class}, (tc, s) -> java.util.UUID.fromString(s));
+    UUID(new Class[]{java.util.UUID.class}, (tc, s) -> java.util.UUID.fromString(s)),
+    ENUM(new Class[]{Enum.class}, (tc, s) -> EnumUtil.getValue((Class<Enum>) tc, s, null));
 
     private final Class<?>[] dataTypes;
     private final StringProcessorFunction<?> processor;
