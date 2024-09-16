@@ -65,7 +65,7 @@ public class HikariStatements<O extends HikariObject> {
                 return;
             }
 
-            columnData.add(new HikariColumnData(field.getName(), field.getType(), object.getClass().getName(), data, parentObjectFields, null, null));
+            columnData.add(new HikariColumnData(field, object.getClass().getName(), data, parentObjectFields, null, null));
         });
     }
 
@@ -94,7 +94,7 @@ public class HikariStatements<O extends HikariObject> {
                 return;
             }
 
-            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getFieldName()))) {
+            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getField().getName()))) {
                 return;
             }
 
@@ -120,16 +120,16 @@ public class HikariStatements<O extends HikariObject> {
                 Object fieldObject = getFieldObject(object, columnData);
 
                 HikariStatementData statementData = columnData.getStatementData();
-                Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                Field field = columnData.getField();
                 field.setAccessible(true);
                 Object fieldValue = field.get(fieldObject);
 
-                HikariFieldProcessor processor = cachedProcessors.get(columnData.getFieldName());
+                HikariFieldProcessor processor = cachedProcessors.get(field.getName());
 
                 if (processor == null) {
                     try {
                         processor = statementData.processor().getDeclaredConstructor().newInstance();
-                        cachedProcessors.put(columnData.getFieldName(), processor);
+                        cachedProcessors.put(field.getName(), processor);
                     } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
                         e.printStackTrace();
                         return;
@@ -142,7 +142,7 @@ public class HikariStatements<O extends HikariObject> {
                 }
 
                 data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(object, field, columnData) + "'"));
-            } catch (NoSuchFieldException | IllegalAccessException e) {
+            } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         });
@@ -152,7 +152,7 @@ public class HikariStatements<O extends HikariObject> {
                 return;
             }
 
-            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getFieldName()))) {
+            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getField().getName()))) {
                 return;
             }
 
@@ -160,16 +160,16 @@ public class HikariStatements<O extends HikariObject> {
                 Object fieldObject = getFieldObject(object, columnData);
 
                 HikariStatementData statementData = columnData.getStatementData();
-                Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                Field field = columnData.getField();
                 field.setAccessible(true);
                 Object fieldValue = field.get(fieldObject);
 
-                HikariFieldProcessor processor = cachedProcessors.get(columnData.getFieldName());
+                HikariFieldProcessor processor = cachedProcessors.get(field.getName());
 
                 if (processor == null) {
                     try {
                         processor = statementData.processor().getDeclaredConstructor().newInstance();
-                        cachedProcessors.put(columnData.getFieldName(), processor);
+                        cachedProcessors.put(field.getName(), processor);
                     } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
                         e.printStackTrace();
                         return;
@@ -182,7 +182,7 @@ public class HikariStatements<O extends HikariObject> {
                 }
 
                 data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(object, field, columnData) + "'"));
-            } catch (NoSuchFieldException | IllegalAccessException e) {
+            } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         });
@@ -207,16 +207,16 @@ public class HikariStatements<O extends HikariObject> {
                         Object fieldObject = getFieldObject(object, columnData);
 
                         HikariStatementData statementData = columnData.getStatementData();
-                        Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                        Field field = columnData.getField();
                         field.setAccessible(true);
                         Object fieldValue = field.get(fieldObject);
 
-                        HikariFieldProcessor processor = cachedProcessors.get(columnData.getFieldName());
+                        HikariFieldProcessor processor = cachedProcessors.get(field.getName());
 
                         if (processor == null) {
                             try {
                                 processor = statementData.processor().getDeclaredConstructor().newInstance();
-                                cachedProcessors.put(columnData.getFieldName(), processor);
+                                cachedProcessors.put(field.getName(), processor);
                             } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
                                 e.printStackTrace();
                                 return;
@@ -229,7 +229,7 @@ public class HikariStatements<O extends HikariObject> {
                         }
 
                         builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(object, field, columnData) + "'"));
-                    } catch (NoSuchFieldException | IllegalAccessException e) {
+                    } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
                 });
@@ -248,7 +248,7 @@ public class HikariStatements<O extends HikariObject> {
                 return;
             }
 
-            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getFieldName()))) {
+            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getField().getName()))) {
                 return;
             }
 
@@ -272,7 +272,7 @@ public class HikariStatements<O extends HikariObject> {
                 return;
             }
 
-            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getFieldName()))) {
+            if (includedFields.length != 0 && Arrays.stream(includedFields).noneMatch(field -> field.equalsIgnoreCase(columnData.getField().getName()))) {
                 return;
             }
 
@@ -280,16 +280,16 @@ public class HikariStatements<O extends HikariObject> {
                 Object fieldObject = getFieldObject(object, columnData);
 
                 HikariStatementData statementData = columnData.getStatementData();
-                Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                Field field = columnData.getField();
                 field.setAccessible(true);
                 Object fieldValue = field.get(fieldObject);
 
-                HikariFieldProcessor processor = cachedProcessors.get(columnData.getFieldName());
+                HikariFieldProcessor processor = cachedProcessors.get(field.getName());
 
                 if (processor == null) {
                     try {
                         processor = statementData.processor().getDeclaredConstructor().newInstance();
-                        cachedProcessors.put(columnData.getFieldName(), processor);
+                        cachedProcessors.put(field.getName(), processor);
                     } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
                         e.printStackTrace();
                         return;
@@ -302,7 +302,7 @@ public class HikariStatements<O extends HikariObject> {
                 }
 
                 entries.add(String.format("key= %s", fieldValue == null ? null : "'" + getForeignFieldObject(object, field, columnData) + "'"));
-            } catch (NoSuchFieldException | IllegalAccessException e) {
+            } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         });
@@ -313,18 +313,18 @@ public class HikariStatements<O extends HikariObject> {
                         Object fieldObject = getFieldObject(object, columnData);
 
                         HikariStatementData statementData = columnData.getStatementData();
-                        Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                        Field field = columnData.getField();
                         field.setAccessible(true);
                         Object fieldValue = field.get(fieldObject);
 
                         builder.append(String.join(", ", entries)).append(" WHERE ").append(columnData.getColumnName()).append(" = ");
 
-                        HikariFieldProcessor processor = cachedProcessors.get(columnData.getFieldName());
+                        HikariFieldProcessor processor = cachedProcessors.get(field.getName());
 
                         if (processor == null) {
                             try {
                                 processor = statementData.processor().getDeclaredConstructor().newInstance();
-                                cachedProcessors.put(columnData.getFieldName(), processor);
+                                cachedProcessors.put(field.getName(), processor);
                             } catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
                                 e.printStackTrace();
                                 return;
@@ -337,7 +337,7 @@ public class HikariStatements<O extends HikariObject> {
                         }
 
                         builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(object, field, columnData) + "'"));
-                    } catch (NoSuchFieldException | IllegalAccessException e) {
+                    } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
                 });
@@ -366,17 +366,11 @@ public class HikariStatements<O extends HikariObject> {
     }
 
     public Object getId(HikariObject object) {
-        String primaryKeyFieldName = getPrimaryKeyData().getFieldName();
-
-        if (primaryKeyFieldName == null) {
-            return null;
-        }
-
         try {
-            Field primaryKeyField = object.getClass().getDeclaredField(primaryKeyFieldName);
+            Field primaryKeyField = getPrimaryKeyData().getField();
             primaryKeyField.setAccessible(true);
             return primaryKeyField.get(object);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
+        } catch (IllegalAccessException e) {
             e.printStackTrace();
         }
 

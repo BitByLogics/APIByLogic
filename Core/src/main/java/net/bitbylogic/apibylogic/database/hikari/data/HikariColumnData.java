@@ -7,6 +7,7 @@ import net.bitbylogic.apibylogic.database.hikari.annotation.HikariStatementData;
 import net.bitbylogic.apibylogic.util.reflection.NamedParameter;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 
@@ -14,8 +15,7 @@ import java.util.Map;
 @Getter
 public class HikariColumnData {
 
-    private final String fieldName;
-    private final Class<?> fieldClass;
+    private final Field field;
     private final String parentClassName;
     private final HikariStatementData statementData;
     private final List<String> parentObjectFields;
@@ -27,7 +27,7 @@ public class HikariColumnData {
 
     public String getColumnName() {
         if (statementData.columnName().isEmpty()) {
-            return statementData.subClass() ? parentClassName + "_" + fieldName : fieldName;
+            return statementData.subClass() ? parentClassName + "_" + field.getName() : field.getName();
         }
 
         return statementData.columnName();
@@ -36,6 +36,7 @@ public class HikariColumnData {
     public String getFormattedData() {
         if (foreignKeyData != null) {
             String dataType = foreignKeyData.dataType();
+            Class<?> fieldClass = field.getType();
 
             if (fieldClass.isAssignableFrom(List.class) || fieldClass.isAssignableFrom(Map.class)) {
                 dataType = "LONGTEXT";
@@ -48,7 +49,7 @@ public class HikariColumnData {
     }
 
     public NamedParameter asNamedParameter(@Nullable Object value) {
-        return new NamedParameter(fieldName, fieldClass, value);
+        return new NamedParameter(field.getName(), field.getType(), value);
     }
 
 }

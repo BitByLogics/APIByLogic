@@ -151,12 +151,12 @@ public class HikariTable<O extends HikariObject> {
                 Object fieldObject = statements.getFieldObject(object, columnData);
 
                 try {
-                    Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                    Field field = columnData.getField();
                     boolean originalState = field.canAccess(this);
                     field.setAccessible(true);
                     field.setInt(object, result.getInt(1));
                     field.setAccessible(originalState);
-                } catch (NoSuchFieldException | SQLException | IllegalAccessException e) {
+                } catch (SQLException | IllegalAccessException e) {
                     e.printStackTrace();
                 }
             });
@@ -199,7 +199,7 @@ public class HikariTable<O extends HikariObject> {
             try {
                 Object fieldObject = statements.getFieldObject(object, columnData);
 
-                Field field = fieldObject.getClass().getDeclaredField(columnData.getFieldName());
+                Field field = columnData.getField();
                 field.setAccessible(true);
 
                 Object foreignObject = statements.getForeignFieldObject(object, field, columnData);
@@ -259,9 +259,10 @@ public class HikariTable<O extends HikariObject> {
                 }
 
                 Object object = result.getObject(columnData.getColumnName());
+                Class<?> fieldTypeClass = columnData.getField().getType();
 
-                if (columnData.getFieldClass().isEnum()) {
-                    for (Object enumConstant : columnData.getFieldClass().getEnumConstants()) {
+                if (fieldTypeClass.isEnum()) {
+                    for (Object enumConstant : fieldTypeClass.getEnumConstants()) {
                         if (!((Enum<?>) enumConstant).name().equalsIgnoreCase((String) object)) {
                             continue;
                         }
@@ -272,15 +273,15 @@ public class HikariTable<O extends HikariObject> {
                 } else {
                     object = processor.parseFromObject(object);
 
-                    if (columnData.getFieldClass() != String.class &&
+                    if (fieldTypeClass != String.class &&
                             processor instanceof DefaultHikariFieldProcessor &&
                             object instanceof String string) {
-                        object = StringProcessor.findAndProcess(columnData.getFieldClass(), string);
+                        object = StringProcessor.findAndProcess(fieldTypeClass, string);
                     }
                 }
 
                 if (statementData.foreignTable().isEmpty()) {
-                    namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), object));
+                    namedParameters.add(new NamedParameter(columnData.getField().getName(), fieldTypeClass, object));
                     continue;
                 }
 
@@ -292,14 +293,14 @@ public class HikariTable<O extends HikariObject> {
                     continue;
                 }
 
-                if (columnData.getFieldClass().isInstance(HikariObject.class)) {
+                if (fieldTypeClass.isInstance(HikariObject.class)) {
                     foreignTable.getDataFromDB(object, true, o -> {
-                        namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), o.orElse(null)));
+                        namedParameters.add(new NamedParameter(columnData.getField().getName(), fieldTypeClass, o.orElse(null)));
                     });
                     continue;
                 }
 
-                if (columnData.getFieldClass().isAssignableFrom(List.class)) {
+                if (fieldTypeClass.isAssignableFrom(List.class)) {
                     List<Object> list = (List<Object>) ListUtil.stringToList((String) object);
                     List<HikariObject> newList = new ArrayList<>();
 
@@ -309,7 +310,7 @@ public class HikariTable<O extends HikariObject> {
                         });
                     });
 
-                    namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), newList));
+                    namedParameters.add(new NamedParameter(columnData.getField().getName(), fieldTypeClass, newList));
                     continue;
                 }
 
@@ -321,7 +322,7 @@ public class HikariTable<O extends HikariObject> {
                     });
                 });
 
-                namedParameters.add(new NamedParameter(columnData.getFieldName(), columnData.getFieldClass(), newMap));
+                namedParameters.add(new NamedParameter(columnData.getField().getName(), fieldTypeClass, newMap));
             }
 
             return Optional.of(ReflectionUtil.callConstructor(objectConstructor, namedParameters.toArray(new NamedParameter[]{})));
@@ -354,7 +355,7 @@ public class HikariTable<O extends HikariObject> {
             return;
         }
 
-        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, getStatements().getPrimaryKeyData().getFieldName(), id), result -> {
+        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, getStatements().getPrimaryKeyData().getColumnName(), id), result -> {
             if (result == null) {
                 callback.accept(Optional.empty());
                 return;
@@ -379,7 +380,7 @@ public class HikariTable<O extends HikariObject> {
             return;
         }
 
-        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, statements.getPrimaryKeyData().getFieldName(), id.toString()), result -> {
+        hikariAPI.executeQuery(String.format("SELECT * FROM %s WHERE %s = '%s';", table, statements.getPrimaryKeyData().getColumnName(), id.toString()), result -> {
             if (result == null) {
                 consumer.accept(Optional.empty());
                 return;
