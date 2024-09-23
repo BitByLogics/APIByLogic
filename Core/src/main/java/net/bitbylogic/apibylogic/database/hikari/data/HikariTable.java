@@ -185,16 +185,6 @@ public class HikariTable<O extends HikariObject> {
         });
     }
 
-    public void deleteById(@NotNull Object id) {
-        getDataFromDB(id, true, (data) -> {
-            if (data.isEmpty()) {
-                return;
-            }
-
-            delete(data.get());
-        });
-    }
-
     public void delete(@NotNull O object) {
         if (!dataMap.containsKey(statements.getId(object))) {
             return;
@@ -208,12 +198,11 @@ public class HikariTable<O extends HikariObject> {
             }
 
             try {
-                Object fieldObject = statements.getFieldObject(object, columnData);
-
                 Field field = columnData.getField();
                 field.setAccessible(true);
 
-                Object foreignObject = statements.getForeignFieldObject(object, field, columnData);
+                HikariTable foreignTable = columnData.getForeignTable();
+                Object foreignObject = field.get(object);
 
                 if (foreignObject instanceof List<?> list) {
                     if (list.isEmpty()) {
@@ -221,7 +210,7 @@ public class HikariTable<O extends HikariObject> {
                     }
 
                     List<HikariObject> dataList = (List<HikariObject>) foreignObject;
-                    dataList.forEach(data -> columnData.getForeignTable().deleteById(statements.getId(data)));
+                    dataList.forEach(foreignTable::delete);
                     continue;
                 }
 
@@ -231,7 +220,7 @@ public class HikariTable<O extends HikariObject> {
                     }
 
                     HashMap<?, HikariObject> dataMap = (HashMap<?, HikariObject>) foreignObject;
-                    dataMap.values().forEach(data -> columnData.getForeignTable().deleteById(statements.getId(data)));
+                    dataMap.values().forEach(foreignTable::delete);
                     continue;
                 }
 
@@ -239,7 +228,7 @@ public class HikariTable<O extends HikariObject> {
                     continue;
                 }
 
-                columnData.getForeignTable().deleteById(statements.getId((HikariObject) foreignObject));
+                foreignTable.delete((HikariObject) foreignObject);
             } catch (Exception e) {
                 log("Unable to delete foreign data.");
                 e.printStackTrace();
@@ -248,7 +237,7 @@ public class HikariTable<O extends HikariObject> {
             onDataDeleted(object);
         }
 
-        hikariAPI.executeStatement(statements.getDataDeleteStatement(object, table), rs -> {
+        hikariAPI.executeStatement(statements.getDataDeleteStatement(object), rs -> {
             if (redisClient != null) {
                 redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
                         .addData("updateType", HikariRedisUpdateType.DELETE).addData("objectId", statements.getId(object).toString()));

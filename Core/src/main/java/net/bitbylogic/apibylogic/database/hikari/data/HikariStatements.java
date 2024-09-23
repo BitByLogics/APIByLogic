@@ -141,7 +141,7 @@ public class HikariStatements<O extends HikariObject> {
                     return;
                 }
 
-                data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(object, field, columnData) + "'"));
+                data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + getForeignFieldIdData(object, field, columnData) + "'"));
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
@@ -181,7 +181,7 @@ public class HikariStatements<O extends HikariObject> {
                     return;
                 }
 
-                data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(object, field, columnData) + "'"));
+                data.add(String.format("%s", fieldValue == null ? "NULL" : "'" + getForeignFieldIdData(object, field, columnData) + "'"));
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
@@ -191,7 +191,7 @@ public class HikariStatements<O extends HikariObject> {
         return builder.toString();
     }
 
-    protected String getDataDeleteStatement(O object, String table) {
+    protected String getDataDeleteStatement(O object) {
         if (columnData.stream().noneMatch(columnData -> columnData.getStatementData().primaryKey())) {
             System.out.printf("[APIByLogic] [HikariAPI] (%s) No primary key, aborting.%n", table);
             return null;
@@ -228,7 +228,7 @@ public class HikariStatements<O extends HikariObject> {
                             return;
                         }
 
-                        builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(object, field, columnData) + "'"));
+                        builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + getForeignFieldIdData(object, field, columnData) + "'"));
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
@@ -301,7 +301,7 @@ public class HikariStatements<O extends HikariObject> {
                     return;
                 }
 
-                entries.add(String.format("key= %s", fieldValue == null ? null : "'" + getForeignFieldObject(object, field, columnData) + "'"));
+                entries.add(String.format("key= %s", fieldValue == null ? null : "'" + getForeignFieldIdData(object, field, columnData) + "'"));
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
@@ -336,7 +336,7 @@ public class HikariStatements<O extends HikariObject> {
                             return;
                         }
 
-                        builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + getForeignFieldObject(object, field, columnData) + "'"));
+                        builder.append(String.format("%s;", fieldValue == null ? "NULL" : "'" + getForeignFieldIdData(object, field, columnData) + "'"));
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
@@ -377,7 +377,7 @@ public class HikariStatements<O extends HikariObject> {
         return null;
     }
 
-    protected Object getForeignFieldObject(Object object, Field field, HikariColumnData columnData) {
+    protected Object getForeignFieldIdData(Object object, Field field, HikariColumnData columnData) {
         if (columnData.getStatementData().foreignTable().isEmpty()) {
             return null;
         }
@@ -388,7 +388,7 @@ public class HikariStatements<O extends HikariObject> {
             HikariTable<?> foreignTable = columnData.getForeignTable();
             Object fieldValue = field.get(object);
 
-            if(foreignTable == null) {
+            if (foreignTable == null) {
                 System.out.println("(HikariAPI): Missing foreign table: " + columnData.getStatementData().foreignTable());
                 return null;
             }
