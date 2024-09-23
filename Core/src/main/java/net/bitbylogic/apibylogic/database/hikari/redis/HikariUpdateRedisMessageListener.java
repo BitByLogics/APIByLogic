@@ -38,9 +38,7 @@ public class HikariUpdateRedisMessageListener<O extends HikariObject> extends Re
             switch (updateType) {
                 case SAVE:
                     hikariTable.getDataMap().remove(hikariTable.getStatements().getId(object));
-
-                    hikariTable.getDataFromDB(objectId, optional ->
-                            optional.ifPresent(result -> hikariTable.getDataMap().put(hikariTable.getStatements().getId(result), result)));
+                    hikariTable.getDataFromDB(objectId, true, true, o -> {});
                     break;
                 case DELETE:
                     hikariTable.getDataMap().remove(hikariTable.getStatements().getId(object));

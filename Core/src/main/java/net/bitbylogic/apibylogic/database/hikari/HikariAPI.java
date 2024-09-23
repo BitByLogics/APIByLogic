@@ -9,6 +9,7 @@ import net.bitbylogic.apibylogic.database.hikari.data.HikariObject;
 import net.bitbylogic.apibylogic.database.hikari.data.HikariTable;
 import net.bitbylogic.apibylogic.util.Pair;
 import net.bitbylogic.apibylogic.util.reflection.ReflectionUtil;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,7 +54,7 @@ public class HikariAPI {
             try {
                 databaseFile.createNewFile();
             } catch (IOException e) {
-                System.out.println("(HikariAPI): Unable to find database file!");
+                System.out.println("[HikariAPI]: Unable to find database file!");
                 hikari = null;
                 return;
             }
@@ -71,8 +72,8 @@ public class HikariAPI {
     }
 
     public <O extends HikariObject, T extends HikariTable<O>> void registerTable(Class<? extends T> tableClass, Consumer<T> consumer) {
-        if (getTables().containsKey(tableClass.getSimpleName())) {
-            System.out.println("(HikariAPI): Couldn't register table " + tableClass.getSimpleName() + ", it's already registered.");
+        if (tables.containsKey(tableClass.getSimpleName())) {
+            System.out.println("[HikariAPI]: Couldn't register table " + tableClass.getSimpleName() + ", it's already registered.");
             return;
         }
 
@@ -82,7 +83,7 @@ public class HikariAPI {
                     T table = ReflectionUtil.findAndCallConstructor(tableClass, this);
 
                     if (table == null || table.getTable() == null) {
-                        System.out.println("(HikariAPI): Couldn't create instance of table " + tableClass.getSimpleName() + "!");
+                        System.out.println("[HikariAPI]: Unable to create instance of table " + tableClass.getSimpleName() + "!");
                         return;
                     }
 
@@ -98,7 +99,7 @@ public class HikariAPI {
                             List<String> tables = pendingTables.getOrDefault(table, new ArrayList<>());
                             tables.add(foreignTableName);
                             pendingTables.put(table, tables);
-                            System.out.println("(HikariAPI): Table " + table.getTable() + " requires " + foreignTableName + " and will be loaded when it's loaded!");
+                            System.out.println("[HikariAPI]: Table " + table.getTable() + " requires " + foreignTableName + " and will be loaded when it's loaded!");
                             getTables().put(tableClass.getSimpleName(), new Pair<>(table.getTable(), table));
                             consumer.accept(table);
                             return;
@@ -113,22 +114,28 @@ public class HikariAPI {
 
                     consumer.accept(table);
                 } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
-                    System.out.println("(HikariAPI): Couldn't create instance of table " + tableClass.getSimpleName() + "!");
+                    System.out.println("[HikariAPI]: Couldn't create instance of table " + tableClass.getSimpleName() + "!");
                     e.printStackTrace();
                 }
             });
         }
     }
 
-    private void loadTable(@NonNull HikariTable<?> table) {
+    private synchronized void loadTable(@NonNull HikariTable<?> table) {
         executeStatement(table.getStatements().getTableCreateStatement(), resultSet -> {
             if (!table.isLoadData()) {
+                System.out.println("[HikariAPI] [" + table.getClass().getSimpleName() + "]: Finished retrieving data.");
+                checkForeignTables(table);
                 return;
             }
 
-            table.loadData();
+            table.loadData(() -> {
+                checkForeignTables(table);
+            });
         });
+    }
 
+    private synchronized void checkForeignTables(@NonNull HikariTable<?> table) {
         Iterator<Map.Entry<HikariTable<?>, List<String>>> iterator = pendingTables.entrySet().iterator();
 
         while (iterator.hasNext()) {
@@ -160,7 +167,7 @@ public class HikariAPI {
             loadTable(pendingTable);
             iterator.remove();
 
-            System.out.println("(HikariAPI): All foreign tables loaded for " + pendingTable.getTable() + ", it will now be loaded!");
+            System.out.println("[HikariAPI]: All foreign tables loaded for " + pendingTable.getTable() + ", it will now be loaded!");
         }
     }
 
@@ -174,44 +181,19 @@ public class HikariAPI {
         executeStatement(query, null, arguments);
     }
 
-    public void executeStatement(String query, Consumer<ResultSet> consumer, Object... arguments) {
+    public synchronized void executeStatement(@NonNull String query, @Nullable Consumer<ResultSet> consumer, @Nullable Object... arguments) {
         CompletableFuture.runAsync(() -> {
             try (Connection connection = hikari.getConnection()) {
                 try (PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
-                    int index = 1;
-                    for (Object argument : arguments) {
-                        statement.setObject(index++, argument);
+                    if (arguments != null) {
+                        int index = 1;
+                        for (Object argument : arguments) {
+                            statement.setObject(index++, argument);
+                        }
                     }
 
                     statement.executeUpdate();
                     try (ResultSet result = statement.getGeneratedKeys()) {
-                        consumer.accept(result);
-                    }
-                }
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        }).handle((unused, e) -> {
-            if (e == null) {
-                return null;
-            }
-
-            System.out.println("(HikariAPI): Issue executing statement: " + query);
-            e.printStackTrace();
-            return null;
-        });
-    }
-
-    public void executeQuery(String query, Consumer<ResultSet> consumer, Object... arguments) {
-        CompletableFuture.runAsync(() -> {
-            try (Connection connection = hikari.getConnection()) {
-                try (PreparedStatement statement = connection.prepareStatement(query, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                    int index = 1;
-                    for (Object argument : arguments) {
-                        statement.setObject(index++, argument);
-                    }
-
-                    try (ResultSet result = statement.executeQuery()) {
                         if (consumer == null) {
                             return;
                         }
@@ -227,7 +209,37 @@ public class HikariAPI {
                 return null;
             }
 
-            System.out.println("(HikariAPI): Issue executing statement: " + query);
+            System.out.println("[HikariAPI]: Issue executing statement: " + query);
+            e.printStackTrace();
+            return null;
+        });
+    }
+
+    public synchronized void executeQuery(@NonNull String query, @NonNull Consumer<ResultSet> consumer, @Nullable Object... arguments) {
+        CompletableFuture.runAsync(() -> {
+            try (Connection connection = hikari.getConnection()) {
+                try (PreparedStatement statement = connection.prepareStatement(query)) {
+                    if (arguments != null) {
+                        int index = 1;
+
+                        for (Object argument : arguments) {
+                            statement.setObject(index++, argument);
+                        }
+                    }
+
+                    try (ResultSet result = statement.executeQuery()) {
+                        consumer.accept(result);
+                    }
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }).handle((unused, e) -> {
+            if (e == null) {
+                return null;
+            }
+
+            System.out.println("[HikariAPI]: Issue executing statement: " + query);
             e.printStackTrace();
             return null;
         });

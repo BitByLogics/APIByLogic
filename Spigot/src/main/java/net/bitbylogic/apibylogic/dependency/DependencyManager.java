@@ -38,13 +38,13 @@ public class DependencyManager {
 
     public <T> void registerDependency(Class<? extends T> clazz, T instance) {
         if (dependencies.containsKey(clazz, clazz.getName())) {
-            throw new IllegalStateException("There is already an instance of " + clazz.getName() + " registered!");
+            throw new IllegalStateException("There is already an instance of " + clazz.getSimpleName() + " registered!");
         }
 
         dependencies.put(clazz, clazz.getName(), instance);
 
         if (missingDependencies.containsKey(clazz)) {
-            APIByLogic.getInstance().getLogger().log(Level.INFO, "Injecting missing dependencies for " + clazz.getName());
+            APIByLogic.getInstance().getLogger().log(Level.INFO, "Injecting missing dependencies for '" + clazz.getSimpleName() + "'.");
             missingDependencies.get(clazz).forEach(obj -> injectDependencies(obj, false));
             missingDependencies.remove(clazz);
         }
@@ -69,9 +69,9 @@ public class DependencyManager {
                 Object object = dependencies.row(field.getType()).get(fieldKey);
 
                 if (object == null) {
-                    APIByLogic.getInstance().getLogger().log(Level.SEVERE,
-                            String.format("Couldn't find dependency for field %s in class %s!",
-                                    field.getName(), obj.getClass().getName()));
+                    APIByLogic.getInstance().getLogger().log(Level.WARNING,
+                            String.format("Couldn't find dependency for field '%s' in class '%s'. It may load later.",
+                                    field.getName(), obj.getClass().getSimpleName()));
 
                     List<Object> pendingObjects = missingDependencies.getOrDefault(field.getType(), new ArrayList<>());
                     pendingObjects.add(obj);
