@@ -12,6 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -42,6 +43,27 @@ public class ModuleManager {
         ModulesCommand modulesCommand = new ModulesCommand();
         dependencyManager.injectDependencies(modulesCommand, false);
         commandManager.registerCommand(modulesCommand);
+
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+            for (Module module : modules.values()) {
+                if(module.getTasks().isEmpty()) {
+                    continue;
+                }
+
+                Iterator<ModuleTask> moduleTaskIterator = module.getTasks().iterator();
+
+                while(moduleTaskIterator.hasNext()) {
+                    ModuleTask task = moduleTaskIterator.next();
+
+                    if(task.getTaskId() == -1
+                            || (Bukkit.getScheduler().isCurrentlyRunning(task.getTaskId())) || Bukkit.getScheduler().isQueued(task.getTaskId())) {
+                        continue;
+                    }
+
+                    moduleTaskIterator.remove();
+                }
+            }
+        }, 0, 1);
     }
 
     /**
