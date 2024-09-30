@@ -69,10 +69,12 @@ public abstract class ModuleTask extends ModuleRunnable {
                 if (moduleInstance == null) {
                     runnable.cancel();
                     cancel();
+                    moduleInstance.getTasks().remove(ModuleTask.this);
                     return;
                 }
 
                 runnable.run();
+                moduleInstance.getTasks().remove(ModuleTask.this);
             }
 
             @Override
