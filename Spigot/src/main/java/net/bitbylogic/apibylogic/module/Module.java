@@ -10,8 +10,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,7 +30,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
     private final File configFile;
 
     private final List<BaseCommand> commands = new ArrayList<>();
-    private final List<Integer> taskIds = new ArrayList<>();
+    private final List<ModuleTask> tasks = new ArrayList<>();
     private final List<Listener> listeners = new ArrayList<>();
     private final List<Configurable> configurables = new ArrayList<>();
 
@@ -165,91 +163,184 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         }
     }
 
-    public int runTask(Runnable runnable) {
-        int taskId = new BukkitRunnable() {
+    public int runTask(@NonNull String id, @NonNull ModuleRunnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.SINGLE, runnable) {
             @Override
             public void run() {
                 runnable.run();
-                taskIds.remove((Integer) getTaskId());
             }
-        }.runTask(plugin).getTaskId();
+        };
 
-        taskIds.add(taskId);
-        return taskId;
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
+
+        moduleTask.getBukkitRunnable().runTask(plugin);
+        return moduleTask.getTaskId();
     }
 
-    public int addTask(BukkitTask task) {
-        taskIds.add(task.getTaskId());
-        return task.getTaskId();
-    }
-
-    public int runTaskAsync(Runnable runnable) {
-        int taskId = new BukkitRunnable() {
+    public int runTask(@NonNull String id, @NonNull Runnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.SINGLE) {
             @Override
             public void run() {
                 runnable.run();
-                taskIds.remove((Integer) getTaskId());
             }
-        }.runTaskAsynchronously(plugin).getTaskId();
+        };
 
-        taskIds.add(taskId);
-        return taskId;
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
+
+        moduleTask.getBukkitRunnable().runTask(plugin);
+        return moduleTask.getTaskId();
     }
 
-    public int runTaskLater(Runnable runnable, long delay) {
-        int taskId = new BukkitRunnable() {
+    public int runTaskAsync(@NonNull String id, @NonNull ModuleRunnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.SINGLE_ASYNC, runnable) {
             @Override
             public void run() {
                 runnable.run();
-                taskIds.remove((Integer) getTaskId());
             }
-        }.runTaskLater(plugin, delay).getTaskId();
+        };
 
-        taskIds.add(taskId);
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
 
-        return taskId;
+        moduleTask.getBukkitRunnable().runTaskAsynchronously(plugin);
+        return moduleTask.getTaskId();
     }
 
-    public int runTaskTimer(Runnable runnable, long delay, long repeat) {
-        int taskId = new BukkitRunnable() {
+    public int runTaskAsync(@NonNull String id, @NonNull Runnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.SINGLE_ASYNC) {
             @Override
             public void run() {
                 runnable.run();
-                taskIds.remove((Integer) getTaskId());
             }
-        }.runTaskTimer(plugin, delay, repeat).getTaskId();
+        };
 
-        taskIds.add(taskId);
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
 
-        return taskId;
+        moduleTask.getBukkitRunnable().runTaskAsynchronously(plugin);
+        return moduleTask.getTaskId();
     }
 
-    public int runTaskLaterAsync(Runnable runnable, long delay) {
-        int taskId = new BukkitRunnable() {
+    public int runTaskLater(@NonNull String id, long delay, @NonNull ModuleRunnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.DELAYED, runnable) {
             @Override
             public void run() {
                 runnable.run();
-                taskIds.remove((Integer) getTaskId());
             }
-        }.runTaskLaterAsynchronously(plugin, delay).getTaskId();
+        };
 
-        taskIds.add(taskId);
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
 
-        return taskId;
+        moduleTask.getBukkitRunnable().runTaskLater(plugin, delay);
+        return moduleTask.getTaskId();
     }
 
-    public int runTaskTimerAsync(Runnable runnable, long delay, long repeat) {
-        int taskId = new BukkitRunnable() {
+    public int runTaskLater(@NonNull String id, long delay, @NonNull Runnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.DELAYED) {
             @Override
             public void run() {
                 runnable.run();
-                taskIds.remove((Integer) getTaskId());
             }
-        }.runTaskTimerAsynchronously(plugin, delay, repeat).getTaskId();
+        };
 
-        taskIds.add(taskId);
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
 
-        return taskId;
+        moduleTask.getBukkitRunnable().runTaskLater(plugin, delay);
+        return moduleTask.getTaskId();
+    }
+
+    public int runTaskTimer(@NonNull String id, long delay, long repeat, @NonNull ModuleRunnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.TIMER, runnable) {
+            @Override
+            public void run() {
+                runnable.run();
+            }
+        };
+
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
+
+        moduleTask.getBukkitRunnable().runTaskTimer(plugin, delay, repeat);
+        return moduleTask.getTaskId();
+    }
+
+    public int runTaskTimer(@NonNull String id, long delay, long repeat, @NonNull Runnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.TIMER) {
+            @Override
+            public void run() {
+                runnable.run();
+            }
+        };
+
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
+
+        moduleTask.getBukkitRunnable().runTaskTimer(plugin, delay, repeat);
+        return moduleTask.getTaskId();
+    }
+
+    public int runTaskLaterAsync(@NonNull String id, long delay, @NonNull ModuleRunnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.DELAYED_ASYNC, runnable) {
+            @Override
+            public void run() {
+                runnable.run();
+            }
+        };
+
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
+
+        moduleTask.getBukkitRunnable().runTaskLaterAsynchronously(plugin, delay);
+        return moduleTask.getTaskId();
+    }
+
+    public int runTaskLaterAsync(@NonNull String id, long delay, @NonNull Runnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.DELAYED_ASYNC) {
+            @Override
+            public void run() {
+                runnable.run();
+            }
+        };
+
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
+
+        moduleTask.getBukkitRunnable().runTaskLaterAsynchronously(plugin, delay);
+        return moduleTask.getTaskId();
+    }
+
+    public int runTaskTimerAsync(@NonNull String id, long delay, long repeat, @NonNull ModuleRunnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.TIMER_ASYNC, runnable) {
+            @Override
+            public void run() {
+                runnable.run();
+            }
+        };
+
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
+
+        moduleTask.getBukkitRunnable().runTaskTimer(plugin, delay, repeat);
+        return moduleTask.getTaskId();
+    }
+
+    public int runTaskTimerAsync(@NonNull String id, long delay, long repeat, @NonNull Runnable runnable) {
+        ModuleTask moduleTask = new ModuleTask(id, ModuleTask.ModuleTaskType.TIMER_ASYNC) {
+            @Override
+            public void run() {
+                runnable.run();
+            }
+        };
+
+        moduleTask.setModuleInstance(this);
+        tasks.add(moduleTask);
+
+        moduleTask.getBukkitRunnable().runTaskTimer(plugin, delay, repeat);
+        return moduleTask.getTaskId();
     }
 
     public void log(Level level, String message) {
@@ -257,7 +348,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
     }
 
     public void debug(Level level, String message) {
-        if(!debug) {
+        if (!debug) {
             return;
         }
 
@@ -265,7 +356,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
     }
 
     public void debugBroadcast(String message) {
-        if(!debug) {
+        if (!debug) {
             return;
         }
 
@@ -290,7 +381,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
     public void loadConfigPaths() {
         super.loadConfigPaths();
 
-        if(configurables == null) {
+        if (configurables == null) {
             return;
         }
 

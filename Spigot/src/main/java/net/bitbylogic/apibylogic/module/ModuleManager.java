@@ -123,7 +123,7 @@ public class ModuleManager {
 
         if (!module.isEnabled()) {
             List<String> disabledModules = plugin.getConfig().getStringList("disabled-modules");
-            disabledModules.remove(module.getModuleData().getId() + "");
+            disabledModules.remove(module.getModuleData().getId());
             plugin.getConfig().set("disabled-modules", disabledModules);
             plugin.saveConfig();
             module.setEnabled(true);
@@ -150,12 +150,12 @@ public class ModuleManager {
 
         if (module.isEnabled()) {
             List<String> disabledModules = plugin.getConfig().getStringList("disabled-modules");
-            disabledModules.add(module.getModuleData().getId() + "");
+            disabledModules.add(module.getModuleData().getId());
             plugin.getConfig().set("disabled-modules", disabledModules);
             plugin.saveConfig();
             module.setEnabled(false);
             module.onDisable();
-            module.getTaskIds().forEach(taskID -> Bukkit.getScheduler().cancelTask(taskID));
+            module.getTasks().forEach(ModuleTask::cancel);
             module.getListeners().forEach(HandlerList::unregisterAll);
             module.getCommands().forEach(commandManager::unregisterCommand);
             HandlerList.unregisterAll(module);

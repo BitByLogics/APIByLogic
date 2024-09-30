@@ -143,6 +143,30 @@ public class ModulesCommand extends BaseCommand {
         moduleManager.enableModule(module.getModuleData().getId());
     }
 
+    @Subcommand("tasks")
+    @CommandPermission("apibylogic.command.module.tasks")
+    @CommandCompletion("@moduleIds")
+    public void onTasks(CommandSender sender, String moduleId, @Default("1") int page) {
+        Module module = moduleManager.getModuleByID(moduleId);
+
+        if (module == null) {
+            sender.sendMessage(Formatter.error("Modules", "Invalid module."));
+            return;
+        }
+
+        if(module.getTasks().isEmpty()) {
+            sender.sendMessage(Formatter.error("Module", module.getModuleData().getName() + " has no active tasks."));
+            return;
+        }
+
+        List<String> lines = new ArrayList<>();
+        module.getTasks().forEach(task -> {
+            lines.add(Formatter.listItem(task.getId(), task.getType().name()));
+        });
+
+        sender.sendMessage(Formatter.getPagedList(module.getModuleData().getName() + "'s Tasks", lines, page));
+    }
+
     private void displayPage(CommandSender sender, int page) {
         List<Module> modules = new ArrayList<>(moduleManager.getModules().values());
         int pages = modules.size() / 10.0d % 1 == 0 ? modules.size() / 10 : modules.size() / 10 + 1;
