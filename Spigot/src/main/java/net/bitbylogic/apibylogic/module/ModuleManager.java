@@ -55,6 +55,11 @@ public class ModuleManager {
                 while(moduleTaskIterator.hasNext()) {
                     ModuleTask task = moduleTaskIterator.next();
 
+                    if(task == null) {
+                        moduleTaskIterator.remove();
+                        continue;
+                    }
+
                     if(task.getTaskId() == -1
                             || (Bukkit.getScheduler().isCurrentlyRunning(task.getTaskId())) || Bukkit.getScheduler().isQueued(task.getTaskId())) {
                         continue;

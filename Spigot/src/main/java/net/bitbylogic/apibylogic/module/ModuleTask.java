@@ -31,15 +31,21 @@ public abstract class ModuleTask extends ModuleRunnable {
         this.bukkitRunnable = new BukkitRunnable() {
             @Override
             public void run() {
-                taskId = getTaskId();
+                try {
+                    taskId = getTaskId();
 
-                if (moduleInstance == null) {
+                    if (moduleInstance == null) {
+                        ModuleTask.this.cancel();
+                        cancel();
+                        return;
+                    }
+
+                    ModuleTask.this.run();
+                } catch(Exception e) {
+                    e.printStackTrace();
                     ModuleTask.this.cancel();
                     cancel();
-                    return;
                 }
-
-                ModuleTask.this.run();
             }
 
             @Override
@@ -58,15 +64,21 @@ public abstract class ModuleTask extends ModuleRunnable {
         this.bukkitRunnable = new BukkitRunnable() {
             @Override
             public void run() {
-                taskId = getTaskId();
+                try {
+                    taskId = getTaskId();
 
-                if (moduleInstance == null) {
+                    if (moduleInstance == null) {
+                        runnable.cancel();
+                        cancel();
+                        return;
+                    }
+
+                    runnable.run();
+                } catch(Exception e) {
+                    e.printStackTrace();
                     runnable.cancel();
                     cancel();
-                    return;
                 }
-
-                runnable.run();
             }
 
             @Override
