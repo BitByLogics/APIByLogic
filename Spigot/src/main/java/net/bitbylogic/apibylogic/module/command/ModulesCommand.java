@@ -161,6 +161,10 @@ public class ModulesCommand extends BaseCommand {
 
         List<String> lines = new ArrayList<>();
         module.getTasks().forEach(task -> {
+            if(!task.isActive()) {
+                return;
+            }
+
             lines.add(Formatter.listItem(task.getId(), task.getType().name()));
         });
 
