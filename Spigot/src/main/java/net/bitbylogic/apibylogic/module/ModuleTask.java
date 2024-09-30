@@ -102,6 +102,14 @@ public abstract class ModuleTask extends ModuleRunnable {
         moduleInstance.getTasks().remove(this);
     }
 
+    public boolean isActive() {
+        if(taskId == -1) {
+            return true;
+        }
+
+        return Bukkit.getScheduler().isCurrentlyRunning(taskId) || Bukkit.getScheduler().isQueued(taskId);
+    }
+
     @Override
     public boolean equals(Object object) {
         if (this == object) return true;

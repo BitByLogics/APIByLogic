@@ -44,31 +44,30 @@ public class ModuleManager {
         dependencyManager.injectDependencies(modulesCommand, false);
         commandManager.registerCommand(modulesCommand);
 
-        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Module module : modules.values()) {
-                if(module.getTasks().isEmpty()) {
+                if (module.getTasks().isEmpty()) {
                     continue;
                 }
 
                 Iterator<ModuleTask> moduleTaskIterator = module.getTasks().iterator();
 
-                while(moduleTaskIterator.hasNext()) {
+                while (moduleTaskIterator.hasNext()) {
                     ModuleTask task = moduleTaskIterator.next();
 
-                    if(task == null) {
+                    if (task == null) {
                         moduleTaskIterator.remove();
                         continue;
                     }
 
-                    if(task.getTaskId() == -1
-                            || (Bukkit.getScheduler().isCurrentlyRunning(task.getTaskId())) || Bukkit.getScheduler().isQueued(task.getTaskId())) {
+                    if (task.getTaskId() == -1 || task.isActive()) {
                         continue;
                     }
 
                     moduleTaskIterator.remove();
                 }
             }
-        }, 0, 1);
+        }, 0, 20 * 30);
     }
 
     /**
