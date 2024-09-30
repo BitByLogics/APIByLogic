@@ -170,6 +170,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
             @Override
             public void run() {
                 runnable.run();
+                taskIds.remove((Integer) getTaskId());
             }
         }.runTask(plugin).getTaskId();
 
@@ -187,6 +188,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
             @Override
             public void run() {
                 runnable.run();
+                taskIds.remove((Integer) getTaskId());
             }
         }.runTaskAsynchronously(plugin).getTaskId();
 
@@ -199,6 +201,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
             @Override
             public void run() {
                 runnable.run();
+                taskIds.remove((Integer) getTaskId());
             }
         }.runTaskLater(plugin, delay).getTaskId();
 
@@ -212,6 +215,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
             @Override
             public void run() {
                 runnable.run();
+                taskIds.remove((Integer) getTaskId());
             }
         }.runTaskTimer(plugin, delay, repeat).getTaskId();
 
@@ -225,6 +229,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
             @Override
             public void run() {
                 runnable.run();
+                taskIds.remove((Integer) getTaskId());
             }
         }.runTaskLaterAsynchronously(plugin, delay).getTaskId();
 
@@ -238,6 +243,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
             @Override
             public void run() {
                 runnable.run();
+                taskIds.remove((Integer) getTaskId());
             }
         }.runTaskTimerAsynchronously(plugin, delay, repeat).getTaskId();
 
