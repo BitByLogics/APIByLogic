@@ -2,6 +2,7 @@ package net.bitbylogic.apibylogic.dependency;
 
 import co.aikar.commands.PaperCommandManager;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.dependency.annotation.Dependency;
@@ -9,9 +10,9 @@ import net.bitbylogic.apibylogic.util.Table;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
 import java.util.logging.Level;
 
 @Getter
@@ -56,44 +57,103 @@ public class DependencyManager {
         commandManager.registerDependency(clazz, instance);
     }
 
-    public void injectDependencies(Object obj, boolean deepInjection) {
-        Class<?> clazz = obj.getClass();
+    public void injectDependencies(@NonNull Object object, boolean deepInjection) {
+        Class<?> clazz = object.getClass();
 
         do {
-            for (Field field : clazz.getDeclaredFields()) {
-                if (!field.isAnnotationPresent(Dependency.class)) {
-                    continue;
-                }
+            injectFieldDependencies(object);
 
-                String fieldKey = field.getType().getName();
-                Object object = dependencies.row(field.getType()).get(fieldKey);
-
-                if (object == null) {
-                    APIByLogic.getInstance().getLogger().log(Level.WARNING,
-                            String.format("Couldn't find dependency for field '%s' in class '%s'. It may load later.",
-                                    field.getName(), obj.getClass().getSimpleName()));
-
-                    List<Object> pendingObjects = missingDependencies.getOrDefault(field.getType(), new ArrayList<>());
-                    pendingObjects.add(obj);
-                    missingDependencies.put(field.getType(), pendingObjects);
-                    continue;
-                }
-
-                boolean accessible = field.isAccessible();
-
-                if (!accessible) {
-                    field.setAccessible(true);
-                }
-
-                try {
-                    field.set(obj, object);
-                    field.setAccessible(accessible);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
+            if (missingDependencies.values().stream().noneMatch(objects -> objects.contains(object))) {
+                getDependencyMethods(object).forEach(method -> {
+                    try {
+                        method.invoke(object);
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+                        APIByLogic.getInstance().getLogger().log(Level.SEVERE, "Unable to invoke dependency method for class: " + object.getClass().getSimpleName());
+                        e.printStackTrace();
+                    }
+                });
             }
+
             clazz = clazz.getSuperclass();
         } while (deepInjection && clazz != null);
+    }
+
+    private void injectFieldDependencies(@NonNull Object object) {
+        getDependencyFields(object).forEach(field -> {
+            resolveDependency(field).ifPresentOrElse(
+                    dependency -> injectIntoField(object, field, dependency),
+                    () -> handleMissingDependency(field, object)
+            );
+        });
+    }
+
+    private Optional<Object> resolveDependency(@NonNull Field field) {
+        String fieldKey = field.getType().getName();
+        return Optional.ofNullable(dependencies.row(field.getType()).get(fieldKey));
+    }
+
+    private void handleMissingDependency(@NonNull Field field, @NonNull Object object) {
+        List<Object> pendingObjects = missingDependencies.getOrDefault(field.getType(), new ArrayList<>());
+
+        if (pendingObjects.contains(object)) {
+            return;
+        }
+
+        APIByLogic.getInstance().getLogger().log(Level.WARNING,
+                String.format("Couldn't find dependency for field '%s' in class '%s'. It may load later.",
+                        field.getName(), object.getClass().getSimpleName()));
+
+        pendingObjects.add(object);
+        missingDependencies.put(field.getType(), pendingObjects);
+    }
+
+    private void injectIntoField(@NonNull Object object, @NonNull Field field, @NonNull Object dependency) {
+        boolean wasAccessible = field.canAccess(object);
+
+        if (!wasAccessible && !field.trySetAccessible()) {
+            return;
+        }
+
+        try {
+            field.set(object, dependency);
+        } catch (IllegalAccessException e) {
+            APIByLogic.getInstance().getLogger().log(Level.SEVERE, "Unable to set field dependency for: " + field.getName());
+            e.printStackTrace();
+        } finally {
+            if (!wasAccessible) {
+                field.setAccessible(false);
+            }
+        }
+    }
+
+    private Set<Field> getDependencyFields(@NonNull Object object) {
+        Class<?> clazz = object.getClass();
+        Set<Field> dependencyFields = new HashSet<>();
+
+        for (Field field : clazz.getDeclaredFields()) {
+            if (!field.isAnnotationPresent(Dependency.class)) {
+                continue;
+            }
+
+            dependencyFields.add(field);
+        }
+
+        return Set.copyOf(dependencyFields);
+    }
+
+    private Set<Method> getDependencyMethods(@NonNull Object object) {
+        Class<?> clazz = object.getClass();
+        Set<Method> dependencyMethods = new HashSet<>();
+
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (!method.isAnnotationPresent(Dependency.class) || method.getParameterCount() > 0) {
+                continue;
+            }
+
+            dependencyMethods.add(method);
+        }
+
+        return Set.copyOf(dependencyMethods);
     }
 
 }
