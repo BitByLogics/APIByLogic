@@ -2,6 +2,7 @@ package net.bitbylogic.apibylogic.module;
 
 import co.aikar.commands.PaperCommandManager;
 import lombok.Getter;
+import lombok.NonNull;
 import net.bitbylogic.apibylogic.dependency.DependencyManager;
 import net.bitbylogic.apibylogic.module.command.ModulesCommand;
 import net.bitbylogic.apibylogic.module.task.ModulePendingTask;
@@ -83,8 +84,6 @@ public class ModuleManager {
                 continue;
             }
 
-            long startTime = System.nanoTime();
-
             Module module;
 
             try {
@@ -96,26 +95,49 @@ public class ModuleManager {
                 continue;
             }
 
-            dependencyManager.registerDependency(moduleClass, module);
-            dependencyManager.injectDependencies(module, false);
-
-            module.onRegister();
-            module.getCommands().forEach(command -> dependencyManager.injectDependencies(command, false));
-            modules.put(moduleClass.getSimpleName(), module);
-
-            if (!plugin.getConfig().getStringList("disabled-modules").contains(module.getModuleData().getId())) {
-                module.setEnabled(true);
-                module.onEnable();
-                module.getCommands().forEach(commandManager::registerCommand);
-                Bukkit.getPluginManager().registerEvents(module, plugin);
-            }
-
-            getPendingTasks(moduleClass).forEach(task -> task.accept(module));
-            pendingModuleTasks.removeIf(task -> task.getClazz().equals(moduleClass));
-
-            long endTime = System.nanoTime();
-            plugin.getLogger().log(Level.INFO, "[Module Manager]: Registration time for module (" + module.getModuleData().getName() + "): " + (endTime - startTime) / 1000000d + "ms");
+            registerModuleData(module);
         }
+    }
+
+    private void registerModuleData(@NonNull Module module) {
+        Class<? extends Module> moduleClass = module.getClass();
+        long startTime = System.nanoTime();
+
+        dependencyManager.registerDependency(moduleClass, module);
+        dependencyManager.injectDependencies(module, true);
+
+        module.onRegister();
+        module.getCommands().forEach(command -> dependencyManager.injectDependencies(command, true));
+        modules.put(moduleClass.getSimpleName(), module);
+
+        if (!plugin.getConfig().getStringList("disabled-modules").contains(module.getModuleData().getId())) {
+            module.setEnabled(true);
+            module.onEnable();
+            module.getCommands().forEach(commandManager::registerCommand);
+            Bukkit.getPluginManager().registerEvents(module, plugin);
+        }
+
+        getPendingTasks(moduleClass).forEach(task -> task.accept(module));
+        pendingModuleTasks.removeIf(task -> task.getClazz().equals(moduleClass));
+
+        long endTime = System.nanoTime();
+        plugin.getLogger().log(Level.INFO, "[Module Manager]: Registration time for module (" + module.getModuleData().getName() + "): " + (endTime - startTime) / 1000000d + "ms");
+    }
+
+    /**
+     * Check if a Module is registered.
+     *
+     * @param clazz The Module's class.
+     * @return {@code true} if the Module is registered.
+     */
+    public boolean isRegistered(Class<? extends Module> clazz) {
+        for (Module module : modules.values()) {
+            if (module.getClass() == clazz) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

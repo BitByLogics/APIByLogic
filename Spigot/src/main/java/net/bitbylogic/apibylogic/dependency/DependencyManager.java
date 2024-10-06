@@ -6,7 +6,6 @@ import lombok.NonNull;
 import lombok.Setter;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.dependency.annotation.Dependency;
-import net.bitbylogic.apibylogic.util.Table;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
@@ -18,7 +17,7 @@ import java.util.logging.Level;
 @Getter
 public class DependencyManager {
 
-    private final Table<Class<?>, String, Object> dependencies;
+    private final HashMap<Class<?>, Object> dependencies;
     private final HashMap<Class<?>, List<Object>> missingDependencies;
 
     @Setter
@@ -30,7 +29,7 @@ public class DependencyManager {
 
     public DependencyManager(@Nullable PaperCommandManager commandManager) {
         this.commandManager = commandManager;
-        this.dependencies = new Table<>();
+        this.dependencies = new HashMap<>();
         this.missingDependencies = new HashMap<>();
 
         registerDependency(APIByLogic.class, APIByLogic.getInstance());
@@ -38,15 +37,18 @@ public class DependencyManager {
     }
 
     public <T> void registerDependency(Class<? extends T> clazz, T instance) {
-        if (dependencies.containsKey(clazz, clazz.getName())) {
+        if (dependencies.containsKey(clazz)) {
             throw new IllegalStateException("There is already an instance of " + clazz.getSimpleName() + " registered!");
         }
 
-        dependencies.put(clazz, clazz.getName(), instance);
+        dependencies.put(clazz, instance);
 
         if (missingDependencies.containsKey(clazz)) {
-            APIByLogic.getInstance().getLogger().log(Level.INFO, "Injecting missing dependencies for '" + clazz.getSimpleName() + "'.");
-            missingDependencies.get(clazz).forEach(obj -> injectDependencies(obj, false));
+            missingDependencies.get(clazz).forEach(obj -> {
+                APIByLogic.getInstance().getLogger().log(Level.INFO, "Injecting missing dependency '" + clazz.getSimpleName() + "' for '" + obj.getClass().getSimpleName() + "'.");
+                injectDependencies(obj, true);
+            });
+
             missingDependencies.remove(clazz);
         }
 
@@ -58,28 +60,24 @@ public class DependencyManager {
     }
 
     public void injectDependencies(@NonNull Object object, boolean deepInjection) {
-        Class<?> clazz = object.getClass();
+        injectFieldDependencies(object, deepInjection);
 
-        do {
-            injectFieldDependencies(object);
+        if (missingDependencies.values().stream().anyMatch(objects -> objects.contains(object))) {
+            return;
+        }
 
-            if (missingDependencies.values().stream().noneMatch(objects -> objects.contains(object))) {
-                getDependencyMethods(object).forEach(method -> {
-                    try {
-                        method.invoke(object);
-                    } catch (IllegalAccessException | InvocationTargetException e) {
-                        APIByLogic.getInstance().getLogger().log(Level.SEVERE, "Unable to invoke dependency method for class: " + object.getClass().getSimpleName());
-                        e.printStackTrace();
-                    }
-                });
+        getDependencyMethods(object).forEach(method -> {
+            try {
+                method.invoke(object);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                APIByLogic.getInstance().getLogger().log(Level.SEVERE, "Unable to invoke dependency method for class: " + object.getClass().getSimpleName());
+                e.printStackTrace();
             }
-
-            clazz = clazz.getSuperclass();
-        } while (deepInjection && clazz != null);
+        });
     }
 
-    private void injectFieldDependencies(@NonNull Object object) {
-        getDependencyFields(object).forEach(field -> {
+    private void injectFieldDependencies(@NonNull Object object, boolean deepInjection) {
+        getDependencyFields(object, deepInjection).forEach(field -> {
             resolveDependency(field).ifPresentOrElse(
                     dependency -> injectIntoField(object, field, dependency),
                     () -> handleMissingDependency(field, object)
@@ -88,8 +86,7 @@ public class DependencyManager {
     }
 
     private Optional<Object> resolveDependency(@NonNull Field field) {
-        String fieldKey = field.getType().getName();
-        return Optional.ofNullable(dependencies.row(field.getType()).get(fieldKey));
+        return Optional.ofNullable(dependencies.get(field.getType()));
     }
 
     private void handleMissingDependency(@NonNull Field field, @NonNull Object object) {
@@ -111,6 +108,7 @@ public class DependencyManager {
         boolean wasAccessible = field.canAccess(object);
 
         if (!wasAccessible && !field.trySetAccessible()) {
+            APIByLogic.getInstance().getLogger().log(Level.SEVERE, "Unable to set field '" + field.getName() + "' as accessible.");
             return;
         }
 
@@ -126,17 +124,21 @@ public class DependencyManager {
         }
     }
 
-    private Set<Field> getDependencyFields(@NonNull Object object) {
+    private Set<Field> getDependencyFields(@NonNull Object object, boolean deepInjection) {
         Class<?> clazz = object.getClass();
         Set<Field> dependencyFields = new HashSet<>();
 
-        for (Field field : clazz.getDeclaredFields()) {
-            if (!field.isAnnotationPresent(Dependency.class)) {
-                continue;
+        do {
+            for (Field field : clazz.getDeclaredFields()) {
+                if (!field.isAnnotationPresent(Dependency.class)) {
+                    continue;
+                }
+
+                dependencyFields.add(field);
             }
 
-            dependencyFields.add(field);
-        }
+            clazz = clazz.getSuperclass();
+        } while (deepInjection && clazz != null);
 
         return Set.copyOf(dependencyFields);
     }

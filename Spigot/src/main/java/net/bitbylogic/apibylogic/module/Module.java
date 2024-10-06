@@ -120,8 +120,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
             return;
         }
 
-        moduleManager.getDependencyManager().injectDependencies(listener, false);
+        moduleManager.getDependencyManager().injectDependencies(listener, true);
         listeners.add(listener);
+
         Bukkit.getServer().getPluginManager().registerEvents(listener, plugin);
     }
 
@@ -364,8 +365,8 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
     }
 
     public <T extends Module> void addDependencyTask(Class<T> dependency, Consumer<T> consumer) {
-        if (moduleManager.getDependencyManager().getDependencies().containsKey(dependency, dependency.getName())) {
-            consumer.accept((T) moduleManager.getDependencyManager().getDependencies().get(dependency, dependency.getName()));
+        if (moduleManager.getDependencyManager().getDependencies().containsKey(dependency)) {
+            consumer.accept((T) moduleManager.getDependencyManager().getDependencies().get(dependency));
             return;
         }
 
