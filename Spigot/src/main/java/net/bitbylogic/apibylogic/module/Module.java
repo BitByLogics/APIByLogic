@@ -16,8 +16,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -342,6 +344,10 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
 
         moduleTask.getBukkitRunnable().runTaskTimer(plugin, delay, repeat);
         return moduleTask.getTaskId();
+    }
+
+    public Set<ModuleTask> getTasksById(@NonNull String id) {
+        return tasks.stream().filter(moduleTask -> moduleTask.getId().equalsIgnoreCase(id)).collect(Collectors.toUnmodifiableSet());
     }
 
     public void log(Level level, String message) {
