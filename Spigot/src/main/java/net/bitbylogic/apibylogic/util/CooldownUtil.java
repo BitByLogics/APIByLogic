@@ -83,12 +83,17 @@ public class CooldownUtil {
         return getCooldown(key, identifier).isPresent();
     }
 
-    public static int getRemainingTime(@NonNull String key, @NonNull UUID identifier) {
+    public static double getRemainingTime(@NonNull String key, @NonNull UUID identifier) {
         if (!hasCooldown(key, identifier)) {
             return -1;
         }
 
-        return getCooldown(key, identifier).map(cooldown -> (int) (cooldown.getTimeUntilExpired() / 1000)).orElse(-1);
+        return getCooldown(key, identifier).map(cooldown -> (cooldown.getTimeUntilExpired() / 1000.0)).orElse(-1.0);
+    }
+
+    public static String getReadableRemainingTime(@NonNull String key, @NonNull UUID identifier) {
+        double remainingTime = getRemainingTime(key, identifier);
+        return String.format(remainingTime < 1 ? "%.1f" : "%.0f", remainingTime);
     }
 
 }
