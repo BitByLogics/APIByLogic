@@ -4,6 +4,11 @@ main: net.bitbylogic.apibylogic.APIByLogic
 api-version: 1.13
 authors: [ BitByLogic ]
 softdepend: [ PlaceholderAPI ]
+libraries:
+  - "org.redisson:redisson:3.37.0"
+  - "com.google.code.gson:gson:2.10.1"
+  - "com.zaxxer:HikariCP:5.0.1"
+  - "org.xerial:sqlite-jdbc:3.46.0.0"
 commands:
   apibylogic:
     aliases: [ abl ]
