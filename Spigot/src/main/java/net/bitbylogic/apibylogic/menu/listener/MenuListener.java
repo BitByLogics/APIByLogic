@@ -1,16 +1,9 @@
 package net.bitbylogic.apibylogic.menu.listener;
 
-import com.cryptomorin.xseries.reflection.XReflection;
-import com.cryptomorin.xseries.reflection.minecraft.MinecraftPackage;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.menu.Menu;
 import net.bitbylogic.apibylogic.menu.MenuFlag;
-import net.bitbylogic.apibylogic.menu.placeholder.PlaceholderProvider;
-import net.bitbylogic.apibylogic.util.Placeholder;
-import net.bitbylogic.apibylogic.util.StringModifier;
-import net.bitbylogic.apibylogic.util.inventory.InventoryUpdate;
 import net.bitbylogic.apibylogic.util.inventory.InventoryUtil;
-import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -18,10 +11,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class MenuListener implements Listener {
 

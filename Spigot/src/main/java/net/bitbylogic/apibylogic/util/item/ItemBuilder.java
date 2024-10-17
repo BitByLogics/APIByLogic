@@ -2,6 +2,7 @@ package net.bitbylogic.apibylogic.util.item;
 
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.action.PlayerInteractAction;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -17,10 +18,10 @@ import java.util.UUID;
 
 public class ItemBuilder {
 
-    private ItemStack itemStack;
+    private final ItemStack item;
 
-    private ItemBuilder(ItemStack itemStack) {
-        this.itemStack = itemStack;
+    private ItemBuilder(ItemStack item) {
+        this.item = item;
     }
 
     public static ItemBuilder of(Material material) {
@@ -28,30 +29,30 @@ public class ItemBuilder {
     }
 
     public ItemBuilder name(String name) {
-        ItemMeta stackMeta = itemStack.getItemMeta();
+        ItemMeta stackMeta = item.getItemMeta();
         stackMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
-        itemStack.setItemMeta(stackMeta);
+        item.setItemMeta(stackMeta);
         return this;
     }
 
     public ItemBuilder amount(int amount) {
-        itemStack.setAmount(amount);
+        item.setAmount(amount);
         return this;
     }
 
     public ItemBuilder lore(String... lore) {
-        ItemMeta meta = itemStack.getItemMeta();
+        ItemMeta meta = item.getItemMeta();
         List<String> newLore = meta.getLore();
         if (newLore == null) {
             newLore = new ArrayList<>();
         }
 
         for (String s : lore) {
-            newLore.add(ChatColor.translateAlternateColorCodes('&', s));
+            newLore.add(Formatter.format(s));
         }
 
         meta.setLore(newLore);
-        this.itemStack.setItemMeta(meta);
+        this.item.setItemMeta(meta);
         return this;
     }
 
@@ -64,73 +65,95 @@ public class ItemBuilder {
     }
 
     public ItemBuilder data(short data) {
-        itemStack.setDurability(data);
+        item.setDurability(data);
         return this;
     }
 
     public ItemBuilder durability(short durability) {
-        itemStack.setDurability(durability);
+        item.setDurability(durability);
         return this;
     }
 
     public ItemBuilder modelData(int modelData) {
-        ItemMeta meta = itemStack.getItemMeta();
+        ItemMeta meta = item.getItemMeta();
         meta.setCustomModelData(modelData);
-        itemStack.setItemMeta(meta);
+        item.setItemMeta(meta);
         return this;
     }
 
     public ItemBuilder removeAttributes() {
-        ItemMeta meta = itemStack.getItemMeta();
+        ItemMeta meta = item.getItemMeta();
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
-        itemStack.setItemMeta(meta);
+        item.setItemMeta(meta);
         return this;
     }
 
     public ItemBuilder unbreakable() {
-        ItemMeta meta = itemStack.getItemMeta();
+        ItemMeta meta = item.getItemMeta();
         meta.setUnbreakable(true);
-        itemStack.setItemMeta(meta);
+        item.setItemMeta(meta);
         return this;
     }
 
-    public ItemBuilder addFlag(ItemFlag flag) {
-        ItemMeta meta = itemStack.getItemMeta();
-        meta.addItemFlags(flag);
-        itemStack.setItemMeta(meta);
+    public ItemBuilder flags(ItemFlag... flags) {
+        ItemMeta meta = item.getItemMeta();
+
+        if(meta == null) {
+            return this;
+        }
+
+        meta.addItemFlags(flags);
+        item.setItemMeta(meta);
         return this;
     }
 
     public ItemBuilder addAction(PlayerInteractAction action) {
-        if (itemStack == null) {
+        if (item == null) {
             build();
         }
 
         String itemIdentifier = UUID.randomUUID().toString();
-        ItemMeta meta = itemStack.getItemMeta();
+        ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(new NamespacedKey(APIByLogic.getInstance(), itemIdentifier), PersistentDataType.STRING, "");
-        itemStack.setItemMeta(meta);
+        item.setItemMeta(meta);
         action.setItemIdentifier(itemIdentifier);
         APIByLogic.getInstance().getActionManager().trackAction(null, action);
         return this;
     }
 
     public <T, Z> ItemBuilder addPersistentData(String key, PersistentDataType<T, Z> type, Z value) {
-        ItemMeta meta = itemStack.getItemMeta();
+        ItemMeta meta = item.getItemMeta();
+
+        if(meta == null) {
+            return this;
+        }
+
         meta.getPersistentDataContainer().set(new NamespacedKey(APIByLogic.getInstance(), key), type, value);
-        itemStack.setItemMeta(meta);
+        item.setItemMeta(meta);
         return this;
     }
 
-    public ItemBuilder spawnerType(EntityType entityType) {
-        ItemMeta meta = itemStack.getItemMeta();
+    public <T, Z> ItemBuilder addPersistentData(NamespacedKey namespacedKey, PersistentDataType<T, Z> type, Z value) {
+        ItemMeta meta = item.getItemMeta();
+
+        if(meta == null) {
+            return this;
+        }
+
+        meta.getPersistentDataContainer().set(namespacedKey, type, value);
+        item.setItemMeta(meta);
+        return this;
+    }
+
+    public ItemBuilder spawner(EntityType entityType) {
+        ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(new NamespacedKey(APIByLogic.getInstance(), "abl_spawner"), PersistentDataType.STRING, entityType.name());
-        itemStack.setItemMeta(meta);
+        item.setItemMeta(meta);
         return this;
     }
 
     public ItemStack build() {
-        return itemStack;
+        return item;
     }
 
 }

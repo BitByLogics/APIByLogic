@@ -17,11 +17,8 @@ import net.bitbylogic.apibylogic.metrics.MetricsWrapper;
 import net.bitbylogic.apibylogic.redis.PlayerMessageListener;
 import net.bitbylogic.apibylogic.redis.RedisStateChangeEvent;
 import net.bitbylogic.apibylogic.scoreboard.LogicScoreboard;
-import net.bitbylogic.apibylogic.util.event.armor.listener.ArmorListener;
-import net.bitbylogic.apibylogic.util.event.armor.listener.DispenserArmorListener;
-import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
-import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.bitbylogic.apibylogic.util.message.LogicColor;
+import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import net.bitbylogic.apibylogic.util.request.LogicRequest;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -63,7 +60,6 @@ public class APIByLogic extends JavaPlugin {
 
         LogicColor.loadColors(getConfig());
         Formatter.registerConfig(new File(getDataFolder(), "config.yml"));
-        ItemStackUtil.initialize(this);
 
         new UpdateChecker(this, UpdateCheckSource.GITHUB_RELEASE_TAG, "BitByLogics/APIByLogic")
                 .setNotifyRequesters(false)
@@ -100,9 +96,7 @@ public class APIByLogic extends JavaPlugin {
 
         PluginManager pluginManager = getServer().getPluginManager();
 
-        pluginManager.registerEvents(new ArmorListener(getConfig().getStringList("Ignored-Materials")), this);
         pluginManager.registerEvents(new MenuListener(), this);
-        pluginManager.registerEvents(new DispenserArmorListener(), this);
         pluginManager.registerEvents(new SpawnerListener(), this);
 
         getServer().getScheduler().runTaskTimer(this, () -> {

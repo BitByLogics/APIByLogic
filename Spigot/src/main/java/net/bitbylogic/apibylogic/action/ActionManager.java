@@ -17,11 +17,12 @@ import java.util.UUID;
 @Getter
 public class ActionManager implements Listener {
 
-    private final UUID globalUUID = UUID.randomUUID();
+    private static final UUID GLOBAL_UUID = UUID.randomUUID();
+
     private final JavaPlugin plugin;
 
     private final HashMap<UUID, List<Action>> actionMap;
-    private final HashMap<UUID, List<ItemAction<?>>> itemActionMap;
+    private final HashMap<UUID, List<ItemAction>> itemActionMap;
 
     public ActionManager(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -29,17 +30,17 @@ public class ActionManager implements Listener {
         itemActionMap = Maps.newHashMap();
     }
 
-    public void trackItemAction(@Nullable Player player, ItemAction<?> action) {
-        UUID id = player == null ? globalUUID : player.getUniqueId();
+    public void trackItemAction(@Nullable Player player, ItemAction action) {
+        UUID id = player == null ? GLOBAL_UUID : player.getUniqueId();
 
-        List<ItemAction<?>> actions = itemActionMap.getOrDefault(id, Lists.newArrayList());
+        List<ItemAction> actions = itemActionMap.getOrDefault(id, Lists.newArrayList());
         actions.add(action);
         itemActionMap.put(id, actions);
         plugin.getServer().getPluginManager().registerEvents(action, plugin);
 
         if (action.getExpireTime() != -1) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                List<ItemAction<?>> actions1 = itemActionMap.getOrDefault(id, Lists.newArrayList());
+                List<ItemAction> actions1 = itemActionMap.getOrDefault(id, Lists.newArrayList());
                 actions1.remove(action);
                 HandlerList.unregisterAll(action);
                 itemActionMap.put(id, actions1);
@@ -52,7 +53,7 @@ public class ActionManager implements Listener {
     }
 
     public void trackAction(@Nullable Player player, Action action) {
-        UUID id = player == null ? globalUUID : player.getUniqueId();
+        UUID id = player == null ? GLOBAL_UUID : player.getUniqueId();
 
         List<Action> actions = actionMap.getOrDefault(id, Lists.newArrayList());
         actions.add(action);

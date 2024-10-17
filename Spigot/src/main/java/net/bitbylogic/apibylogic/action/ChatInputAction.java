@@ -13,12 +13,12 @@ import java.util.concurrent.TimeUnit;
 @NoArgsConstructor
 public abstract class ChatInputAction extends Action {
 
-    private UUID uuid;
+    private UUID identifier;
     private boolean cancel;
 
-    public ChatInputAction(UUID uuid, boolean cancel, TimeUnit unit, int time, int allowedActivations) {
+    public ChatInputAction(UUID identifier, boolean cancel, TimeUnit unit, int time, int allowedActivations) {
         super(unit, time, allowedActivations);
-        this.uuid = uuid;
+        this.identifier = identifier;
         this.cancel = cancel;
     }
 
@@ -26,7 +26,7 @@ public abstract class ChatInputAction extends Action {
 
     @EventHandler
     public void onTrigger(AsyncPlayerChatEvent event) {
-        if (!event.getPlayer().getUniqueId().equals(uuid)) {
+        if (!event.getPlayer().getUniqueId().equals(identifier)) {
             return;
         }
 

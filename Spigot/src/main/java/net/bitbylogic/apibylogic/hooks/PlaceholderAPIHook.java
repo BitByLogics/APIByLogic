@@ -17,7 +17,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getIdentifier() {
-        return "abl";
+        return "APIByLogic";
     }
 
     @Override
@@ -27,7 +27,7 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getVersion() {
-        return "2024.8";
+        return "2024.10";
     }
 
     @Override

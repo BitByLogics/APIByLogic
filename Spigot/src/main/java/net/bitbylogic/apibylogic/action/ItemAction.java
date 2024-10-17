@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Getter
 @Setter
-public abstract class ItemAction<E extends Event> implements Listener {
+public abstract class ItemAction implements Listener {
 
     private ItemStack item;
     private long expireTime = -1;
