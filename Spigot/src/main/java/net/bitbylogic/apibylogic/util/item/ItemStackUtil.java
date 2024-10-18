@@ -39,7 +39,7 @@ import java.util.Set;
 
 public class ItemStackUtil {
 
-    private static final NamespacedKey SPAWNER_KEY = new NamespacedKey("APIByLogic", "abl_spawner");
+    private static final NamespacedKey SPAWNER_KEY = new NamespacedKey("apibylogic", "abl_spawner");
 
     /**
      * Create an ItemStack object from a configuration
