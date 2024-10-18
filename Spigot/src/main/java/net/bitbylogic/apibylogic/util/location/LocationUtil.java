@@ -179,7 +179,7 @@ public class LocationUtil {
         return locations;
     }
 
-    public boolean isInside(Location cornerA, Location cornerB, Location location){
+    public static boolean isInside(Location cornerA, Location cornerB, Location location){
         return new IntRange(cornerA.getX(), cornerB.getX()).containsDouble(location.getX())
                 && new IntRange(cornerA.getY(), cornerB.getY()).containsDouble(location.getY())
                 &&  new IntRange(cornerA.getZ(), cornerB.getZ()).containsDouble(location.getZ());
