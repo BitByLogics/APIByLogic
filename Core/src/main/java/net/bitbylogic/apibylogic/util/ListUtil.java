@@ -2,6 +2,7 @@ package net.bitbylogic.apibylogic.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 public class ListUtil {
@@ -19,13 +20,13 @@ public class ListUtil {
             return "";
         }
 
-        StringBuilder builder = new StringBuilder();
+        StringJoiner joiner = new StringJoiner(separator);
 
         for (O o : list) {
-            builder.append(separator).append(wrapper == null ? o.toString() : wrapper.wrapValue(o));
+            joiner.add(wrapper == null ? o.toString() : wrapper.wrapValue(o));
         }
 
-        return builder.toString().replaceFirst(Pattern.quote(separator), "");
+        return joiner.toString();
     }
 
     public static List<?> stringToList(String string, String separator) {
