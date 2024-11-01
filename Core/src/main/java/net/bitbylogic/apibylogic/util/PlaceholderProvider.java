@@ -1,8 +1,7 @@
-package net.bitbylogic.apibylogic.menu.placeholder;
+package net.bitbylogic.apibylogic.util;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import net.bitbylogic.apibylogic.util.Placeholder;
 
 @Getter
 @AllArgsConstructor

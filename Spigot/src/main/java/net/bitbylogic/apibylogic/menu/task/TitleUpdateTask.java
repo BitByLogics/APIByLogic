@@ -1,10 +1,11 @@
 package net.bitbylogic.apibylogic.menu.task;
 
-import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.menu.Menu;
-import net.bitbylogic.apibylogic.menu.placeholder.PlaceholderProvider;
+import net.bitbylogic.apibylogic.menu.MenuFlag;
+import net.bitbylogic.apibylogic.util.PlaceholderProvider;
 import net.bitbylogic.apibylogic.util.Placeholder;
 import net.bitbylogic.apibylogic.util.StringModifier;
 import net.bitbylogic.apibylogic.util.message.format.Formatter;
@@ -13,37 +14,34 @@ import org.bukkit.inventory.Inventory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class TitleUpdateTask {
 
-    private final Menu menu;
+    private final @NonNull Menu menu;
+    private int taskId = -1;
 
-    private int taskId;
-
-    @Getter
-    private boolean active;
-
-    public void startTask() {
-        active = true;
+    public void start() {
+        if(menu.getData().hasFlag(MenuFlag.DISABLE_TITLE_UPDATE)) {
+            return;
+        }
 
         taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(APIByLogic.getInstance(), this::run, 5, 1).getTaskId();
     }
 
-    public void cancelTask() {
-        if (!active) {
+    public void cancel() {
+        if (taskId == -1) {
             return;
         }
 
         Bukkit.getScheduler().cancelTask(taskId);
-        active = false;
+        taskId = -1;
     }
 
     private void run() {
         List<StringModifier> modifiers = new ArrayList<>();
         modifiers.addAll(menu.getData().getModifiers());
-        modifiers.addAll(menu.getData().getPlaceholderProviders().stream().map(PlaceholderProvider::asPlaceholder).collect(Collectors.toList()));
+        modifiers.addAll(menu.getData().getPlaceholderProviders().stream().map(PlaceholderProvider::asPlaceholder).toList());
 
         Placeholder pagesPlaceholder = new Placeholder("%pages%", menu.getInventories().size() + "");
         modifiers.add(pagesPlaceholder);
@@ -66,6 +64,10 @@ public class TitleUpdateTask {
                 viewer.getOpenInventory().setTitle(newTitle);
             });
         });
+    }
+
+    public boolean isActive() {
+        return taskId != -1;
     }
 
 }

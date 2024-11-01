@@ -1,4 +1,4 @@
-package net.bitbylogic.apibylogic.util.config.data;
+package net.bitbylogic.apibylogic.util.config.configurable.data;
 
 import lombok.Getter;
 import lombok.NonNull;

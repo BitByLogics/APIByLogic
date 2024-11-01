@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import net.bitbylogic.apibylogic.module.task.ModulePendingTask;
-import net.bitbylogic.apibylogic.util.config.Configurable;
+import net.bitbylogic.apibylogic.util.config.configurable.Configurable;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.Listener;

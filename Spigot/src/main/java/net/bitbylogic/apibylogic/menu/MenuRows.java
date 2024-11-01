@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum Rows {
+public enum MenuRows {
 
     ONE(9),
     TWO(18),

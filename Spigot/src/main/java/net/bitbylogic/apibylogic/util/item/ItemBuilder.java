@@ -1,8 +1,10 @@
 package net.bitbylogic.apibylogic.util.item;
 
+import lombok.NonNull;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.action.PlayerInteractAction;
 import net.bitbylogic.apibylogic.util.message.format.Formatter;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -10,8 +12,13 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
 
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -30,7 +37,7 @@ public class ItemBuilder {
 
     public ItemBuilder name(String name) {
         ItemMeta stackMeta = item.getItemMeta();
-        stackMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+        stackMeta.setDisplayName(Formatter.format(name));
         item.setItemMeta(stackMeta);
         return this;
     }
@@ -95,6 +102,13 @@ public class ItemBuilder {
         return this;
     }
 
+    public ItemBuilder hideToolTip() {
+        ItemMeta meta = item.getItemMeta();
+        meta.setHideTooltip(true);
+        item.setItemMeta(meta);
+        return this;
+    }
+
     public ItemBuilder flags(ItemFlag... flags) {
         ItemMeta meta = item.getItemMeta();
 
@@ -104,6 +118,41 @@ public class ItemBuilder {
 
         meta.addItemFlags(flags);
         item.setItemMeta(meta);
+        return this;
+    }
+
+    public ItemBuilder skullName(@NonNull String skullName) {
+        ItemMeta meta = item.getItemMeta();
+
+        if(!(meta instanceof SkullMeta skullMeta)) {
+            return this;
+        }
+
+        skullMeta.setOwner(skullName);
+        item.setItemMeta(skullMeta);
+        return this;
+    }
+
+    public ItemBuilder skullURL(@NonNull String skullURL) {
+        ItemMeta meta = item.getItemMeta();
+
+        if(!(meta instanceof SkullMeta skullMeta)) {
+            return this;
+        }
+
+        PlayerProfile skullProfile = Bukkit.createPlayerProfile("Notch");
+        PlayerTextures textures = skullProfile.getTextures();
+        textures.clear();
+
+        try {
+            textures.setSkin(URI.create(skullURL).toURL());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+
+        skullProfile.setTextures(textures);
+        skullMeta.setOwnerProfile(skullProfile);
+        item.setItemMeta(skullMeta);
         return this;
     }
 

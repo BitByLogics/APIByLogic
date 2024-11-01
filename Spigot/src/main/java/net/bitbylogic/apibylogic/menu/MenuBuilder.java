@@ -2,13 +2,15 @@ package net.bitbylogic.apibylogic.menu;
 
 import com.google.common.base.Preconditions;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import net.bitbylogic.apibylogic.menu.action.MenuClickActionType;
-import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
+import net.bitbylogic.apibylogic.menu.item.MenuItem;
 import net.bitbylogic.apibylogic.util.StringModifier;
+import net.bitbylogic.apibylogic.util.item.ItemStackUtil;
 import net.bitbylogic.apibylogic.util.message.format.Formatter;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,175 +18,81 @@ import java.util.HashMap;
 import java.util.List;
 
 @Getter
-@NoArgsConstructor
 public class MenuBuilder {
 
-    private String id;
-    private String title;
-    private int size;
+    private final String id;
 
-    private List<MenuItem> items;
-    private MenuData data;
+    private String title = "Inventory";
+    private int size = 9;
+
+    private List<MenuItem> items = new ArrayList<>();
+    private MenuData data = new MenuData();
 
     private Menu menu;
 
-    public MenuBuilder(String id, String title, Rows rows) {
-        this(id, title, rows.getSize());
+    public MenuBuilder(@NonNull String id) {
+        this.id = id;
     }
 
-    public MenuBuilder(String id, String title, int size) {
+    public MenuBuilder(@NonNull String id, @NonNull String title, @NonNull MenuRows menuRows) {
+        this(id, title, menuRows.getSize());
+    }
+
+    public MenuBuilder(@NonNull String id, @NonNull String title, int size) {
         this.id = id;
         this.title = title;
         this.size = size;
-
-        this.items = new ArrayList<>();
-        this.data = new MenuData();
     }
 
-    public MenuBuilder setTitle(String title) {
+    public MenuBuilder title(String title) {
         this.title = title;
         return this;
     }
 
-    public MenuBuilder setSize(int size) {
+    public MenuBuilder size(int size) {
         this.size = size;
         return this;
     }
 
-    public MenuBuilder addItem(MenuItem item) {
+    public MenuBuilder withItem(@NonNull MenuItem item) {
         if (items == null) {
             items = new ArrayList<>();
+        }
+
+        if(item.getSlots().isEmpty()) {
+            data.getItemStorage().add(item);
+            return this;
         }
 
         items.add(item);
         return this;
     }
 
-    public MenuBuilder setItems(List<MenuItem> items) {
-        this.items = items;
+    public MenuBuilder withItems(List<MenuItem> items) {
+        for (MenuItem item : items) {
+            if(item.getSlots().isEmpty()) {
+                data.getItemStorage().add(item);
+                continue;
+            }
+
+            items.add(item);
+        }
         return this;
     }
 
-    public MenuBuilder setData(MenuData data) {
+    public MenuBuilder data(MenuData data) {
         this.data = data;
         return this;
     }
 
-    public Menu getMenu() {
-        Preconditions.checkNotNull(title, "Invalid/Missing Title");
+    public Menu build() {
+        Preconditions.checkNotNull(title, "Invalid title");
         Preconditions.checkState(size % 9 == 0, "Size must be multiple of 9");
 
-        if (menu == null) {
-            menu = new Menu(title, size);
-        }
-
-        menu.setData(data);
-        menu.setId(id);
-
-        menu.getItems().clear();
-        items.forEach(menuItem -> {
-            if (menuItem.getSlots().isEmpty()) {
-                menu.getData().getItemStorage().add(menuItem);
-            } else {
-                menu.addItem(menuItem);
-            }
-        });
+        menu = new Menu(id, title, size, data);
+        items.forEach(menuItem -> menu.addItem(menuItem));
 
         return menu;
-    }
-
-    /**
-     * Create a Menu from a configuration section.
-     *
-     * @param section   The ConfigurationSection.
-     * @param modifiers The Placeholders.
-     * @return This builder.
-     */
-    public MenuBuilder fromConfiguration(ConfigurationSection section, StringModifier... modifiers) {
-        List<StringModifier> modifierList = new ArrayList<>(Arrays.asList(modifiers));
-
-        id = section.getName();
-        title = Formatter.format(Preconditions.checkNotNull(Formatter.format(section.getString("Title"), modifierList.toArray(new StringModifier[]{})), "Invalid/Missing Title"));
-        size = section.getInt("Size");
-
-        data = new MenuData();
-
-        data.getModifiers().addAll(modifierList);
-        data.getValidSlots().addAll(section.getIntegerList("Valid-Slots"));
-
-        ConfigurationSection metaDataSection = section.getConfigurationSection("Metadata");
-
-        if (metaDataSection != null) {
-            for (String metaKey : metaDataSection.getKeys(false)) {
-                data.getMetaData().put(metaKey, metaDataSection.get(metaKey));
-            }
-        }
-
-        section.getStringList("Flags").forEach(flag -> {
-            data.addFlag(MenuFlag.valueOf(flag.toUpperCase()));
-        });
-
-        ConfigurationSection itemSection = section.getConfigurationSection("Items");
-
-        return loadItemsFromConfig(itemSection, modifierList.toArray(new StringModifier[]{}));
-    }
-
-    /**
-     * Load Menu Items from a ConfigurationSection.
-     *
-     * @param section   The ConfigurationSection.
-     * @param modifiers The Modifiers.
-     * @return This builder.
-     */
-    public MenuBuilder loadItemsFromConfig(ConfigurationSection section, StringModifier... modifiers) {
-        if (section == null) {
-            return null;
-        }
-
-        items = new ArrayList<>();
-
-        for (String identifier : section.getKeys(false)) {
-            ItemStack item = ItemStackUtil.getItemStackFromConfig(section.getConfigurationSection(identifier));
-            MenuItem menuItem = new MenuItem(identifier, item, new ArrayList<>(), section.getBoolean(identifier + ".Update", false));
-            menuItem.setItemSection(section.getConfigurationSection(identifier));
-
-            if (!section.getStringList(identifier + ".Actions").isEmpty()) {
-                HashMap<MenuClickActionType, String> internalActions = new HashMap<>();
-                section.getStringList(identifier + ".Actions").forEach(action -> {
-                    String[] data = action.split(":");
-                    MenuClickActionType type = MenuClickActionType.parseType(data[0]);
-                    internalActions.put(type, data[1]);
-                });
-                menuItem.setInternalActions(internalActions);
-            }
-
-            ConfigurationSection metaDataSection = section.getConfigurationSection(identifier + ".Metadata");
-
-            if (metaDataSection != null) {
-                for (String metaKey : metaDataSection.getKeys(false)) {
-                    menuItem.getMetaData().put(metaKey, metaDataSection.getString(metaKey));
-                }
-            }
-
-            if (section.getBoolean(identifier + ".Filler", false)) {
-                data.setFillerItem(menuItem);
-                continue;
-            }
-
-            if (!section.getIntegerList(identifier + ".Slots").isEmpty()) {
-                menuItem.getSlots().addAll(section.getIntegerList(identifier + ".Slots"));
-            } else {
-                int slot = section.getInt(identifier + ".Slot", -1);
-
-                if (slot != -1) {
-                    menuItem.addSlot(slot);
-                }
-            }
-
-            items.add(menuItem);
-        }
-
-        return this;
     }
 
 }

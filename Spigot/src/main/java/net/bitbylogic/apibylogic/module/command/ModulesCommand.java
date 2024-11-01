@@ -14,6 +14,7 @@ import org.bukkit.command.CommandSender;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @CommandAlias("module|mdl|modules|mdls")
 @CommandPermission("apibylogic.command.module")
@@ -44,12 +45,14 @@ public class ModulesCommand extends BaseCommand {
     @CommandPermission("apibylogic.command.module.reload")
     @CommandCompletion("@moduleIds")
     public void onReload(CommandSender sender, String moduleId) {
-        Module module = moduleManager.getModuleByID(moduleId);
+        Optional<Module> optionalModule = moduleManager.getModuleByID(moduleId);
 
-        if (module == null) {
+        if (optionalModule.isEmpty()) {
             sender.sendMessage(Formatter.error("Modules", "Invalid module."));
             return;
         }
+
+        Module module = optionalModule.get();
 
         if (!module.isEnabled()) {
             sender.sendMessage(Formatter.error("Modules", "That module isn't enabled."));
@@ -65,12 +68,14 @@ public class ModulesCommand extends BaseCommand {
     @CommandPermission("apibylogic.command.module.enable")
     @CommandCompletion("@moduleIds")
     public void onEnable(CommandSender sender, String moduleId) {
-        Module module = moduleManager.getModuleByID(moduleId);
+        Optional<Module> optionalModule = moduleManager.getModuleByID(moduleId);
 
-        if (module == null) {
+        if (optionalModule.isEmpty()) {
             sender.sendMessage(Formatter.error("Modules", "Invalid module."));
             return;
         }
+
+        Module module = optionalModule.get();
 
         if (module.isEnabled()) {
             sender.sendMessage(Formatter.error("Modules", "That module isn't disabled."));
@@ -84,12 +89,14 @@ public class ModulesCommand extends BaseCommand {
     @CommandPermission("apibylogic.command.module.disable")
     @CommandCompletion("@moduleIds")
     public void onDisable(CommandSender sender, String moduleId) {
-        Module module = moduleManager.getModuleByID(moduleId);
+        Optional<Module> optionalModule = moduleManager.getModuleByID(moduleId);
 
-        if (module == null) {
+        if (optionalModule.isEmpty()) {
             sender.sendMessage(Formatter.error("Modules", "Invalid module."));
             return;
         }
+
+        Module module = optionalModule.get();
 
         if (!module.isEnabled()) {
             sender.sendMessage(Formatter.error("Modules", "That module isn't enabled."));
@@ -103,12 +110,14 @@ public class ModulesCommand extends BaseCommand {
     @CommandPermission("apibylogic.command.module.debug")
     @CommandCompletion("@moduleIds")
     public void onDebug(CommandSender sender, String moduleId) {
-        Module module = moduleManager.getModuleByID(moduleId);
+        Optional<Module> optionalModule = moduleManager.getModuleByID(moduleId);
 
-        if (module == null) {
+        if (optionalModule.isEmpty()) {
             sender.sendMessage(Formatter.error("Modules", "Invalid module."));
             return;
         }
+
+        Module module = optionalModule.get();
 
         if (!module.isDebug()) {
             module.setDebug(true);
@@ -124,12 +133,14 @@ public class ModulesCommand extends BaseCommand {
     @CommandPermission("apibylogic.command.module.toggle")
     @CommandCompletion("@moduleIds")
     public void onToggle(CommandSender sender, String moduleId) {
-        Module module = moduleManager.getModuleByID(moduleId);
+        Optional<Module> optionalModule = moduleManager.getModuleByID(moduleId);
 
-        if (module == null) {
+        if (optionalModule.isEmpty()) {
             sender.sendMessage(Formatter.error("Modules", "Invalid module."));
             return;
         }
+
+        Module module = optionalModule.get();
 
         if (module.isEnabled()) {
             module.setEnabled(false);
@@ -147,12 +158,14 @@ public class ModulesCommand extends BaseCommand {
     @CommandPermission("apibylogic.command.module.tasks")
     @CommandCompletion("@moduleIds")
     public void onTasks(CommandSender sender, String moduleId, @Default("1") int page) {
-        Module module = moduleManager.getModuleByID(moduleId);
+        Optional<Module> optionalModule = moduleManager.getModuleByID(moduleId);
 
-        if (module == null) {
+        if (optionalModule.isEmpty()) {
             sender.sendMessage(Formatter.error("Modules", "Invalid module."));
             return;
         }
+
+        Module module = optionalModule.get();
 
         if(module.getTasks().isEmpty()) {
             sender.sendMessage(Formatter.error("Module", module.getModuleData().getName() + " has no active tasks."));

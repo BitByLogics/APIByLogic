@@ -11,10 +11,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -146,14 +143,20 @@ public class ModuleManager {
      * @param clazz The Module's class.
      * @return An instance of the Module.
      */
-    public <T extends Module> T getModuleInstance(Class<T> clazz) {
+    public <T extends Module> Optional<T> getModuleInstance(Class<T> clazz) {
         for (Module module : modules.values()) {
-            if (module.getClass() == clazz) {
-                return (T) module;
+            if (module.getClass() != clazz) {
+                continue;
+            }
+
+            try {
+                return Optional.of((T) module);
+            } catch(ClassCastException e) {
+                return Optional.empty();
             }
         }
 
-        return null;
+        return Optional.empty();
     }
 
     /**
@@ -162,25 +165,31 @@ public class ModuleManager {
      * @param moduleID The Module's ID.
      */
     public void enableModule(String moduleID) {
-        Module module = getModuleByID(moduleID);
+        Optional<Module> optionalModule = getModuleByID(moduleID);
 
-        if (module == null) {
+        if (optionalModule.isEmpty()) {
             plugin.getLogger().log(Level.WARNING, "[Module Manager]: Invalid Module ID '" + moduleID + "'.");
             return;
         }
 
-        if (!module.isEnabled()) {
-            List<String> disabledModules = plugin.getConfig().getStringList("disabled-modules");
-            disabledModules.remove(module.getModuleData().getId());
-            plugin.getConfig().set("disabled-modules", disabledModules);
-            plugin.saveConfig();
-            module.setEnabled(true);
-            module.reloadConfig();
-            module.loadConfigPaths();
-            module.onEnable();
-            module.getCommands().forEach(commandManager::registerCommand);
-            Bukkit.getPluginManager().registerEvents(module, plugin);
+        Module module = optionalModule.get();
+
+        if (module.isEnabled()) {
+            return;
         }
+
+        List<String> disabledModules = plugin.getConfig().getStringList("disabled-modules");
+        disabledModules.remove(module.getModuleData().getId());
+
+        plugin.getConfig().set("disabled-modules", disabledModules);
+        plugin.saveConfig();
+
+        module.setEnabled(true);
+        module.reloadConfig();
+        module.loadConfigPaths();
+        module.onEnable();
+        module.getCommands().forEach(commandManager::registerCommand);
+        Bukkit.getPluginManager().registerEvents(module, plugin);
     }
 
     /**
@@ -189,25 +198,30 @@ public class ModuleManager {
      * @param moduleID The Module's ID.
      */
     public void disableModule(String moduleID) {
-        Module module = getModuleByID(moduleID);
+        Optional<Module> optionalModule = getModuleByID(moduleID);
 
-        if (module == null) {
+        if (optionalModule.isEmpty()) {
             plugin.getLogger().log(Level.WARNING, "[Module Manager]: Invalid Module ID '" + moduleID + "'.");
             return;
         }
 
-        if (module.isEnabled()) {
-            List<String> disabledModules = plugin.getConfig().getStringList("disabled-modules");
-            disabledModules.add(module.getModuleData().getId());
-            plugin.getConfig().set("disabled-modules", disabledModules);
-            plugin.saveConfig();
-            module.setEnabled(false);
-            module.onDisable();
-            module.getTasks().forEach(ModuleTask::cancel);
-            module.getListeners().forEach(HandlerList::unregisterAll);
-            module.getCommands().forEach(commandManager::unregisterCommand);
-            HandlerList.unregisterAll(module);
+        Module module = optionalModule.get();
+
+        if (!module.isEnabled()) {
+            return;
         }
+
+        List<String> disabledModules = plugin.getConfig().getStringList("disabled-modules");
+        disabledModules.add(module.getModuleData().getId());
+        plugin.getConfig().set("disabled-modules", disabledModules);
+        plugin.saveConfig();
+
+        module.setEnabled(false);
+        module.onDisable();
+        module.getTasks().forEach(ModuleTask::cancel);
+        module.getListeners().forEach(HandlerList::unregisterAll);
+        module.getCommands().forEach(commandManager::unregisterCommand);
+        HandlerList.unregisterAll(module);
     }
 
     /**
@@ -216,8 +230,8 @@ public class ModuleManager {
      * @param id The Module's ID.
      * @return The Module instance.
      */
-    public Module getModuleByID(String id) {
-        return modules.values().stream().filter(module -> module.getModuleData().getId().equalsIgnoreCase(id)).findFirst().orElse(null);
+    public Optional<Module> getModuleByID(String id) {
+        return modules.values().stream().filter(module -> module.getModuleData().getId().equalsIgnoreCase(id)).findFirst();
     }
 
     private <T extends Module> List<ModulePendingTask<Module>> getPendingTasks(Class<T> moduleClass) {

@@ -1,11 +1,11 @@
-package net.bitbylogic.apibylogic.util.config;
+package net.bitbylogic.apibylogic.util.config.configurable;
 
 import lombok.NonNull;
 import lombok.Setter;
 import net.bitbylogic.apibylogic.util.Pair;
-import net.bitbylogic.apibylogic.util.config.data.ConfigKeyData;
-import net.bitbylogic.apibylogic.util.config.wrapper.LogicConfigWrapper;
-import net.bitbylogic.apibylogic.util.config.wrapper.impl.DefaultConfigWrapper;
+import net.bitbylogic.apibylogic.util.config.configurable.data.ConfigKeyData;
+import net.bitbylogic.apibylogic.util.config.configurable.wrapper.LogicConfigWrapper;
+import net.bitbylogic.apibylogic.util.config.configurable.wrapper.impl.DefaultConfigWrapper;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -96,7 +96,7 @@ public class Configurable {
             LogicConfigWrapper wrapper = wrapperId.isEmpty() ? DEFAULT_WRAPPER
                     : valueWrappers.getOrDefault(wrapperId, DEFAULT_WRAPPER);
 
-            if (!config.isSet(path)) {
+            if (!config.isSet(finalPath)) {
                 if (wrapper == null) {
                     config.set(finalPath, object);
                     return;
@@ -136,6 +136,10 @@ public class Configurable {
             String finalPath = globalPrefix == null ? path : globalPrefix + path;
             LogicConfigWrapper wrapper = wrapperId.isEmpty() ? DEFAULT_WRAPPER
                     : valueWrappers.getOrDefault(wrapperId, DEFAULT_WRAPPER);
+
+            if(config.isSet(finalPath)) {
+                return;
+            }
 
             if (wrapper == null) {
                 config.set(finalPath, object);

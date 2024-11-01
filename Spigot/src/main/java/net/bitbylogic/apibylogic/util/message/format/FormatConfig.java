@@ -3,7 +3,7 @@ package net.bitbylogic.apibylogic.util.message.format;
 import lombok.Getter;
 import lombok.NonNull;
 import net.bitbylogic.apibylogic.util.LivePlaceholder;
-import net.bitbylogic.apibylogic.util.config.Configurable;
+import net.bitbylogic.apibylogic.util.config.configurable.Configurable;
 
 import java.io.File;
 import java.util.regex.Pattern;
@@ -19,6 +19,7 @@ public class FormatConfig extends Configurable {
                 pair("Patterns.Placeholder", "%.+?%"),
                 pair("Patterns.Format", "<([a-zA-Z0-9 _]+)>(.*?)</\\1>|<([a-zA-Z0-9 _]+)#(.*?)>(.*?)</\\3>"),
                 pair("Patterns.Hex", "#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})"),
+                pair("Patterns.Spigot-Hex", "§x(§[a-fA-F0-9]){6}§r"),
                 pair("Command", " <c#primary>/%command%</c> &8─ <c#secondary>%description%</c>"),
                 pair("Rich-Command.Text", " <c#primary>/%command%</c>"),
                 pair("Rich-Command.Hover", "<c#secondary>%description%</c>"),
@@ -49,6 +50,10 @@ public class FormatConfig extends Configurable {
 
     public Pattern getHexPattern() {
         return Pattern.compile(getConfigValue("Patterns.Hex"));
+    }
+
+    public Pattern getSpigotHexPattern() {
+        return Pattern.compile(getConfigValue("Patterns.Spigot-Hex"));
     }
 
 }

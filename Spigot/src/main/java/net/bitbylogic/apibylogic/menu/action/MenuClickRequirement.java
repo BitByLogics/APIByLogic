@@ -1,9 +1,10 @@
 package net.bitbylogic.apibylogic.menu.action;
 
+import lombok.NonNull;
 import org.bukkit.entity.Player;
 
 public interface MenuClickRequirement {
 
-    boolean canClick(Player player);
+    boolean canClick(@NonNull Player player);
 
 }

@@ -23,11 +23,9 @@ public class MenuListener implements Listener {
             return;
         }
 
-        if (!(topInventory.getHolder() instanceof Menu)) {
+        if (!(topInventory.getHolder() instanceof Menu menu)) {
             return;
         }
-
-        Menu menu = (Menu) topInventory.getHolder();
 
         if (event.getClick() == ClickType.NUMBER_KEY && event.getClickedInventory() == topInventory) {
             event.setCancelled(true);
@@ -52,7 +50,7 @@ public class MenuListener implements Listener {
             return;
         }
 
-        if (!menu.getItem(topInventory, event.getSlot()).isPresent() && (event.getCursor() == null || event.getCursor().getType() == Material.AIR) && menu.getData().hasFlag(MenuFlag.ALLOW_REMOVAL)) {
+        if (menu.getItem(topInventory, event.getSlot()).isEmpty() && (event.getCursor() == null || event.getCursor().getType() == Material.AIR) && menu.getData().hasFlag(MenuFlag.ALLOW_REMOVAL)) {
             return;
         }
 
@@ -75,11 +73,9 @@ public class MenuListener implements Listener {
     public void onTransfer(InventoryMoveItemEvent event) {
         Inventory inventory = event.getDestination();
 
-        if (!(inventory.getHolder() instanceof Menu)) {
+        if (!(inventory.getHolder() instanceof Menu menu)) {
             return;
         }
-
-        Menu menu = (Menu) inventory.getHolder();
 
         event.setCancelled(!menu.getData().hasFlag(MenuFlag.ALLOW_INPUT));
     }
@@ -89,11 +85,9 @@ public class MenuListener implements Listener {
         Inventory inventory = event.getInventory();
         Inventory bottomInventory = InventoryUtil.getViewInventory(event, "getBottomInventory");
 
-        if (!(inventory.getHolder() instanceof Menu)) {
+        if (!(inventory.getHolder() instanceof Menu menu)) {
             return;
         }
-
-        Menu menu = (Menu) inventory.getHolder();
 
         if (inventory == bottomInventory && menu.getData().hasFlag(MenuFlag.LOWER_INTERACTION)) {
             return;
@@ -110,10 +104,10 @@ public class MenuListener implements Listener {
             return;
         }
 
-        menu.getActivePlayers().add(event.getPlayer().getUniqueId());
+        menu.getViewers().add(event.getPlayer().getUniqueId());
 
         if (menu.getTitleUpdateTask() != null && !menu.getTitleUpdateTask().isActive()) {
-            menu.getTitleUpdateTask().startTask();
+            menu.getTitleUpdateTask().start();
         }
 
         if (menu.getUpdateTask() == null || menu.getUpdateTask().isActive()) {
@@ -127,19 +121,17 @@ public class MenuListener implements Listener {
     public void onClose(InventoryCloseEvent event) {
         Inventory inventory = event.getInventory();
 
-        if (!(inventory.getHolder() instanceof Menu)) {
+        if (!(inventory.getHolder() instanceof Menu menu)) {
             return;
         }
 
-        Menu menu = (Menu) inventory.getHolder();
-
-        menu.getActivePlayers().remove(event.getPlayer().getUniqueId());
+        menu.getViewers().remove(event.getPlayer().getUniqueId());
 
         if (event.getViewers().stream().filter(p -> !p.getUniqueId().equals(event.getPlayer().getUniqueId())).count() == 0) {
             menu.getUpdateTask().cancelTask();
 
             if (menu.getTitleUpdateTask() != null) {
-                menu.getTitleUpdateTask().cancelTask();
+                menu.getTitleUpdateTask().cancel();
             }
         }
 

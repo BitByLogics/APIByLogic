@@ -55,7 +55,7 @@ public class RuntimeMenusManager {
                     return;
                 }
 
-                Menu menu = new MenuBuilder().fromConfiguration(loadedMenuFile.getConfigurationSection(key)).getMenu();
+                Menu menu = Menu.getFromConfig(loadedMenuFile.getConfigurationSection(key)).get();
                 loadedMenus.put(key, menu);
             });
         }

@@ -4,41 +4,31 @@ import com.cryptomorin.xseries.reflection.XReflection;
 import com.cryptomorin.xseries.reflection.minecraft.MinecraftPackage;
 import com.google.common.collect.Lists;
 import lombok.NonNull;
-import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.util.Format;
-import net.bitbylogic.apibylogic.util.NumberUtil;
 import net.bitbylogic.apibylogic.util.StringModifier;
 import net.bitbylogic.apibylogic.util.message.format.Formatter;
-import net.md_5.bungee.api.ChatColor;
 import net.minecraft.locale.LocaleLanguage;
-import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.*;
+import org.bukkit.inventory.meta.BlockStateMeta;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.potion.PotionType;
-import org.bukkit.profile.PlayerProfile;
-import org.bukkit.profile.PlayerTextures;
 
 import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public class ItemStackUtil {
 
+    private static final ItemStackConfigParser CONFIG_PARSER = new ItemStackConfigParser();
     private static final NamespacedKey SPAWNER_KEY = new NamespacedKey("apibylogic", "abl_spawner");
 
     /**
@@ -49,171 +39,21 @@ public class ItemStackUtil {
      * @param modifiers Modifiers to replace in the name/lore.
      * @return New ItemStack instance.
      */
-    public static ItemStack getItemStackFromConfig(ConfigurationSection section, StringModifier... modifiers) {
-        int amount = section.getInt("Amount", 1);
-        ItemStack stack = new ItemStack(Material.valueOf(Formatter.format(section.getString("Material", "BARRIER"), modifiers)), amount);
-        ItemMeta meta = stack.getItemMeta();
+    public static ItemStack getFromConfig(@NonNull ConfigurationSection section, StringModifier... modifiers) {
+        Optional<ItemStack> optionalItem = CONFIG_PARSER.parseFrom(section);
 
-        if (meta == null) {
-            return null;
+        if(optionalItem.isEmpty()) {
+            return new ItemStack(Material.OAK_LOG);
         }
 
-        // Define the items name
-        if (section.getString("Name") != null) {
-            meta.setDisplayName(Formatter.format(section.getString("Name"), modifiers));
-        }
+        ItemStack item = optionalItem.get();
+        updateItem(item, modifiers);
 
-        List<String> lore = Lists.newArrayList();
-
-        // Define the items lore
-        section.getStringList("Lore").forEach(string ->
-                lore.add(Formatter.format(string, modifiers)));
-
-        meta.setLore(lore);
-
-        // Add flags to hide potion effects/attributes
-        section.getStringList("Flags").forEach(flag -> {
-            meta.addItemFlags(ItemFlag.valueOf(flag.toUpperCase()));
-        });
-
-        // Add persistent data keys
-        if (!section.getStringList("Custom-Data").isEmpty()) {
-            section.getStringList("Custom-Data").forEach(data -> {
-                String[] splitData = data.split(":");
-                meta.getPersistentDataContainer().set(new NamespacedKey(APIByLogic.getInstance(), splitData[0]), PersistentDataType.STRING, splitData[1]);
-            });
-        }
-
-        // Make the item glow
-        if (section.getBoolean("Glow")) {
-            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-        }
-
-        if(section.getBoolean("Hide-Tooltip")) {
-            meta.setHideTooltip(true);
-        }
-
-        // If leather armor, apply dye color if defined
-        if (stack.getType().name().startsWith("LEATHER_") && section.getString("Dye-Color") != null) {
-            LeatherArmorMeta leatherArmorMeta = (LeatherArmorMeta) stack.getItemMeta();
-            java.awt.Color color = ChatColor.of(section.getString("Dye-Color")).getColor();
-            leatherArmorMeta.setColor(Color.fromRGB(color.getRed(), color.getGreen(), color.getBlue()));
-            stack.setItemMeta(leatherArmorMeta);
-        }
-
-        stack.setItemMeta(meta);
-
-        // If the item is a potion, apply potion data
-        if (stack.getType() == Material.SPLASH_POTION || stack.getType() == Material.POTION) {
-            ConfigurationSection potionSection = section.getConfigurationSection("Potion-Data");
-
-            if (potionSection != null) {
-                boolean vanilla = potionSection.getBoolean("Vanilla", false);
-                PotionMeta potionMeta = (PotionMeta) stack.getItemMeta();
-                String potionType = potionSection.getString("Type", "POISON");
-
-                if (vanilla) {
-                    potionMeta.setBasePotionType(PotionType.valueOf(potionType));
-                } else {
-                    potionMeta.addCustomEffect(new PotionEffect(PotionEffectType.getByName(potionType), potionSection.getInt("Duration", 20), potionSection.getInt("Amplifier", 1) - 1), true);
-                }
-
-                stack.setItemMeta(potionMeta);
-            }
-        }
-
-        if (stack.getType() == Material.TIPPED_ARROW) {
-            PotionMeta potionMeta = (PotionMeta) stack.getItemMeta();
-            potionMeta.setBasePotionType(PotionType.valueOf(section.getString("Arrow-Type", "POISON")));
-            stack.setItemMeta(potionMeta);
-        }
-
-        // If the item is a player head, apply skin
-        if (section.getString("Skull-Name") != null && stack.getType() == Material.PLAYER_HEAD) {
-            SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
-            skullMeta.setOwner(Formatter.format(section.getString("Skull-Name", "Notch"), modifiers));
-            stack.setItemMeta(skullMeta);
-        }
-
-        if (section.getString("Skull-URL") != null) {
-            SkullMeta skullMeta = (SkullMeta) stack.getItemMeta();
-            PlayerProfile skullProfile = Bukkit.createPlayerProfile("Notch");
-            PlayerTextures textures = skullProfile.getTextures();
-            textures.clear();
-            try {
-                textures.setSkin(URI.create(section.getString("Skull-URL")).toURL());
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }
-            skullProfile.setTextures(textures);
-            skullMeta.setOwnerProfile(skullProfile);
-            stack.setItemMeta(skullMeta);
-        }
-
-        // Used for resourcepacks, to display custom models
-        if (section.getInt("Model-Data") != 0) {
-            ItemMeta updatedMeta = stack.getItemMeta();
-            updatedMeta.setCustomModelData(section.getInt("Model-Data"));
-            stack.setItemMeta(updatedMeta);
-        }
-
-        ItemMeta updatedMeta = stack.getItemMeta();
-
-        // Apply enchantments
-        section.getStringList("Enchantments").forEach(enchant -> {
-            String[] data = enchant.split(":");
-            NamespacedKey key = NamespacedKey.minecraft(data[0].trim());
-            Enchantment enchantment = Enchantment.getByKey(key);
-            int level = 0;
-
-            if (NumberUtil.isNumber(data[1])) {
-                level = Integer.parseInt(data[1]);
-            }
-
-            if (enchantment == null) {
-                Bukkit.getLogger().warning(String.format("[APIByLogic] (ItemStackUtil): Skipped enchantment '%s', invalid enchant.", enchant));
-                return;
-            }
-
-            updatedMeta.addEnchant(enchantment, level, true);
-        });
-
-        stack.setItemMeta(updatedMeta);
-
-        return stack;
+        return item;
     }
 
-    public static void saveItemStackToConfiguration(ItemStack item, ConfigurationSection section) {
-        if (item == null || section == null) {
-            return;
-        }
-
-        ItemMeta meta = item.getItemMeta();
-        String path = "Item.";
-
-        section.set(path + "Material", item.getType().name());
-        section.set(path + "Amount", item.getAmount());
-
-        if (meta != null) {
-            if (meta.getDisplayName() != null) {
-                section.set(path + "Name", meta.getDisplayName());
-            }
-
-            if (meta.getLore() != null) {
-                section.set(path + "Lore", meta.getLore());
-            }
-
-            section.set(path + "Model-Data", meta.getCustomModelData());
-        }
-
-        List<String> enchantData = new ArrayList<>();
-
-        item.getEnchantments().forEach((enchantment, integer) -> {
-            enchantData.add(enchantment.getKey().getKey() + ":" + integer);
-        });
-
-        section.set(path + "Enchantments", enchantData);
+    public static void saveToConfig(@NonNull ConfigurationSection section, @NonNull ItemStack item) {
+        CONFIG_PARSER.parseTo(section, item);
     }
 
     /**

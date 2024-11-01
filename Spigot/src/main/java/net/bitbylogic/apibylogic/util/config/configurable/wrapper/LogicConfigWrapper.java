@@ -1,4 +1,4 @@
-package net.bitbylogic.apibylogic.util.config.wrapper;
+package net.bitbylogic.apibylogic.util.config.configurable.wrapper;
 
 import lombok.NonNull;
 import org.bukkit.configuration.file.FileConfiguration;

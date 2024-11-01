@@ -1,4 +1,4 @@
-package net.bitbylogic.apibylogic.menu;
+package net.bitbylogic.apibylogic.menu.item;
 
 import org.bukkit.inventory.ItemStack;
 

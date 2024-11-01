@@ -2,6 +2,7 @@ package net.bitbylogic.apibylogic.util.message.format;
 
 import lombok.Getter;
 import lombok.NonNull;
+import me.clip.placeholderapi.PlaceholderAPI;
 import net.bitbylogic.apibylogic.APIByLogic;
 import net.bitbylogic.apibylogic.database.redis.listener.ListenerComponent;
 import net.bitbylogic.apibylogic.util.Placeholder;
@@ -14,6 +15,7 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.awt.*;
@@ -52,6 +54,28 @@ public class Formatter {
         }
 
         return coloredMessage;
+    }
+
+    public static String reverseColors(@NonNull String message) {
+        Matcher matcher = config.getSpigotHexPattern().matcher(message);
+
+        while (matcher.find()) {
+            String match = matcher.group();
+
+            StringBuilder hexColor = new StringBuilder("#");
+            for (int i = 2; i < match.length(); i += 2) {
+                hexColor.append(match.charAt(i + 1));
+            }
+
+            message = message.replaceFirst(match, hexColor.toString());
+        }
+
+        return message.replace("§", "&");
+    }
+
+    public static ChatColor colorToChatColor(@NonNull org.bukkit.Color color) {
+        String hex = String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
+        return ChatColor.of(hex);
     }
 
     /**
@@ -99,6 +123,10 @@ public class Formatter {
 
         for (FormatData data : formatData) {
             formattedMessage = data.format(formattedMessage);
+        }
+
+        if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            formattedMessage = PlaceholderAPI.setPlaceholders(null, formattedMessage);
         }
 
         return color(formattedMessage);
