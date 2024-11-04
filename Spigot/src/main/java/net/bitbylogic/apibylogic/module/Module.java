@@ -1,6 +1,7 @@
 package net.bitbylogic.apibylogic.module;
 
 import co.aikar.commands.BaseCommand;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -37,6 +38,8 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
     private final List<Configurable> configurables = new ArrayList<>();
 
     private boolean enabled = true;
+
+    @Setter(AccessLevel.NONE)
     private boolean debug = false;
 
     private YamlConfiguration config;
@@ -117,15 +120,18 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         }
     }
 
-    protected void registerModuleListener(Listener listener) {
-        if (listeners.contains(listener)) {
-            return;
+    protected void registerModuleListener(Listener... listeners) {
+        for (Listener listener : listeners) {
+            if (this.listeners.contains(listener)) {
+                return;
+            }
+
+            moduleManager.getDependencyManager().injectDependencies(listener, true);
+            this.listeners.add(listener);
+
+            Bukkit.getServer().getPluginManager().registerEvents(listener, plugin);
+            debug(Level.INFO, String.format("Successfully registered listener: %s", listener.getClass().getSimpleName()));
         }
-
-        moduleManager.getDependencyManager().injectDependencies(listener, true);
-        listeners.add(listener);
-
-        Bukkit.getServer().getPluginManager().registerEvents(listener, plugin);
     }
 
     protected void registerConfigurable(Configurable configurable) {
@@ -136,6 +142,24 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         configurables.add(configurable);
     }
 
+    public File getModuleFile(@NonNull String name) {
+        if(!getDataFolder().exists()) {
+            getDataFolder().mkdirs();
+        }
+
+        File file = new File(getDataFolder() + File.separator + name);
+
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                log(Level.WARNING, String.format("Unable to create module file '%s' for module '%s'!", name, getModuleData().getId()));
+            }
+        }
+
+        return file;
+    }
+
     /**
      * Return a configuration file from the module's folder.
      *
@@ -143,6 +167,10 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
      * @return The newly created configuration file instance.
      */
     public YamlConfiguration getModuleConfig(String name) {
+        if(!getDataFolder().exists()) {
+            getDataFolder().mkdirs();
+        }
+
         File tempConfigFile = new File(getDataFolder() + File.separator + name + ".yml");
 
         if (!tempConfigFile.exists()) {
@@ -393,5 +421,20 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         }
 
         configurables.forEach(Configurable::loadConfigPaths);
+    }
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+
+        List<String> debugModules = plugin.getConfig().getStringList("Debug-Modules");
+
+        if(!debug) {
+            debugModules.remove(getModuleData().getId());
+        } else {
+            debugModules.add(getModuleData().getId());
+        }
+
+        plugin.getConfig().set("Debug-Modules", debugModules);
+        plugin.saveConfig();
     }
 }

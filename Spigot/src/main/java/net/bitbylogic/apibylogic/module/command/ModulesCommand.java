@@ -79,6 +79,7 @@ public class ModulesCommand extends BaseCommand {
 
         if (module.isEnabled()) {
             sender.sendMessage(Formatter.error("Modules", "That module isn't disabled."));
+            return;
         }
 
         sender.sendMessage(Formatter.success("Modules", "Enabling module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> %s<c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> %s<c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId()));
@@ -100,6 +101,7 @@ public class ModulesCommand extends BaseCommand {
 
         if (!module.isEnabled()) {
             sender.sendMessage(Formatter.error("Modules", "That module isn't enabled."));
+            return;
         }
 
         sender.sendMessage(Formatter.success("Modules", "Disabling module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> %s<c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> %s<c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId()));
@@ -143,13 +145,11 @@ public class ModulesCommand extends BaseCommand {
         Module module = optionalModule.get();
 
         if (module.isEnabled()) {
-            module.setEnabled(false);
             sender.sendMessage(Formatter.success("Modules", "Disabling module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> %s<c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> %s<c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId()));
             moduleManager.disableModule(module.getModuleData().getId());
             return;
         }
 
-        module.setEnabled(true);
         sender.sendMessage(Formatter.success("Modules", "Enabling module! <c#separator>(</c><c#success_secondary>Name</c><c#separator>:</c> <c#success_highlight>%s</c><c#separator>,</c> <c#success_secondary>ID</c><c#separator>:</c> <c#succes_highlight>%s</c><c#separator>)</c>", module.getModuleData().getName(), module.getModuleData().getId()));
         moduleManager.enableModule(module.getModuleData().getId());
     }

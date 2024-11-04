@@ -103,11 +103,13 @@ public class ModuleManager {
         dependencyManager.registerDependency(moduleClass, module);
         dependencyManager.injectDependencies(module, true);
 
+        module.setDebug(plugin.getConfig().getStringList("Debug-Modules").contains(module.getModuleData().getId()));
+
         module.onRegister();
         module.getCommands().forEach(command -> dependencyManager.injectDependencies(command, true));
         modules.put(moduleClass.getSimpleName(), module);
 
-        if (!plugin.getConfig().getStringList("disabled-modules").contains(module.getModuleData().getId())) {
+        if (!plugin.getConfig().getStringList("Disabled-Modules").contains(module.getModuleData().getId())) {
             module.setEnabled(true);
             module.onEnable();
             module.getCommands().forEach(commandManager::registerCommand);
@@ -178,10 +180,10 @@ public class ModuleManager {
             return;
         }
 
-        List<String> disabledModules = plugin.getConfig().getStringList("disabled-modules");
+        List<String> disabledModules = plugin.getConfig().getStringList("Disabled-Modules");
         disabledModules.remove(module.getModuleData().getId());
 
-        plugin.getConfig().set("disabled-modules", disabledModules);
+        plugin.getConfig().set("Disabled-Modules", disabledModules);
         plugin.saveConfig();
 
         module.setEnabled(true);
@@ -189,6 +191,7 @@ public class ModuleManager {
         module.loadConfigPaths();
         module.onEnable();
         module.getCommands().forEach(commandManager::registerCommand);
+        module.getListeners().forEach(listener -> Bukkit.getPluginManager().registerEvents(listener, plugin));
         Bukkit.getPluginManager().registerEvents(module, plugin);
     }
 
@@ -211,14 +214,15 @@ public class ModuleManager {
             return;
         }
 
-        List<String> disabledModules = plugin.getConfig().getStringList("disabled-modules");
+        List<String> disabledModules = plugin.getConfig().getStringList("Disabled-Modules");
         disabledModules.add(module.getModuleData().getId());
-        plugin.getConfig().set("disabled-modules", disabledModules);
+
+        plugin.getConfig().set("Disabled-Modules", disabledModules);
         plugin.saveConfig();
 
         module.setEnabled(false);
         module.onDisable();
-        module.getTasks().forEach(ModuleTask::cancel);
+        new ArrayList<>(module.getTasks()).forEach(ModuleTask::cancel);
         module.getListeners().forEach(HandlerList::unregisterAll);
         module.getCommands().forEach(commandManager::unregisterCommand);
         HandlerList.unregisterAll(module);
