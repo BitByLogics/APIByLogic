@@ -355,7 +355,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         moduleTask.setModuleInstance(this);
         tasks.add(moduleTask);
 
-        moduleTask.getBukkitRunnable().runTaskTimer(plugin, delay, repeat);
+        moduleTask.getBukkitRunnable().runTaskTimerAsynchronously(plugin, delay, repeat);
         return moduleTask.getTaskId();
     }
 
@@ -370,7 +370,7 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         moduleTask.setModuleInstance(this);
         tasks.add(moduleTask);
 
-        moduleTask.getBukkitRunnable().runTaskTimer(plugin, delay, repeat);
+        moduleTask.getBukkitRunnable().runTaskTimerAsynchronously(plugin, delay, repeat);
         return moduleTask.getTaskId();
     }
 

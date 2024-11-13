@@ -233,11 +233,11 @@ public class HikariTable<O extends HikariObject> {
                 log("Unable to delete foreign data.");
                 e.printStackTrace();
             }
-
-            onDataDeleted(object);
         }
 
         hikariAPI.executeStatement(statements.getDataDeleteStatement(object), rs -> {
+            onDataDeleted(object);
+
             if (redisClient != null) {
                 redisClient.sendListenerMessage(new ListenerComponent("", "hikari-update")
                         .addData("updateType", HikariRedisUpdateType.DELETE).addData("objectId", statements.getId(object).toString()));
