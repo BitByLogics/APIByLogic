@@ -33,6 +33,10 @@ public enum StringProcessor {
         return tc.isPrimitive() ? value.byteValue() : value;
     }),
     BOOLEAN(new Class[]{Boolean.class, boolean.class}, (tc, s) -> {
+        if (NumberUtil.isNumber(s)) {
+            return s.equalsIgnoreCase("1"); // 1 = true, anything else is false
+        }
+
         Boolean value = Boolean.parseBoolean(s);
         return tc.isPrimitive() ? value.booleanValue() : value;
     }),
