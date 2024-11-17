@@ -98,6 +98,8 @@ public class HikariTable<O extends HikariObject> {
                     loadObject(result, o -> o.ifPresent(data -> {
                         dataMap.put(statements.getId(data), data);
                         data.setOwningTable(this);
+
+                        onDataAdded(data);
                     }));
                 } while (result.next());
 
@@ -473,6 +475,7 @@ public class HikariTable<O extends HikariObject> {
                         if (cache && !dataMap.containsKey(statements.getId(data))) {
                             dataMap.put(statements.getId(data), data);
                             data.setOwningTable(this);
+                            onDataAdded(data);
                         }
 
                         consumer.accept(Optional.of(data));
