@@ -48,21 +48,23 @@ public class ModuleManager {
                     continue;
                 }
 
-                Iterator<ModuleTask> moduleTaskIterator = module.getTasks().iterator();
+                synchronized (module.getTasks()) {
+                    Iterator<ModuleTask> moduleTaskIterator = module.getTasks().iterator();
 
-                while (moduleTaskIterator.hasNext()) {
-                    ModuleTask task = moduleTaskIterator.next();
+                    while (moduleTaskIterator.hasNext()) {
+                        ModuleTask task = moduleTaskIterator.next();
 
-                    if (task == null) {
+                        if (task == null) {
+                            moduleTaskIterator.remove();
+                            continue;
+                        }
+
+                        if (task.getTaskId() == -1 || task.isActive()) {
+                            continue;
+                        }
+
                         moduleTaskIterator.remove();
-                        continue;
                     }
-
-                    if (task.getTaskId() == -1 || task.isActive()) {
-                        continue;
-                    }
-
-                    moduleTaskIterator.remove();
                 }
             }
         }, 0, 20 * 30);

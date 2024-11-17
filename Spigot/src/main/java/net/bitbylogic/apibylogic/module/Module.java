@@ -203,7 +203,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTask(plugin);
         return moduleTask.getTaskId();
@@ -218,7 +220,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTask(plugin);
         return moduleTask.getTaskId();
@@ -233,7 +237,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTaskAsynchronously(plugin);
         return moduleTask.getTaskId();
@@ -248,7 +254,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTaskAsynchronously(plugin);
         return moduleTask.getTaskId();
@@ -263,7 +271,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTaskLater(plugin, delay);
         return moduleTask.getTaskId();
@@ -278,7 +288,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTaskLater(plugin, delay);
         return moduleTask.getTaskId();
@@ -293,7 +305,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTaskTimer(plugin, delay, repeat);
         return moduleTask.getTaskId();
@@ -308,7 +322,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTaskTimer(plugin, delay, repeat);
         return moduleTask.getTaskId();
@@ -323,7 +339,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTaskLaterAsynchronously(plugin, delay);
         return moduleTask.getTaskId();
@@ -338,7 +356,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTaskLaterAsynchronously(plugin, delay);
         return moduleTask.getTaskId();
@@ -353,7 +373,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTaskTimerAsynchronously(plugin, delay, repeat);
         return moduleTask.getTaskId();
@@ -368,7 +390,9 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
         };
 
         moduleTask.setModuleInstance(this);
-        tasks.add(moduleTask);
+        synchronized (tasks) {
+            tasks.add(moduleTask);
+        }
 
         moduleTask.getBukkitRunnable().runTaskTimerAsynchronously(plugin, delay, repeat);
         return moduleTask.getTaskId();
