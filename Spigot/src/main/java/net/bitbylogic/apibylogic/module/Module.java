@@ -370,6 +370,11 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
             public void run() {
                 runnable.run();
             }
+
+            @Override
+            public void cancel() {
+                super.cancel();
+            }
         };
 
         moduleTask.setModuleInstance(this);
@@ -399,7 +404,22 @@ public abstract class Module extends Configurable implements ModuleInterface, Li
     }
 
     public Set<ModuleTask> getTasksById(@NonNull String id) {
-        return tasks.stream().filter(moduleTask -> moduleTask.getId().equalsIgnoreCase(id)).collect(Collectors.toUnmodifiableSet());
+        synchronized (tasks) {
+            return tasks.stream().filter(moduleTask -> moduleTask.getId().equalsIgnoreCase(id)).collect(Collectors.toUnmodifiableSet());
+        }
+    }
+
+    public void cancelTask(@NonNull String id) {
+        synchronized (tasks) {
+            tasks.stream().filter(moduleTask -> moduleTask.getId().equalsIgnoreCase(id)).findFirst().ifPresent(task -> {
+                if(task.getRunnable() != null) {
+                    task.getRunnable().cancel();
+                    return;
+                }
+
+                task.cancel();
+            });
+        }
     }
 
     public void log(Level level, String message) {

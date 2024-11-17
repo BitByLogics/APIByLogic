@@ -6,6 +6,7 @@ import lombok.NonNull;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -18,6 +19,8 @@ public abstract class ModuleTask extends ModuleRunnable {
     @Getter(AccessLevel.PROTECTED)
     private final BukkitRunnable bukkitRunnable;
 
+    private final @Nullable ModuleRunnable runnable;
+
     @Setter(AccessLevel.PROTECTED)
     private Module moduleInstance;
 
@@ -27,6 +30,7 @@ public abstract class ModuleTask extends ModuleRunnable {
     public ModuleTask(@NonNull String id, @NonNull ModuleTaskType type) {
         this.id = id;
         this.type = type;
+        this.runnable = null;
 
         this.bukkitRunnable = new BukkitRunnable() {
             @Override
@@ -35,22 +39,19 @@ public abstract class ModuleTask extends ModuleRunnable {
                     taskId = getTaskId();
 
                     if (moduleInstance == null) {
-                        ModuleTask.this.cancel();
                         cancel();
                         return;
                     }
 
                     ModuleTask.this.run();
-                } catch(Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
-                    ModuleTask.this.cancel();
                     cancel();
                 }
             }
 
             @Override
             public synchronized void cancel() throws IllegalStateException {
-                super.cancel();
                 ModuleTask.this.cancel();
             }
         };
@@ -59,6 +60,8 @@ public abstract class ModuleTask extends ModuleRunnable {
     public ModuleTask(@NonNull String id, @NonNull ModuleTaskType type, @NonNull ModuleRunnable runnable) {
         this.id = id;
         this.type = type;
+
+        this.runnable = runnable;
         runnable.setTask(this);
 
         this.bukkitRunnable = new BukkitRunnable() {
@@ -68,22 +71,19 @@ public abstract class ModuleTask extends ModuleRunnable {
                     taskId = getTaskId();
 
                     if (moduleInstance == null) {
-                        runnable.cancel();
-                        cancel();
+                        this.cancel();
                         return;
                     }
 
                     runnable.run();
-                } catch(Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
-                    runnable.cancel();
-                    cancel();
+                    this.cancel();
                 }
             }
 
             @Override
             public synchronized void cancel() throws IllegalStateException {
-                super.cancel();
                 runnable.cancel();
             }
         };
@@ -91,7 +91,7 @@ public abstract class ModuleTask extends ModuleRunnable {
 
     @Override
     public void cancel() {
-        if (Bukkit.getScheduler().isCurrentlyRunning(taskId)) {
+        if (Bukkit.getScheduler().isCurrentlyRunning(taskId) || Bukkit.getScheduler().isQueued(taskId)) {
             Bukkit.getScheduler().cancelTask(taskId);
         }
 
@@ -99,11 +99,13 @@ public abstract class ModuleTask extends ModuleRunnable {
             return;
         }
 
-        moduleInstance.getTasks().remove(this);
+        synchronized (moduleInstance.getTasks()) {
+            moduleInstance.getTasks().remove(this);
+        }
     }
 
     public boolean isActive() {
-        if(taskId == -1) {
+        if (taskId == -1) {
             return true;
         }
 

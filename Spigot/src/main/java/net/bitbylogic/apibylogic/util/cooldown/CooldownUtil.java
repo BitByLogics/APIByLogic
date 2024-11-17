@@ -47,27 +47,29 @@ public class CooldownUtil {
     }
 
     public static void attemptRun(String key, UUID identifier, String cooldownTime, Runnable runnable) {
-        if (!hasCooldown(key, identifier)) {
-            List<Cooldown> currentCooldowns = COOLDOWNS.getOrDefault(identifier, new ArrayList<>());
-            Cooldown cooldown = new Cooldown(identifier, key, TimeConverter.convert(cooldownTime));
-            currentCooldowns.add(cooldown);
-            COOLDOWNS.put(identifier, currentCooldowns);
-            runnable.run();
-            return;
-        }
-
-        getCooldown(key, identifier).ifPresent(cooldown -> {
-            if (cooldown.isActive()) {
+        synchronized (COOLDOWNS) {
+            if (!hasCooldown(key, identifier)) {
+                List<Cooldown> currentCooldowns = COOLDOWNS.getOrDefault(identifier, new ArrayList<>());
+                Cooldown cooldown = new Cooldown(identifier, key, TimeConverter.convert(cooldownTime));
+                currentCooldowns.add(cooldown);
+                COOLDOWNS.put(identifier, currentCooldowns);
+                runnable.run();
                 return;
             }
 
-            List<Cooldown> currentCooldowns = COOLDOWNS.getOrDefault(identifier, new ArrayList<>());
-            Cooldown newCooldown = new Cooldown(identifier, key, TimeConverter.convert(cooldownTime));
-            currentCooldowns.remove(cooldown);
-            currentCooldowns.add(newCooldown);
-            COOLDOWNS.put(identifier, currentCooldowns);
-            runnable.run();
-        });
+            getCooldown(key, identifier).ifPresent(cooldown -> {
+                if (cooldown.isActive()) {
+                    return;
+                }
+
+                List<Cooldown> currentCooldowns = COOLDOWNS.getOrDefault(identifier, new ArrayList<>());
+                Cooldown newCooldown = new Cooldown(identifier, key, TimeConverter.convert(cooldownTime));
+                currentCooldowns.remove(cooldown);
+                currentCooldowns.add(newCooldown);
+                COOLDOWNS.put(identifier, currentCooldowns);
+                runnable.run();
+            });
+        }
     }
 
     public static void endCooldown(String key, UUID identifier) {
@@ -76,7 +78,7 @@ public class CooldownUtil {
     }
 
     public static Optional<Cooldown> getCooldown(@NonNull String key, @NonNull UUID identifier) {
-        return COOLDOWNS.getOrDefault(identifier, new ArrayList<>()).stream().filter(cd -> cd.getCooldownId().equalsIgnoreCase(key)).findFirst();
+        return COOLDOWNS.getOrDefault(identifier, new ArrayList<>()).stream().filter(cd -> cd != null && cd.getCooldownId().equalsIgnoreCase(key)).findFirst();
     }
 
     public static boolean hasCooldown(String key, UUID identifier) {

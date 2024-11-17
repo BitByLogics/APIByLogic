@@ -2,6 +2,7 @@ package net.bitbylogic.apibylogic.util.cooldown;
 
 import lombok.Getter;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Getter
@@ -25,6 +26,19 @@ public class Cooldown {
 
     public long getTimeUntilExpired() {
         return isActive() ? (timeOfCreation + duration) - System.currentTimeMillis() : -1;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (object == null || getClass() != object.getClass()) return false;
+        Cooldown cooldown = (Cooldown) object;
+        return timeOfCreation == cooldown.timeOfCreation && duration == cooldown.duration && Objects.equals(identifier, cooldown.identifier) && Objects.equals(cooldownId, cooldown.cooldownId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(identifier, cooldownId, timeOfCreation, duration);
     }
 
 }
