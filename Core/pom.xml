@@ -7,7 +7,7 @@
     <parent>
         <groupId>net.bitbylogic</groupId>
         <artifactId>APIByLogic</artifactId>
-        <version>2024.6</version>
+        <version>2024.11</version>
     </parent>
 
     <artifactId>APIByLogic-Core</artifactId>
