@@ -33,21 +33,6 @@ public class HikariColumnData {
         return statementData.columnName();
     }
 
-    public String getFormattedData() {
-        if (foreignKeyData != null) {
-            String dataType = foreignKeyData.dataType();
-            Class<?> fieldClass = field.getType();
-
-            if (fieldClass.isAssignableFrom(List.class) || fieldClass.isAssignableFrom(Map.class)) {
-                dataType = "LONGTEXT";
-            }
-
-            return getColumnName() + " " + dataType + " " + (foreignKeyData.allowNull() ? "" : "NOT NULL") + (foreignKeyData.autoIncrement() ? " AUTO_INCREMENT" : "");
-        }
-
-        return getColumnName() + " " + statementData.dataType() + " " + (statementData.allowNull() ? "" : "NOT NULL") + (statementData.autoIncrement() ? " AUTO_INCREMENT" : "");
-    }
-
     public NamedParameter asNamedParameter(@Nullable Object value) {
         return new NamedParameter(field.getName(), field.getType(), value);
     }

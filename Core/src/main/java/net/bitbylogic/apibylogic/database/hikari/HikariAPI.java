@@ -28,11 +28,14 @@ import java.util.function.Consumer;
 public class HikariAPI {
 
     private final HikariDataSource hikari;
+    private final SQLType type;
 
     private final HashMap<String, Pair<String, HikariTable<?>>> tables = new HashMap<>();
     private final HashMap<HikariTable<?>, List<String>> pendingTables = new HashMap<>();
 
     public HikariAPI(String address, String database, String port, String username, String password) {
+        this.type = SQLType.MYSQL;
+
         HikariConfig config = new HikariConfig();
         config.setMaximumPoolSize(10);
         config.setConnectionTimeout(Duration.ofSeconds(30).toMillis());
@@ -50,6 +53,8 @@ public class HikariAPI {
     }
 
     public HikariAPI(File databaseFile) {
+        this.type = SQLType.SQLITE;
+
         if (!databaseFile.exists()) {
             try {
                 databaseFile.createNewFile();
@@ -61,12 +66,13 @@ public class HikariAPI {
         }
 
         HikariConfig config = new HikariConfig();
-        config.setMaximumPoolSize(10);
+        config.setMaximumPoolSize(1);
         config.setConnectionTimeout(Duration.ofSeconds(30).toMillis());
         config.setJdbcUrl("jdbc:sqlite:" + databaseFile);
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        config.setConnectionInitSql("PRAGMA foreign_keys = ON;");
 
         hikari = new HikariDataSource(config);
     }

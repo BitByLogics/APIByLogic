@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import net.bitbylogic.apibylogic.database.hikari.HikariAPI;
 import net.bitbylogic.apibylogic.database.hikari.annotation.HikariStatementData;
+import net.bitbylogic.apibylogic.database.hikari.data.statements.HikariStatements;
 import net.bitbylogic.apibylogic.database.hikari.processor.HikariFieldProcessor;
 import net.bitbylogic.apibylogic.database.hikari.processor.impl.DefaultHikariFieldProcessor;
 import net.bitbylogic.apibylogic.database.hikari.redis.HikariRedisUpdateType;
@@ -50,7 +51,7 @@ public class HikariTable<O extends HikariObject> {
         this.loadData = loadData;
         this.objectClass = objectClass;
         this.dataMap = new ConcurrentHashMap<>();
-        this.statements = new HikariStatements<>(table);
+        this.statements = hikariAPI.getType().getStatements(table);
 
         try {
             Constructor<O> emptyConstructor = ReflectionUtil.findConstructor(objectClass);
