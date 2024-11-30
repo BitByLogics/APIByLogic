@@ -63,7 +63,7 @@ public class HikariAPI {
         HikariConfig config = new HikariConfig();
         config.setMaximumPoolSize(10);
         config.setConnectionTimeout(Duration.ofSeconds(30).toMillis());
-        config.setDataSourceClassName("jdbc:sqlite:" + databaseFile);
+        config.setJdbcUrl("jdbc:sqlite:" + databaseFile);
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");

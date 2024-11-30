@@ -574,26 +574,18 @@ public class Menu implements InventoryHolder, Cloneable {
     }
 
     public boolean saveToConfig(@NonNull ConfigurationSection section, boolean overwrite) {
-        ConfigurationSection menuSection = section.isSet(id) ? section.getConfigurationSection(id) : section.createSection(id);
-
-        if (menuSection == null) {
-            APIByLogic.getInstance().getLogger().log(Level.SEVERE, "Unable to save Menu '" + id + "', invalid menu section.");
-            return false;
-        }
-
-        ConfigurationSection itemsSection = menuSection.isSet("Items") ?
-                menuSection.getConfigurationSection("Items") : menuSection.createSection("Items");
+        ConfigurationSection itemsSection = section.getConfigurationSection(id + ".Items");
 
         if (itemsSection != null) {
             items.stream().filter(MenuItem::isSaved).forEach(menuItem -> menuItem.saveToConfig(itemsSection, overwrite));
             data.getItemStorage().stream().filter(MenuItem::isSaved).forEach(menuItem -> menuItem.saveToConfig(itemsSection, overwrite));
         }
 
-        if (!overwrite && section.isSet(id)) {
+        if (section.isSet(id) && !overwrite) {
             return false;
         }
 
-        CONFIG_PARSER.parseTo(menuSection, this);
+        CONFIG_PARSER.parseTo(section.createSection(id), this);
         return true;
     }
 
