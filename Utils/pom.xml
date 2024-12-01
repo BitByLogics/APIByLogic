@@ -7,7 +7,7 @@
     <parent>
         <groupId>net.bitbylogic</groupId>
         <artifactId>APIByLogic</artifactId>
-        <version>2024.11</version>
+        <version>2024.12</version>
     </parent>
 
     <artifactId>LogicUtils</artifactId>
@@ -74,7 +74,7 @@
         <dependency>
             <groupId>net.bitbylogic</groupId>
             <artifactId>APIByLogic-Spigot</artifactId>
-            <version>2024.11</version>
+            <version>2024.12</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
