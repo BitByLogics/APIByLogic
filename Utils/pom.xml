@@ -6,11 +6,11 @@
 
     <parent>
         <groupId>net.bitbylogic</groupId>
-        <artifactId>APIByLogic</artifactId>
+        <artifactId>apibylogic</artifactId>
         <version>2024.12</version>
     </parent>
 
-    <artifactId>LogicUtils</artifactId>
+    <artifactId>logicutils</artifactId>
     <packaging>jar</packaging>
 
     <name>LogicUtils</name>
@@ -73,7 +73,7 @@
         <!-- APIByLogic -->
         <dependency>
             <groupId>net.bitbylogic</groupId>
-            <artifactId>APIByLogic-Spigot</artifactId>
+            <artifactId>apibylogic-spigot</artifactId>
             <version>2024.12</version>
             <scope>provided</scope>
         </dependency>

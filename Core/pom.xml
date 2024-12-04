@@ -6,11 +6,11 @@
 
     <parent>
         <groupId>net.bitbylogic</groupId>
-        <artifactId>APIByLogic</artifactId>
+        <artifactId>apibylogic</artifactId>
         <version>2024.12</version>
     </parent>
 
-    <artifactId>APIByLogic-Core</artifactId>
+    <artifactId>apibylogic-core</artifactId>
     <name>APIByLogic Core</name>
 
     <properties>

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.bitbylogic</groupId>
-    <artifactId>APIByLogic</artifactId>
+    <artifactId>apibylogic</artifactId>
     <version>2024.12</version>
     <packaging>pom</packaging>
 
@@ -22,6 +22,14 @@
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub BitByLogics Maven Packages</name>
+            <url>https://maven.pkg.github.com/bitbylogics/apibylogic</url>
+        </repository>
+    </distributionManagement>
 
     <dependencies>
         <!-- Lombok -->

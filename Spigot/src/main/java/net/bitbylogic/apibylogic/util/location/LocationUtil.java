@@ -1,5 +1,6 @@
 package net.bitbylogic.apibylogic.util.location;
 
+import lombok.NonNull;
 import net.bitbylogic.apibylogic.APIByLogic;
 import org.apache.commons.lang.math.IntRange;
 import org.bukkit.*;
@@ -183,6 +184,14 @@ public class LocationUtil {
         return new IntRange(cornerA.getX(), cornerB.getX()).containsDouble(location.getX())
                 && new IntRange(cornerA.getY(), cornerB.getY()).containsDouble(location.getY())
                 &&  new IntRange(cornerA.getZ(), cornerB.getZ()).containsDouble(location.getZ());
+    }
+
+    public static Location toBlockLocation(@NonNull Location location) {
+        Location blockLocation = location.clone();
+        blockLocation.setX(location.getBlockX());
+        blockLocation.setY(location.getBlockY());
+        blockLocation.setZ(location.getBlockZ());
+        return location;
     }
 
 }

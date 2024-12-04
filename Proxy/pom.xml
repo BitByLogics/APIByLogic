@@ -6,11 +6,11 @@
 
     <parent>
         <groupId>net.bitbylogic</groupId>
-        <artifactId>APIByLogic</artifactId>
-        <version>2024.11</version>
+        <artifactId>apibylogic</artifactId>
+        <version>2024.12</version>
     </parent>
 
-    <artifactId>APIByLogic-Proxy</artifactId>
+    <artifactId>apibylogic-proxy</artifactId>
     <packaging>jar</packaging>
 
     <name>APIByLogic Proxy</name>
@@ -94,8 +94,8 @@
         <!-- APIByLogic Core -->
         <dependency>
             <groupId>net.bitbylogic</groupId>
-            <artifactId>APIByLogic-Core</artifactId>
-            <version>2024.11</version>
+            <artifactId>apibylogic-core</artifactId>
+            <version>2024.12</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
